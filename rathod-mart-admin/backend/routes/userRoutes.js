@@ -1,7 +1,7 @@
 // backend/routes/userRoutes.js
 import express from "express";
 import { body, param, validationResult } from "express-validator";
-import { uploadProfile } from "../middleware/imageUpload.js";
+// import { uploadProfile } from "../middleware/imageUpload.js"; // REMOVED: Direct Upload Used
 import { protect, protectAdmin, admin } from "../middleware/authMiddleware.js";
 
 import {
@@ -11,7 +11,7 @@ import {
   updateUser,
   deleteUser,
   loginUser,
-  loginAdminUser, // 1. Import new admin login controller
+  loginAdminUser,
   registerUser,
   logoutUser,
   logoutAdmin,
@@ -31,7 +31,7 @@ const validate = (req, res, next) => {
   next(err);
 };
 
-// -------------------- RULES (No changes) --------------------
+// -------------------- RULES --------------------
 const createUserRules = [
   body("name").trim().notEmpty().withMessage("Name is required"),
   body("email").isEmail().withMessage("Valid email is required"),
@@ -57,33 +57,29 @@ const updateUserRules = [
 const idParamRule = [param("id").isMongoId().withMessage("Invalid user id")];
 
 // -------------------- PUBLIC AUTH ROUTES --------------------
-router.post("/login", loginUser); // Customer login
-router.post("/admin-login", loginAdminUser); // 2. Add Admin login route
+router.post("/login", loginUser);
+router.post("/admin-login", loginAdminUser);
 router.post("/register", registerUser);
-router.post("/logout", logoutUser); // Customer logout
-router.post("/admin-logout", logoutAdmin); // Admin logout
+router.post("/logout", logoutUser);
+router.post("/admin-logout", logoutAdmin);
 
 // -------------------- CUSTOMER PROFILE ROUTES (Protected) --------------------
 router
   .route("/profile")
-  .get(protect, getUserProfile) // Uses 'protect' (jwt)
-  .put(protect, uploadProfile, updateUserProfile);
+  .get(protect, getUserProfile)
+  .put(protect, updateUserProfile); // Removed uploadProfile middleware
 
-// -------------------- ADMIN PROFILE ROUTE (Protected Admin) ------------------
-router.route("/admin-profile").get(protectAdmin, getUserProfile); // 3. Add Admin profile route (uses 'protectAdmin' and 'admin_jwt')
+// -------------------- ADMIN PROFILE ROUTE ------------------
+router.route("/admin-profile").get(protectAdmin, getUserProfile);
 
 // -------------------- ADMIN CRUD ROUTES (Protected + Admin Only) --------------------
-router
-  .route("/")
-  .get(protectAdmin, admin, getUsers)
-  .post(
-    protectAdmin,
-    admin,
-    uploadProfile,
-    createUserRules,
-    validate,
-    createUser
-  );
+router.route("/").get(protectAdmin, admin, getUsers).post(
+  protectAdmin,
+  admin,
+  createUserRules, // Removed uploadProfile middleware
+  validate,
+  createUser
+);
 
 router
   .route("/:id")
@@ -91,8 +87,7 @@ router
   .put(
     protectAdmin,
     admin,
-    uploadProfile,
-    updateUserRules,
+    updateUserRules, // Removed uploadProfile middleware
     validate,
     updateUser
   )

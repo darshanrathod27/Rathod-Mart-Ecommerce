@@ -24,8 +24,10 @@ import {
   CardMedia,
   CardActions,
   Tooltip,
-  Autocomplete, // ✅ Added Autocomplete Import
+  Autocomplete,
+  LinearProgress,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import SaveIcon from "@mui/icons-material/Save";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
@@ -39,6 +41,8 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useDropzone } from "react-dropzone";
 import { inventoryService } from "../../services/inventoryService";
+import { uploadToCloudinary } from "../../utils/uploadCloudinary"; // Helper import
+import toast from "react-hot-toast";
 import {
   StyledFormDialog,
   formHeaderStyles,
@@ -80,6 +84,7 @@ export default function ProductForm({
   embedded = false,
 }) {
   const isEdit = Boolean(initialData && initialData._id);
+  const [isUploading, setIsUploading] = useState(false);
 
   const {
     control,
@@ -120,13 +125,17 @@ export default function ProductForm({
     },
   });
 
+  // Images state management
   const [images, setImages] = useState(() =>
     (initialData?.images || []).map((img) => ({
       ...img,
       id: img._id || img.filename || `${Date.now()}-${Math.random()}`,
       previewUrl: img.fullUrl || img.fullImageUrl || img.url || img.imageUrl,
+      // Store filename as publicId for existing images to handle deletion
+      filename: img.filename,
     }))
   );
+
   const [deleteFilenames, setDeleteFilenames] = useState([]);
   const [variants, setVariants] = useState([]);
   const [selectedVariant, setSelectedVariant] = useState("");
@@ -153,6 +162,7 @@ export default function ProductForm({
     }
   }, [basePrice, discountPerc, setValue]);
 
+  // Reset form and fetch variants on open/change
   useEffect(() => {
     if (initialData) {
       reset({
@@ -190,6 +200,7 @@ export default function ProductForm({
           id: img._id || img.filename || `${Date.now()}-${Math.random()}`,
           previewUrl:
             img.fullUrl || img.fullImageUrl || img.url || img.imageUrl,
+          filename: img.filename,
         }))
       );
       setDeleteFilenames([]);
@@ -211,17 +222,18 @@ export default function ProductForm({
     }
   }, [initialData, reset, isEdit]);
 
+  // Dropzone for adding images
   const onDrop = useCallback(
     (acceptedFiles) => {
       if (!acceptedFiles || acceptedFiles.length === 0) return;
 
       const newFileObjects = acceptedFiles.map((file) => ({
         id: `${file.name}-${Date.now()}-${Math.random()}`,
-        _localFile: file,
+        _localFile: file, // Store file for upload later
         previewUrl: URL.createObjectURL(file),
         alt: file.name,
         isPrimary: false,
-        filename: file.name,
+        filename: null, // No filename yet
       }));
 
       setImages((prevImages) => [...prevImages, ...newFileObjects]);
@@ -235,9 +247,11 @@ export default function ProductForm({
     multiple: true,
   });
 
-  const handleRemoveImage = (id, filename) => {
+  // Handle removing image (mark for deletion if it exists on server)
+  const handleRemoveImage = (id) => {
     const imageToRemove = images.find((img) => img.id === id);
     if (imageToRemove && imageToRemove.filename && !imageToRemove._localFile) {
+      // If it has a filename and no local file, it's on Cloudinary. Mark for delete.
       setDeleteFilenames((prev) => [...prev, imageToRemove.filename]);
     }
     setImages((prevImages) => prevImages.filter((img) => img.id !== id));
@@ -273,52 +287,61 @@ export default function ProductForm({
     if (e.key === "Enter" && tag !== "textarea") e.preventDefault();
   };
 
+  // --- SUBMIT HANDLER (Unsigned Upload) ---
   const submit = async (vals) => {
-    const fd = new FormData();
-    fd.append("name", vals.name);
-    fd.append("description", vals.description);
-    if (vals.shortDescription)
-      fd.append("shortDescription", vals.shortDescription);
-    fd.append("category", vals.category);
-    if (vals.brand) fd.append("brand", vals.brand);
-    fd.append("basePrice", String(vals.basePrice));
-    if (vals.discountPrice !== undefined && vals.discountPrice !== null)
-      fd.append("discountPrice", String(vals.discountPrice));
-    if (
-      vals.discountPercentage !== undefined &&
-      vals.discountPercentage !== null
-    )
-      fd.append("discountPercentage", String(vals.discountPercentage));
-    fd.append("status", vals.status || "draft");
-    fd.append("featured", vals.featured ? "true" : "false");
-    fd.append("trending", vals.trending ? "true" : "false");
-    fd.append("isBestOffer", vals.isBestOffer ? "true" : "false");
-    fd.append("tags", JSON.stringify(vals.tags || []));
-    fd.append("features", JSON.stringify(vals.features || []));
+    setIsUploading(true);
+    try {
+      const finalImages = [];
 
-    if (selectedVariant) {
-      fd.append("variantId", selectedVariant);
-    }
-
-    const existingFilenames = [];
-    (images || []).forEach((img) => {
-      if (img._localFile) {
-        fd.append(
-          "images",
-          img._localFile,
-          img._localFile.name || `img-${Date.now()}`
-        );
-      } else if (img.filename) {
-        existingFilenames.push(img.filename);
+      // 1. Upload new local files to Cloudinary
+      for (const img of images) {
+        if (img._localFile) {
+          // Upload to Cloudinary directly
+          const uploaded = await uploadToCloudinary(img._localFile);
+          finalImages.push({
+            url: uploaded.url,
+            filename: uploaded.publicId, // Important for delete later
+            alt: img.alt || vals.name,
+            isPrimary: img.isPrimary,
+            sortOrder: img.sortOrder || 0,
+            variant: selectedVariant || null,
+          });
+        } else {
+          // Existing image, keep as is
+          finalImages.push({
+            url: img.previewUrl,
+            filename: img.filename,
+            alt: img.alt,
+            isPrimary: img.isPrimary,
+            sortOrder: img.sortOrder,
+            variant: img.variant || null,
+          });
+        }
       }
-    });
 
-    if (deleteFilenames.length > 0) {
-      fd.append("deleteFilenames", JSON.stringify(deleteFilenames));
+      // 2. Prepare Payload (JSON Object)
+      const payload = {
+        ...vals,
+        images: finalImages, // Send array of objects
+        deleteFilenames: deleteFilenames, // Send IDs to delete from Cloudinary backend
+        tags: vals.tags,
+        features: vals.features,
+        variantId: selectedVariant || null,
+        featured: Boolean(vals.featured),
+        trending: Boolean(vals.trending),
+        isBestOffer: Boolean(vals.isBestOffer),
+      };
+
+      if (isEdit) payload._id = initialData._id;
+
+      // 3. Send JSON to Backend (onSubmit expects object, backend controller updated to handle JSON)
+      await onSubmit(payload, { isEdit, id: initialData?._id });
+    } catch (error) {
+      console.error("Submission Error:", error);
+      toast.error("Failed to save product. Check console.");
+    } finally {
+      setIsUploading(false);
     }
-
-    if (isEdit) fd.append("_id", initialData._id);
-    await onSubmit(fd, { isEdit, id: initialData?._id });
   };
 
   const formInner = (
@@ -352,7 +375,6 @@ export default function ProductForm({
               )}
             />
 
-            {/* ✅ UPDATED ADVANCED CATEGORY DROPDOWN ✅ */}
             <Controller
               name="category"
               control={control}
@@ -389,7 +411,6 @@ export default function ProductForm({
                 );
               }}
             />
-            {/* ✅ END UPDATE ✅ */}
 
             <Controller
               name="brand"
@@ -564,9 +585,7 @@ export default function ProductForm({
                         <Tooltip title="Remove Image">
                           <IconButton
                             size="small"
-                            onClick={() =>
-                              handleRemoveImage(img.id, img.filename)
-                            }
+                            onClick={() => handleRemoveImage(img.id)}
                             sx={{
                               bgcolor: "rgba(255, 0, 0, 0.6)",
                               color: "white",
@@ -800,9 +819,11 @@ export default function ProductForm({
         variant="contained"
         startIcon={<SaveIcon />}
         sx={submitButtonStyles}
-        disabled={submitting}
+        disabled={submitting || isUploading}
       >
-        {submitting
+        {isUploading
+          ? "Uploading..."
+          : submitting
           ? isEdit
             ? "Updating..."
             : "Saving..."

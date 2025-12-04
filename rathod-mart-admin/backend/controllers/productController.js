@@ -2,13 +2,16 @@
 
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
-import asyncHandler from "../utils/asyncHandler.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 import mongoose from "mongoose";
 import { updateCategoryProductCount } from "./categoryController.js";
-import { uploadToCloudinary } from "../utils/cloudinary.js"; // Cloudinary Helper
+// नोट: deleteFromCloudinary, getPublicIdFromUrl को import करें
+import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
 /* -------------------- Create Product -------------------- */
 export const createProduct = asyncHandler(async (req, res) => {
+  // अब हम images को req.body से JSON array के रूप में प्राप्त करते हैं
+  // Frontend से images: [{ url: '...', filename: '...' }, ...] आ रहा है
   const {
     name,
     description,
@@ -23,6 +26,8 @@ export const createProduct = asyncHandler(async (req, res) => {
     featured,
     trending,
     isBestOffer,
+    images, // JSON Array from Frontend
+    variantId,
   } = req.body;
 
   const cat = await Category.findById(category);
@@ -38,25 +43,19 @@ export const createProduct = asyncHandler(async (req, res) => {
     .replace(/^-|-$/g, "");
   const slug = `${slugBase}-${Date.now().toString(36).slice(-6)}`;
 
-  const images = [];
-  const variantIdForUploads = req.body.variantId || null;
-
-  // --- CLOUDINARY UPLOAD LOGIC ---
-  if (req.files && req.files.length) {
-    for (let i = 0; i < req.files.length; i++) {
-      const f = req.files[i];
-      // Upload buffer to Cloudinary
-      const result = await uploadToCloudinary(f.buffer);
-
-      images.push({
-        url: result.secure_url, // Cloudinary URL (Always accessible)
-        filename: result.public_id, // Cloudinary ID (Used for deletion if needed)
-        alt: `${name} - image ${i + 1}`,
-        isPrimary: i === 0,
-        sortOrder: i,
-        variant: variantIdForUploads || null,
+  // Process Images provided by Frontend
+  const processedImages = [];
+  if (Array.isArray(images)) {
+    images.forEach((img, index) => {
+      processedImages.push({
+        url: img.url,
+        filename: img.filename, // Cloudinary Public ID
+        alt: img.alt || `${name} - image ${index + 1}`,
+        isPrimary: index === 0, // पहला इमेज प्राइमरी होगा
+        sortOrder: index,
+        variant: img.variant || variantId || null,
       });
-    }
+    });
   }
 
   const product = new Product({
@@ -65,25 +64,17 @@ export const createProduct = asyncHandler(async (req, res) => {
     shortDescription,
     category,
     brand,
-    images,
+    images: processedImages,
     basePrice: Number(basePrice || 0),
     discountPrice: discountPrice ? Number(discountPrice) : undefined,
-    tags: Array.isArray(tags)
-      ? tags
-      : typeof tags === "string" && tags
-      ? tags.split(",").map((t) => t.trim())
-      : [],
-    features: Array.isArray(features)
-      ? features
-      : typeof features === "string" && features
-      ? features.split(",").map((t) => t.trim())
-      : [],
+    tags: Array.isArray(tags) ? tags : [],
+    features: Array.isArray(features) ? features : [],
     status: status || "draft",
     slug,
     totalStock: 0,
-    featured: featured === "true" || featured === true,
-    trending: trending === "true" || trending === true,
-    isBestOffer: isBestOffer === "true" || isBestOffer === true,
+    featured: Boolean(featured),
+    trending: Boolean(trending),
+    isBestOffer: Boolean(isBestOffer),
   });
 
   const saved = await product.save();
@@ -91,15 +82,12 @@ export const createProduct = asyncHandler(async (req, res) => {
 
   try {
     if (saved.category) {
-      await updateCategoryProductCount(
-        saved.category._id ? saved.category._id : saved.category
-      );
+      await updateCategoryProductCount(saved.category._id || saved.category);
     }
   } catch (err) {
     console.warn("updateCategoryProductCount failed after create:", err);
   }
 
-  // Cloudinary URLs are absolute, no need for buildFullUrl logic
   res.status(201).json({ success: true, data: saved });
 });
 
@@ -125,10 +113,10 @@ export const getProducts = asyncHandler(async (req, res) => {
   if (category) q.category = category;
   if (status) q.status = status;
 
-  if (typeof featured !== "undefined") q.featured = featured === "true";
-  if (typeof trending !== "undefined") q.trending = trending === "true";
-  if (typeof isBestOffer !== "undefined")
-    q.isBestOffer = isBestOffer === "true";
+  // String/Boolean conversion fix for query params
+  if (featured !== undefined) q.featured = String(featured) === "true";
+  if (trending !== undefined) q.trending = String(trending) === "true";
+  if (isBestOffer !== undefined) q.isBestOffer = String(isBestOffer) === "true";
 
   if (minPrice || maxPrice) {
     q.basePrice = {};
@@ -145,11 +133,11 @@ export const getProducts = asyncHandler(async (req, res) => {
       { brand: searchRegex },
       { description: searchRegex },
       { shortDescription: searchRegex },
+      { tags: searchRegex },
     ];
 
     if (!isNaN(priceAsNumber)) {
       q.$or.push({ basePrice: priceAsNumber });
-      q.$or.push({ discountPrice: priceAsNumber });
     }
   }
 
@@ -157,7 +145,7 @@ export const getProducts = asyncHandler(async (req, res) => {
   const l = Math.min(Math.max(Number(limit) || 12, 1), 100);
 
   const sortObj = {};
-  sortObj[sortBy] = sortOrder === "asc" ? 1 : -1;
+  sortObj[sortBy] = String(sortOrder).toLowerCase() === "asc" ? 1 : -1;
 
   const [items, total] = await Promise.all([
     Product.find(q)
@@ -197,7 +185,6 @@ export const getProducts = asyncHandler(async (req, res) => {
       (prod.images && prod.images[0]) ||
       null;
 
-    // Using Cloudinary URL directly
     const pObj = {
       ...prod,
       primaryImage: primary ? primary.url : null,
@@ -226,7 +213,6 @@ export const getProduct = asyncHandler(async (req, res) => {
     throw e;
   }
 
-  // Ensure fullUrl is just the Cloudinary URL
   prod.images = (prod.images || []).map((img) => ({
     ...img,
     fullUrl: img.url,
@@ -261,67 +247,40 @@ export const updateProduct = asyncHandler(async (req, res) => {
     throw e;
   }
 
-  const oldCategoryId = existing.category ? existing.category.toString() : null;
-  const update = { ...req.body };
+  const {
+    images,
+    deleteFilenames, // Array of public_ids to delete
+    ...updateData
+  } = req.body;
 
-  if (typeof update.tags === "string") {
-    try {
-      update.tags = JSON.parse(update.tags);
-    } catch {
-      update.tags = update.tags.split(",").map((s) => s.trim());
-    }
-  }
-
-  if (typeof update.features === "string") {
-    try {
-      update.features = JSON.parse(update.features);
-    } catch {
-      update.features = update.features.split(",").map((s) => s.trim());
-    }
-  }
-
-  // Handle Deleted Filenames (Remove from Array)
-  if (update.deleteFilenames) {
-    try {
-      const delList =
-        typeof update.deleteFilenames === "string"
-          ? JSON.parse(update.deleteFilenames)
-          : update.deleteFilenames;
-
-      if (Array.isArray(delList) && delList.length) {
-        // Just remove from DB array. Cloudinary deletion is optional for free tier.
-        existing.images = (existing.images || []).filter(
-          (img) => !delList.includes(img.filename)
-        );
+  // 1. Handle Cloudinary Deletion (Real Delete)
+  if (deleteFilenames && Array.isArray(deleteFilenames)) {
+    for (const publicId of deleteFilenames) {
+      if (publicId) {
+        await deleteFromCloudinary(publicId); // Cloudinary se delete
       }
-    } catch (e) {
-      console.warn("deleteFilenames parse error", e);
     }
+    // Remove from DB array
+    existing.images = existing.images.filter(
+      (img) => !deleteFilenames.includes(img.filename)
+    );
   }
 
-  // Handle New Image Uploads via Cloudinary
-  if (req.files && req.files.length) {
-    const startIndex = (existing.images || []).length;
-    const variantIdForUploads = req.body.variantId || update.variantId || null;
-
-    for (let i = 0; i < req.files.length; i++) {
-      const f = req.files[i];
-      // Upload to Cloudinary
-      const result = await uploadToCloudinary(f.buffer);
-
-      existing.images.push({
-        url: result.secure_url,
-        filename: result.public_id,
-        alt: `${existing.name || update.name || ""} - image ${
-          startIndex + i + 1
-        }`,
-        isPrimary: (existing.images || []).length === 0 && i === 0,
-        sortOrder: startIndex + i,
-        variant: variantIdForUploads || null,
-      });
-    }
+  // 2. Handle Adding New/Updating Images
+  if (images && Array.isArray(images)) {
+    // Frontend sends the COMPLETE new list of images.
+    // We map them to the schema structure.
+    existing.images = images.map((img, idx) => ({
+      url: img.url,
+      filename: img.filename,
+      alt: img.alt || updateData.name || existing.name,
+      isPrimary: idx === 0,
+      sortOrder: idx,
+      variant: img.variant || null,
+    }));
   }
 
+  // 3. Update other fields
   const allowed = [
     "name",
     "description",
@@ -339,17 +298,18 @@ export const updateProduct = asyncHandler(async (req, res) => {
   ];
 
   for (const k of allowed) {
-    if (update[k] !== undefined) {
+    if (updateData[k] !== undefined) {
+      // Boolean conversion for specific fields
       if (["featured", "trending", "isBestOffer"].includes(k)) {
-        existing[k] = update[k] === "true" || update[k] === true;
+        existing[k] = updateData[k] === "true" || updateData[k] === true;
       } else {
-        existing[k] = update[k];
+        existing[k] = updateData[k];
       }
     }
   }
 
-  if (update.name && update.name !== existing.name) {
-    existing.slug = `${update.name
+  if (updateData.name && updateData.name !== existing.name) {
+    existing.slug = `${updateData.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "")}-${Date.now().toString(36).slice(-5)}`;
@@ -358,28 +318,18 @@ export const updateProduct = asyncHandler(async (req, res) => {
   await existing.save();
   await existing.populate("category", "name slug");
 
+  // Update Category Counts logic (same as before)
   try {
-    const newCategoryId = existing.category
-      ? (existing.category._id || existing.category).toString()
-      : null;
-
-    if (newCategoryId) {
-      await updateCategoryProductCount(newCategoryId);
-    }
-    if (oldCategoryId && oldCategoryId !== newCategoryId) {
-      await updateCategoryProductCount(oldCategoryId);
+    if (existing.category) {
+      await updateCategoryProductCount(
+        existing.category._id || existing.category
+      );
     }
   } catch (err) {
     console.warn("updateCategoryProductCount failed after update:", err);
   }
 
-  const out = existing.toObject();
-  out.images = (out.images || []).map((img) => ({
-    ...img,
-    fullUrl: img.url, // Cloudinary URL is full
-  }));
-
-  res.json({ success: true, message: "Updated", data: out });
+  res.json({ success: true, message: "Updated", data: existing });
 });
 
 /* -------------------- Delete Product -------------------- */
@@ -391,9 +341,18 @@ export const deleteProduct = asyncHandler(async (req, res) => {
     throw e;
   }
 
+  // 1. Delete All Images from Cloudinary
+  if (p.images && p.images.length > 0) {
+    const deletePromises = p.images
+      .map((img) => img.filename)
+      .filter((id) => id) // Filter out invalid IDs
+      .map((publicId) => deleteFromCloudinary(publicId));
+
+    await Promise.all(deletePromises);
+  }
+
   const categoryId = p.category ? p.category.toString() : null;
 
-  // No need to delete local files. Cloudinary auto-manages or we can ignore.
   await Product.findByIdAndDelete(req.params.id);
 
   try {
@@ -402,7 +361,7 @@ export const deleteProduct = asyncHandler(async (req, res) => {
     console.warn("updateCategoryProductCount failed after delete:", err);
   }
 
-  res.json({ success: true, message: "Product deleted" });
+  res.json({ success: true, message: "Product and images deleted" });
 });
 
 /* -------------------- Reorder Images -------------------- */
@@ -410,13 +369,16 @@ export const reorderImages = asyncHandler(async (req, res) => {
   const { imageFilenames } = req.body;
   const product = await Product.findById(req.params.id);
 
-  if (!product)
-    throw Object.assign(new Error("Product not found"), { statusCode: 404 });
+  if (!product) {
+    const e = new Error("Product not found");
+    e.statusCode = 404;
+    throw e;
+  }
 
   if (!Array.isArray(imageFilenames)) {
-    const err = new Error("imageFilenames must be array");
-    err.statusCode = 400;
-    throw err;
+    const e = new Error("imageFilenames must be array");
+    e.statusCode = 400;
+    throw e;
   }
 
   const newImgs = [];
@@ -444,8 +406,11 @@ export const setPrimaryImage = asyncHandler(async (req, res) => {
   const { filename } = req.body;
   const product = await Product.findById(req.params.id);
 
-  if (!product)
-    throw Object.assign(new Error("Product not found"), { statusCode: 404 });
+  if (!product) {
+    const e = new Error("Product not found");
+    e.statusCode = 404;
+    throw e;
+  }
 
   let found = false;
   product.images.forEach((img) => {
@@ -456,9 +421,9 @@ export const setPrimaryImage = asyncHandler(async (req, res) => {
   });
 
   if (!found) {
-    const err = new Error("filename not found in product images");
-    err.statusCode = 400;
-    throw err;
+    const e = new Error("filename not found in product images");
+    e.statusCode = 400;
+    throw e;
   }
 
   await product.save();

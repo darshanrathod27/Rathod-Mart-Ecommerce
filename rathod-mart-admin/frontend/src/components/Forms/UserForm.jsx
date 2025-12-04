@@ -1,5 +1,5 @@
 // src/components/Forms/UserForm.jsx
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   DialogTitle,
   DialogContent,
@@ -18,6 +18,7 @@ import {
   Grid,
   Divider,
   FormHelperText,
+  Dialog,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
@@ -33,6 +34,8 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useDropzone } from "react-dropzone";
+import ReactCrop from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 
 import {
   StyledFormDialog,
@@ -45,6 +48,7 @@ import {
   sectionHeaderStyles,
 } from "../../theme/FormStyles";
 import { createUser, updateUser } from "../../services/userService";
+import { uploadToCloudinary } from "../../utils/uploadCloudinary"; // Helper import
 import toast from "react-hot-toast";
 
 // --- Validation Schema ---
@@ -60,18 +64,15 @@ const schema = yup.object({
   birthday: yup.string().nullable(),
   role: yup.string().required("Role is required"),
   status: yup.string().required("Status is required"),
-  // Password: Min 6 chars. If it's an edit and field is empty, it's valid (ignored).
   password: yup
     .string()
     .transform((x) => (x === "" ? undefined : x))
     .min(6, "Password must be at least 6 characters")
     .when("$isEdit", (isEdit, schema) => {
-      // If not edit (Create mode), password is required
       return isEdit
         ? schema.optional()
         : schema.required("Password is required");
     }),
-  // Nested Address Object
   address: yup.object({
     street: yup.string().optional(),
     city: yup.string().optional(),
@@ -81,6 +82,41 @@ const schema = yup.object({
   }),
 });
 
+// Helper for cropping
+const getCroppedImg = async (imageSrc, pixelCrop) => {
+  const image = new Image();
+  image.crossOrigin = "anonymous";
+  image.src = imageSrc;
+  await new Promise((resolve) => (image.onload = resolve));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+  const ctx = canvas.getContext("2d");
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+
+  return new Promise((resolve) => {
+    canvas.toBlob(
+      (blob) => {
+        resolve(blob);
+      },
+      "image/jpeg",
+      0.95
+    );
+  });
+};
+
 export default function UserForm({
   open = true,
   initialData,
@@ -89,8 +125,9 @@ export default function UserForm({
   embedded = false,
 }) {
   const isEdit = Boolean(initialData && initialData._id);
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Format date for input type=date (YYYY-MM-DD)
+  // Format date
   const formatDateForInput = (date) => {
     if (!date) return "";
     try {
@@ -107,7 +144,7 @@ export default function UserForm({
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: yupResolver(schema),
-    context: { isEdit }, // Pass context to yup for password validation
+    context: { isEdit },
     defaultValues: {
       name: initialData?.name || "",
       username: initialData?.username || "",
@@ -128,9 +165,16 @@ export default function UserForm({
   });
 
   const [preview, setPreview] = useState(initialData?.profileImage || null);
-  const [fileBlob, setFileBlob] = useState(null);
+  const [fileBlob, setFileBlob] = useState(null); // File to be uploaded
 
-  // Reset form when initialData changes
+  // Crop State
+  const [showCrop, setShowCrop] = useState(false);
+  const [cropSrc, setCropSrc] = useState(null);
+  const [crop, setCrop] = useState();
+  const [completedCrop, setCompletedCrop] = useState();
+  const imgRef = useRef(null);
+
+  // Reset form
   useEffect(() => {
     reset({
       name: initialData?.name || "",
@@ -153,12 +197,12 @@ export default function UserForm({
     setFileBlob(null);
   }, [initialData, reset]);
 
-  // Image Drop Handler
+  // Image Drop
   const onDrop = useCallback((acceptedFiles) => {
     if (!acceptedFiles?.[0]) return;
     const f = acceptedFiles[0];
-    setPreview(URL.createObjectURL(f));
-    setFileBlob(f);
+    setCropSrc(URL.createObjectURL(f));
+    setShowCrop(true);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -172,44 +216,63 @@ export default function UserForm({
     setFileBlob(null);
   };
 
+  // Handle Crop Apply
+  const handleCropApply = async () => {
+    if (!completedCrop || !imgRef.current) return;
+    try {
+      const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+      const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+      const pixelCrop = {
+        x: completedCrop.x * scaleX,
+        y: completedCrop.y * scaleY,
+        width: completedCrop.width * scaleX,
+        height: completedCrop.height * scaleY,
+      };
+
+      const blob = await getCroppedImg(imgRef.current.src, pixelCrop);
+      // Create a new File from blob
+      const file = new File([blob], "profile.jpg", { type: "image/jpeg" });
+
+      setFileBlob(file);
+      setPreview(URL.createObjectURL(file));
+      setShowCrop(false);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to crop image");
+    }
+  };
+
   // Submit Handler
   const internalSubmit = async (values) => {
-    const fd = new FormData();
-
-    // Append top-level values
-    fd.append("name", values.name);
-    fd.append("email", values.email);
-    fd.append("role", values.role);
-    fd.append("status", values.status);
-    if (values.username) fd.append("username", values.username);
-    if (values.phone) fd.append("phone", values.phone);
-    if (values.birthday) fd.append("birthday", values.birthday);
-    if (values.password) fd.append("password", values.password);
-
-    // Append nested address fields
-    if (values.address) {
-      fd.append("address[street]", values.address.street || "");
-      fd.append("address[city]", values.address.city || "");
-      fd.append("address[state]", values.address.state || "");
-      fd.append("address[postalCode]", values.address.postalCode || "");
-      fd.append("address[country]", values.address.country || "");
-    }
-
-    if (fileBlob) {
-      fd.append("image", fileBlob);
-    }
-
+    setIsUploading(true);
     try {
+      let imageUrl = initialData?.profileImage || "";
+
+      // 1. Upload to Cloudinary if new file exists
+      if (fileBlob) {
+        const uploaded = await uploadToCloudinary(fileBlob);
+        imageUrl = uploaded.url; // Unsigned upload
+      }
+
+      // 2. Prepare Payload (JSON)
+      const payload = {
+        ...values,
+        profileImage: imageUrl,
+      };
+
+      // 3. Send to Backend
       if (isEdit) {
-        await updateUser(initialData._id, fd);
+        await updateUser(initialData._id, payload);
         toast.success("User updated successfully");
       } else {
-        await createUser(fd);
+        await createUser(payload);
         toast.success("User created successfully");
       }
       onSaved?.();
     } catch (e) {
       toast.error(e.message || "Operation failed");
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -234,10 +297,6 @@ export default function UserForm({
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
-              "& > *": { minHeight: "unset !important" },
-              "& [data-dropzone], & .dropzone, & .dz": {
-                minHeight: "120px !important",
-              },
             }}
           >
             <input {...getInputProps()} />
@@ -317,18 +376,14 @@ export default function UserForm({
                   variant="body2"
                   sx={{ color: "#66BB6A", textAlign: "center", fontSize: 12.5 }}
                 >
-                  Drag & drop an image here, or click to browse
-                  <br />
-                  <span style={{ fontSize: 11 }}>
-                    Supports: JPG, PNG, GIF (Max 5MB)
-                  </span>
+                  Drag & drop an image here
                 </Typography>
               </Box>
             )}
           </Box>
         </Box>
 
-        {/* --- Personal Details Section --- */}
+        {/* Form Fields... (same as before) */}
         <Typography sx={sectionHeaderStyles}>
           <PersonIcon sx={{ fontSize: 20 }} />
           Personal Details
@@ -342,7 +397,6 @@ export default function UserForm({
                 <TextField
                   {...field}
                   label="Full Name"
-                  placeholder="Enter full name"
                   fullWidth
                   error={!!errors.name}
                   helperText={errors.name?.message}
@@ -359,7 +413,6 @@ export default function UserForm({
                 <TextField
                   {...field}
                   label="Username"
-                  placeholder="e.g. @darshan"
                   fullWidth
                   error={!!errors.username}
                   helperText={errors.username?.message}
@@ -375,9 +428,8 @@ export default function UserForm({
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Email Address"
+                  label="Email"
                   type="email"
-                  placeholder="user@example.com"
                   fullWidth
                   error={!!errors.email}
                   helperText={errors.email?.message}
@@ -393,8 +445,7 @@ export default function UserForm({
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label="Phone Number"
-                  placeholder="+91 99999 99999"
+                  label="Phone"
                   fullWidth
                   error={!!errors.phone}
                   helperText={errors.phone?.message}
@@ -413,10 +464,10 @@ export default function UserForm({
                   label="Birthday"
                   type="date"
                   fullWidth
+                  InputLabelProps={{ shrink: true }}
                   error={!!errors.birthday}
                   helperText={errors.birthday?.message}
                   sx={textFieldStyles}
-                  InputLabelProps={{ shrink: true }}
                 />
               )}
             />
@@ -425,7 +476,6 @@ export default function UserForm({
 
         <Divider sx={{ my: 2 }} />
 
-        {/* --- Address Section --- */}
         <Typography sx={sectionHeaderStyles}>
           <HomeIcon sx={{ fontSize: 20 }} />
           Address
@@ -439,7 +489,6 @@ export default function UserForm({
                 <TextField
                   {...field}
                   label="Street Address"
-                  placeholder="123 Main St"
                   fullWidth
                   sx={textFieldStyles}
                 />
@@ -454,7 +503,6 @@ export default function UserForm({
                 <TextField
                   {...field}
                   label="City"
-                  placeholder="Surat"
                   fullWidth
                   sx={textFieldStyles}
                 />
@@ -469,7 +517,6 @@ export default function UserForm({
                 <TextField
                   {...field}
                   label="State"
-                  placeholder="Gujarat"
                   fullWidth
                   sx={textFieldStyles}
                 />
@@ -484,7 +531,6 @@ export default function UserForm({
                 <TextField
                   {...field}
                   label="Postal Code"
-                  placeholder="395001"
                   fullWidth
                   sx={textFieldStyles}
                 />
@@ -499,7 +545,6 @@ export default function UserForm({
                 <TextField
                   {...field}
                   label="Country"
-                  placeholder="India"
                   fullWidth
                   sx={textFieldStyles}
                 />
@@ -510,22 +555,16 @@ export default function UserForm({
 
         <Divider sx={{ my: 2 }} />
 
-        {/* --- Access & Security --- */}
         <Typography sx={sectionHeaderStyles}>Access & Security</Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} md={6}>
-            <FormControl
-              fullWidth
-              size="medium"
-              sx={textFieldStyles}
-              error={!!errors.role}
-            >
-              <InputLabel id="role-label">User Role</InputLabel>
+            <FormControl fullWidth sx={textFieldStyles} error={!!errors.role}>
+              <InputLabel>Role</InputLabel>
               <Controller
                 name="role"
                 control={control}
                 render={({ field }) => (
-                  <Select labelId="role-label" label="User Role" {...field}>
+                  <Select {...field} label="Role">
                     <MenuItem value="admin">Admin</MenuItem>
                     <MenuItem value="manager">Manager</MenuItem>
                     <MenuItem value="staff">Staff</MenuItem>
@@ -539,18 +578,13 @@ export default function UserForm({
             </FormControl>
           </Grid>
           <Grid item xs={12} md={6}>
-            <FormControl
-              fullWidth
-              size="medium"
-              sx={textFieldStyles}
-              error={!!errors.status}
-            >
-              <InputLabel id="status-label">Status</InputLabel>
+            <FormControl fullWidth sx={textFieldStyles} error={!!errors.status}>
+              <InputLabel>Status</InputLabel>
               <Controller
                 name="status"
                 control={control}
                 render={({ field }) => (
-                  <Select labelId="status-label" label="Status" {...field}>
+                  <Select {...field} label="Status">
                     <MenuItem value="active">Active</MenuItem>
                     <MenuItem value="inactive">Inactive</MenuItem>
                     <MenuItem value="blocked">Blocked</MenuItem>
@@ -569,11 +603,7 @@ export default function UserForm({
               render={({ field }) => (
                 <TextField
                   {...field}
-                  label={
-                    isEdit
-                      ? "Password (Leave blank to keep current)"
-                      : "Password *"
-                  }
+                  label="Password"
                   type="password"
                   placeholder={
                     isEdit ? "Leave blank to keep current" : "Enter password"
@@ -606,9 +636,15 @@ export default function UserForm({
         variant="contained"
         startIcon={<SaveIcon />}
         sx={submitButtonStyles}
-        disabled={isSubmitting}
+        disabled={isSubmitting || isUploading}
       >
-        {isSubmitting ? "Saving..." : isEdit ? "Update User" : "Create User"}
+        {isUploading
+          ? "Uploading..."
+          : isSubmitting
+          ? "Saving..."
+          : isEdit
+          ? "Update"
+          : "Create"}
       </Button>
     </DialogActions>
   );
@@ -623,53 +659,115 @@ export default function UserForm({
   }
 
   return (
-    <StyledFormDialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          bgcolor: "#fff",
-          borderRadius: 2,
-          overflow: "hidden",
-          boxShadow: "0 12px 48px rgba(76, 175, 80, 0.25)",
-        },
-      }}
-      BackdropProps={{ sx: { backgroundColor: "rgba(0,0,0,0.55)" } }}
-    >
-      <DialogTitle
-        sx={{
-          ...formHeaderStyles,
-          color: "#ffffff",
-          position: "relative",
-          zIndex: 1,
-          m: 0,
+    <>
+      <StyledFormDialog
+        open={open}
+        onClose={onClose}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: "#fff",
+            borderRadius: 2,
+            boxShadow: "0 12px 48px rgba(76, 175, 80, 0.25)",
+          },
         }}
+        BackdropProps={{ sx: { backgroundColor: "rgba(0,0,0,0.55)" } }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <PersonIcon sx={{ fontSize: 28, color: "#fff" }} />
-          <Typography
-            variant="h6"
-            sx={{ fontWeight: 700, fontSize: "20px", color: "#fff" }}
-          >
-            {isEdit ? "Edit User" : "Add New User"}
-          </Typography>
-        </Box>
-        <IconButton
-          onClick={onClose}
+        <DialogTitle
           sx={{
+            ...formHeaderStyles,
             color: "#ffffff",
-            "&:hover": { backgroundColor: "rgba(255,255,255,0.12)" },
+            position: "relative",
+            zIndex: 1,
+            m: 0,
           }}
-          aria-label="close"
         >
-          <CloseIcon />
-        </IconButton>
-      </DialogTitle>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            <PersonIcon sx={{ fontSize: 28, color: "#fff" }} />
+            <Typography
+              variant="h6"
+              sx={{ fontWeight: 700, fontSize: "20px", color: "#fff" }}
+            >
+              {isEdit ? "Edit User" : "Add New User"}
+            </Typography>
+          </Box>
+          <IconButton
+            onClick={onClose}
+            sx={{
+              color: "#ffffff",
+              "&:hover": { backgroundColor: "rgba(255,255,255,0.12)" },
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
 
-      <DialogContent sx={{ p: 0, bgcolor: "#fff" }}>{inner}</DialogContent>
-      {actions}
-    </StyledFormDialog>
+        <DialogContent sx={{ p: 0, bgcolor: "#fff" }}>{inner}</DialogContent>
+        {actions}
+      </StyledFormDialog>
+
+      {/* Crop Dialog */}
+      <Dialog
+        open={showCrop}
+        onClose={() => setShowCrop(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Crop Profile Image</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
+            {cropSrc && (
+              <ReactCrop
+                crop={crop}
+                onChange={(c) => setCrop(c)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={1}
+                circularCrop
+              >
+                <img
+                  ref={imgRef}
+                  src={cropSrc}
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    const aspect = 1;
+                    const width =
+                      img.width > img.height
+                        ? (img.height / img.width) * 100
+                        : 100;
+                    const height =
+                      img.height > img.width
+                        ? (img.width / img.height) * 100
+                        : 100;
+                    setCrop({
+                      unit: "%",
+                      width: Math.min(width, height) * 0.8,
+                      height: Math.min(width, height) * 0.8,
+                      x: (100 - width) / 2,
+                      y: (100 - height) / 2,
+                      aspect,
+                    });
+                  }}
+                  alt="Crop"
+                  style={{ maxWidth: "100%", maxHeight: "60vh" }}
+                />
+              </ReactCrop>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setShowCrop(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCropApply}
+            variant="contained"
+            disabled={!completedCrop}
+          >
+            Apply Crop
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }

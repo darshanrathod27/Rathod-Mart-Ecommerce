@@ -1,3 +1,4 @@
+// rathod-mart-admin/frontend/src/services/userService.js
 import api from "./api";
 
 export const getUsers = async (params, signal) => {
@@ -10,24 +11,14 @@ export const getUserById = async (id, signal) => {
   return res.data;
 };
 
+// --- UPDATED: Send JSON directly ---
 export const createUser = async (payload) => {
-  if (payload instanceof FormData) {
-    const res = await api.post("/users", payload, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return res.data;
-  }
+  // Payload is now just a JSON object { name, email, profileImage, ... }
   const res = await api.post("/users", payload);
   return res.data;
 };
 
 export const updateUser = async (id, payload) => {
-  if (payload instanceof FormData) {
-    const res = await api.put(`/users/${id}`, payload, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return res.data;
-  }
   const res = await api.put(`/users/${id}`, payload);
   return res.data;
 };

@@ -1,9 +1,11 @@
 // backend/controllers/userController.js
-
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
-import { uploadToCloudinary } from "../utils/cloudinary.js"; // Cloudinary helper
+import {
+  deleteFromCloudinary,
+  getPublicIdFromUrl,
+} from "../utils/cloudinary.js";
 
 const ah = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -17,13 +19,9 @@ const SORT_ALLOW = new Set([
   "updatedAt",
 ]);
 
-// --- AUTH CONTROLLERS ---
-
-// @desc Auth admin/staff user (Login) - FOR ADMIN APP
+// --- AUTH ---
 export const loginAdminUser = ah(async (req, res) => {
   const { email, password } = req.body;
-
-  // 1. Check for Super Admin (from .env)
   if (
     email === process.env.ADMIN_EMAIL &&
     password === process.env.ADMIN_PASSWORD
@@ -37,49 +35,33 @@ export const loginAdminUser = ah(async (req, res) => {
       status: "active",
     });
   }
-
-  // 2. Check Database
   const user = await User.findOne({ email }).select("+password");
-
   if (user && (await bcrypt.compare(password, user.password))) {
-    const allowedRoles = ["admin", "manager", "staff"];
-
-    if (allowedRoles.includes(user.role)) {
+    if (["admin", "manager", "staff"].includes(user.role)) {
       if (user.status !== "active") {
         res.status(401);
-        throw new Error(
-          "Account is inactive or blocked. Contact administrator."
-        );
+        throw new Error("Account inactive");
       }
-
       generateToken(res, user._id, "admin_jwt");
-
       const userObj = user.toObject();
       delete userObj.password;
       return res.json(userObj);
     } else {
       res.status(401);
-      throw new Error(
-        "Not authorized. Only Admin, Manager, or Staff can access this panel."
-      );
+      throw new Error("Not authorized");
     }
   }
-
   res.status(401);
   throw new Error("Invalid email or password");
 });
 
-// @desc Auth customer user (Login) - FOR CUSTOMER APP
 export const loginUser = ah(async (req, res) => {
   const { email, password } = req.body;
   const dbUser = await User.findOne({ email }).select("+password");
-
   if (dbUser && (await bcrypt.compare(password, dbUser.password))) {
     if (dbUser.status !== "active") {
       res.status(401);
-      throw new Error(
-        "Account is inactive or blocked. Please contact support."
-      );
+      throw new Error("Account inactive");
     }
     generateToken(res, dbUser._id, "jwt");
     const user = dbUser.toObject();
@@ -87,41 +69,26 @@ export const loginUser = ah(async (req, res) => {
     res.json(user);
   } else {
     res.status(401);
-    throw new Error("Invalid email or password");
+    throw new Error("Invalid credentials");
   }
 });
 
-// @desc Logout admin
 export const logoutAdmin = ah(async (req, res) => {
-  res.cookie("admin_jwt", "", {
-    httpOnly: true,
-    expires: new Date(0),
-  });
-  res.status(200).json({ message: "Admin logged out" });
+  res.cookie("admin_jwt", "", { httpOnly: true, expires: new Date(0) });
+  res.status(200).json({ message: "Logged out" });
 });
 
-// @desc Logout customer
 export const logoutUser = ah(async (req, res) => {
-  res.cookie("jwt", "", {
-    httpOnly: true,
-    expires: new Date(0),
-  });
-  res.status(200).json({ message: "Customer logged out" });
+  res.cookie("jwt", "", { httpOnly: true, expires: new Date(0) });
+  res.status(200).json({ message: "Logged out" });
 });
 
-// --- CRUD & PROFILE CONTROLLERS ---
-
-// @desc Register a new user (customer)
+// --- CRUD ---
 export const registerUser = ah(async (req, res) => {
   const { name, email, password } = req.body;
-  if (!name || !email || !password) {
+  if (await User.findOne({ email })) {
     res.status(400);
-    throw new Error("Please fill all required fields");
-  }
-  const userExists = await User.findOne({ email });
-  if (userExists) {
-    res.status(400);
-    throw new Error("User already exists");
+    throw new Error("User exists");
   }
   const user = await User.create({
     name,
@@ -132,104 +99,84 @@ export const registerUser = ah(async (req, res) => {
   });
   if (user) {
     generateToken(res, user._id, "jwt");
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-    });
+    res
+      .status(201)
+      .json({
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      });
   } else {
     res.status(400);
-    throw new Error("Invalid user data");
+    throw new Error("Invalid data");
   }
 });
 
-// @desc Get user profile
 export const getUserProfile = ah(async (req, res) => {
-  if (req.user) {
-    res.json(req.user);
-  } else {
+  if (req.user) res.json(req.user);
+  else {
     res.status(404);
     throw new Error("User not found");
   }
 });
 
-// @desc Update user profile
 export const updateUserProfile = ah(async (req, res) => {
   if (req.user._id === "SUPER_ADMIN_ID") {
     res.status(403);
-    throw new Error("Super Admin profile cannot be modified from the app.");
+    throw new Error("Super Admin cannot be modified");
   }
   const user = await User.findById(req.user._id);
   if (!user) {
     res.status(404);
     throw new Error("User not found");
   }
-  const { name, username, phone, birthday, password, address } = req.body;
 
-  // Update logic
+  const { name, username, phone, birthday, password, address, profileImage } =
+    req.body;
+
+  // Handle Image Update (Delete Old)
+  if (profileImage && profileImage !== user.profileImage) {
+    if (user.profileImage) {
+      const pid = getPublicIdFromUrl(user.profileImage);
+      if (pid) await deleteFromCloudinary(pid);
+    }
+    user.profileImage = profileImage;
+  }
+
   if (username && username !== user.username) {
-    const exists = await User.findOne({ username, _id: { $ne: user._id } });
-    if (exists) {
+    if (await User.findOne({ username, _id: { $ne: user._id } })) {
       res.status(409);
-      throw new Error("Username is already taken");
+      throw new Error("Username taken");
     }
     user.username = username;
   }
-  user.name = name || user.name;
-  user.phone = phone !== undefined ? phone : user.phone;
-  user.birthday = birthday || user.birthday;
-  if (address) {
-    user.address = { ...user.address, ...address };
-  }
+  if (name) user.name = name;
+  if (phone) user.phone = phone;
+  if (birthday) user.birthday = birthday;
+  if (address) user.address = { ...user.address, ...address };
   if (password) user.password = password;
 
-  // CLOUDINARY IMAGE UPLOAD
-  if (req.file) {
-    try {
-      const result = await uploadToCloudinary(req.file.buffer);
-      user.profileImage = result.secure_url; // Use secure Cloudinary URL
-    } catch (error) {
-      console.error("Cloudinary Upload Error:", error);
-      // Optionally throw error or continue without updating image
-    }
-  }
-
-  const updatedUser = await user.save();
-  res.json(updatedUser);
+  const updated = await user.save();
+  res.json(updated);
 });
 
-// @desc Create user (Admin)
 export const createUser = ah(async (req, res) => {
-  const { email, username, password, ...rest } = req.body;
-  const exists = await User.findOne({ email });
-  if (exists) {
-    const e = new Error("Email already in use");
-    e.statusCode = 409;
-    throw e;
+  const { email, username, ...rest } = req.body;
+  if (await User.findOne({ email })) {
+    res.status(409);
+    throw new Error("Email exists");
   }
-  if (username) {
-    const uExists = await User.findOne({ username });
-    if (uExists) {
-      const e = new Error("Username already in use");
-      e.statusCode = 409;
-      throw e;
-    }
+  if (username && (await User.findOne({ username }))) {
+    res.status(409);
+    throw new Error("Username exists");
   }
 
-  const payload = { email, username, password, ...rest };
-
-  // CLOUDINARY IMAGE UPLOAD
-  if (req.file) {
-    const result = await uploadToCloudinary(req.file.buffer);
-    payload.profileImage = result.secure_url;
-  }
-
-  const user = await User.create(payload);
+  // Direct Create from JSON (Image URL is in req.body)
+  const user = await User.create(req.body);
   res.status(201).json({ success: true, data: user });
 });
 
-// @desc Get all users
 export const getUsers = ah(async (req, res) => {
   const {
     page = 1,
@@ -247,13 +194,8 @@ export const getUsers = ah(async (req, res) => {
   const filter = {};
 
   if (search) {
-    const searchRegex = { $regex: search, $options: "i" };
-    filter.$or = [
-      { name: searchRegex },
-      { email: searchRegex },
-      { phone: searchRegex },
-      { username: searchRegex },
-    ];
+    const r = { $regex: search, $options: "i" };
+    filter.$or = [{ name: r }, { email: r }, { phone: r }, { username: r }];
   }
   if (role) filter.role = role;
   if (status) filter.status = status;
@@ -263,12 +205,13 @@ export const getUsers = ah(async (req, res) => {
     if (dateTo) filter.createdAt.$lte = new Date(dateTo);
   }
 
-  const sortKey = SORT_ALLOW.has(sortBy) ? sortBy : "createdAt";
-  const sortDir = String(sortOrder).toLowerCase() === "asc" ? 1 : -1;
-
+  const sort = {
+    [SORT_ALLOW.has(sortBy) ? sortBy : "createdAt"]:
+      String(sortOrder) === "asc" ? 1 : -1,
+  };
   const [items, total] = await Promise.all([
     User.find(filter)
-      .sort({ [sortKey]: sortDir })
+      .sort(sort)
       .skip((p - 1) * l)
       .limit(l),
     User.countDocuments(filter),
@@ -281,44 +224,34 @@ export const getUsers = ah(async (req, res) => {
   });
 });
 
-// @desc Get user by ID
 export const getUserById = ah(async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) {
-    const e = new Error("User not found");
-    e.statusCode = 404;
-    throw e;
+    res.status(404);
+    throw new Error("User not found");
   }
   res.json({ success: true, data: user });
 });
 
-// @desc Update user (Admin)
 export const updateUser = ah(async (req, res) => {
   const { id } = req.params;
   const update = { ...req.body };
 
-  if (update.email) {
-    const exists = await User.findOne({
-      email: update.email,
-      _id: { $ne: id },
-    });
-    if (exists) {
-      const e = new Error("Email already in use");
-      e.statusCode = 409;
-      throw e;
-    }
+  if (
+    update.email &&
+    (await User.findOne({ email: update.email, _id: { $ne: id } }))
+  ) {
+    res.status(409);
+    throw new Error("Email in use");
   }
-  if (update.username) {
-    const exists = await User.findOne({
-      username: update.username,
-      _id: { $ne: id },
-    });
-    if (exists) {
-      const e = new Error("Username already in use");
-      e.statusCode = 409;
-      throw e;
-    }
+  if (
+    update.username &&
+    (await User.findOne({ username: update.username, _id: { $ne: id } }))
+  ) {
+    res.status(409);
+    throw new Error("Username in use");
   }
+
   if (update.password) {
     const salt = await bcrypt.genSalt(12);
     update.password = await bcrypt.hash(update.password, salt);
@@ -326,10 +259,17 @@ export const updateUser = ah(async (req, res) => {
     delete update.password;
   }
 
-  // CLOUDINARY IMAGE UPLOAD
-  if (req.file) {
-    const result = await uploadToCloudinary(req.file.buffer);
-    update.profileImage = result.secure_url;
+  // Delete Old Image if Updated
+  if (update.profileImage) {
+    const curr = await User.findById(id);
+    if (
+      curr &&
+      curr.profileImage &&
+      curr.profileImage !== update.profileImage
+    ) {
+      const pid = getPublicIdFromUrl(curr.profileImage);
+      if (pid) await deleteFromCloudinary(pid);
+    }
   }
 
   const user = await User.findByIdAndUpdate(id, update, {
@@ -337,23 +277,24 @@ export const updateUser = ah(async (req, res) => {
     runValidators: true,
   });
   if (!user) {
-    const e = new Error("User not found");
-    e.statusCode = 404;
-    throw e;
+    res.status(404);
+    throw new Error("User not found");
   }
   res.json({ success: true, data: user });
 });
 
-// @desc Delete user
 export const deleteUser = ah(async (req, res) => {
-  const user = await User.findByIdAndDelete(req.params.id);
+  const user = await User.findById(req.params.id);
   if (!user) {
-    const e = new Error("User not found");
-    e.statusCode = 404;
-    throw e;
+    res.status(404);
+    throw new Error("User not found");
   }
-  // Note: We are not deleting the image from Cloudinary to keep things simple and safe.
-  // The database record is deleted, which is sufficient for this project.
 
+  if (user.profileImage) {
+    const pid = getPublicIdFromUrl(user.profileImage);
+    if (pid) await deleteFromCloudinary(pid);
+  }
+
+  await User.findByIdAndDelete(req.params.id);
   res.json({ success: true, message: "User deleted" });
 });

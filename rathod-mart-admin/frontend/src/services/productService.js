@@ -1,13 +1,12 @@
-// src/services/productService.js
+// rathod-mart-admin/frontend/src/services/productService.js
 import api from "./api";
 
 const API_URL = "/products";
 
 class ProductService {
-  // server: { success, data, pagination }
   async getProducts(params = {}) {
     const res = await api.get(API_URL, { params });
-    return res.data; // { success, data, pagination }
+    return res.data;
   }
 
   async getProduct(id) {
@@ -15,24 +14,14 @@ class ProductService {
     return res.data;
   }
 
+  // --- UPDATED: Sends JSON now ---
   async createProduct(productData) {
-    if (productData instanceof FormData) {
-      const res = await api.post(API_URL, productData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      return res.data;
-    }
+    // productData is now a standard JS Object
     const res = await api.post(API_URL, productData);
     return res.data;
   }
 
   async updateProduct(id, productData) {
-    if (productData instanceof FormData) {
-      const res = await api.put(`${API_URL}/${id}`, productData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      return res.data;
-    }
     const res = await api.put(`${API_URL}/${id}`, productData);
     return res.data;
   }
@@ -43,9 +32,9 @@ class ProductService {
   }
 
   async uploadMultipleProductImages(productId, formData) {
-    const res = await api.put(`${API_URL}/${productId}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    // अगर आप Direct Upload यूज़ कर रहे हैं तो इसकी ज़रूरत कम पड़ेगी,
+    // लेकिन बैकवर्ड कम्पैटिबिलिटी के लिए छोड़ सकते हैं या JSON में बदल सकते हैं
+    const res = await api.put(`${API_URL}/${productId}`, formData);
     return res.data;
   }
 
@@ -55,6 +44,7 @@ class ProductService {
   }
 
   async deleteProductImage(productId, filename) {
+    // Sending JSON payload
     const res = await api.put(`${API_URL}/${productId}`, {
       deleteFilenames: [filename],
     });

@@ -1,7 +1,7 @@
-// routes/productRoutes.js
+// backend/routes/productRoutes.js
 import express from "express";
 import { body, param, validationResult } from "express-validator";
-import createMulterForFolder from "../middleware/uploadMiddleware.js";
+// import createMulterForFolder from "../middleware/uploadMiddleware.js"; // REMOVED
 import {
   createProduct,
   getProducts,
@@ -14,11 +14,11 @@ import {
   recalculateStock,
 } from "../controllers/productController.js";
 
-const upload = createMulterForFolder("products"); // saves to /uploads/products
+// const upload = createMulterForFolder("products"); // REMOVED
 
 const router = express.Router();
 
-// validation result middleware (same style as userRoutes)
+// validation middleware
 const validate = (req, res, next) => {
   const result = validationResult(req);
   if (result.isEmpty()) return next();
@@ -40,6 +40,8 @@ const createRules = [
     .optional()
     .isIn(["active", "inactive", "draft", "archived"])
     .withMessage("Invalid status"),
+  // Images validation (optional check for array)
+  body("images").optional().isArray().withMessage("Images must be an array"),
 ];
 
 const updateRules = [
@@ -49,16 +51,16 @@ const updateRules = [
   body("category").optional().isMongoId().withMessage("Invalid category id"),
   body("basePrice").optional().isFloat({ min: 0 }),
   body("status").optional().isIn(["active", "inactive", "draft", "archived"]),
+  body("images").optional().isArray(),
 ];
 
 // list/search/paginate
 router.get("/", getProducts);
 
-// create (accept multipart images[])
-// fields: images[]
+// create
 router.post(
   "/",
-  upload.array("images", 15),
+  // upload.array("images", 15), // REMOVED
   createRules,
   validate,
   createProduct
@@ -72,11 +74,10 @@ router.get(
   getProduct
 );
 
-// update (accept multipart images[] and body.deleteFilenames (JSON array or CSV))
-// also supports setting tags/features as JSON array or CSV strings
+// update
 router.put(
   "/:id",
-  upload.array("images", 15),
+  // upload.array("images", 15), // REMOVED
   updateRules,
   validate,
   updateProduct
@@ -116,7 +117,7 @@ router.get(
   getProductVariants
 );
 
-// recalculate totalStock from Variant/Inventory models (if present)
+// recalculate totalStock
 router.put(
   "/:id/recalculate-stock",
   param("id").isMongoId().withMessage("Invalid product id"),
