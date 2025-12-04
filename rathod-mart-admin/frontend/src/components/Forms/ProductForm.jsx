@@ -1,5 +1,11 @@
 // src/components/Forms/ProductForm.jsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  Fragment,
+} from "react";
 import PropTypes from "prop-types";
 import {
   Box,
@@ -26,6 +32,10 @@ import {
   Tooltip,
   Autocomplete,
   LinearProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions as MuiDialogActions,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import SaveIcon from "@mui/icons-material/Save";
@@ -40,6 +50,8 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useDropzone } from "react-dropzone";
+import ReactCrop from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 import { inventoryService } from "../../services/inventoryService";
 import { uploadToCloudinary } from "../../utils/uploadCloudinary"; // Helper import
 import toast from "react-hot-toast";
@@ -72,6 +84,35 @@ const schema = yup.object({
     .nullable()
     .transform((v) => (v === "" ? null : v)),
 });
+
+/* ----------------- Helper: crop image (canvas -> blob) ----------------- */
+const getCroppedImg = async (imageSrc, pixelCrop) => {
+  const image = new Image();
+  image.crossOrigin = "anonymous";
+  image.src = imageSrc;
+  await new Promise((resolve) => (image.onload = resolve));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+  const ctx = canvas.getContext("2d");
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+
+  return new Promise((resolve) =>
+    canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.95)
+  );
+};
 
 export default function ProductForm({
   initialData = null,
@@ -131,7 +172,6 @@ export default function ProductForm({
       ...img,
       id: img._id || img.filename || `${Date.now()}-${Math.random()}`,
       previewUrl: img.fullUrl || img.fullImageUrl || img.url || img.imageUrl,
-      // Store filename as publicId for existing images to handle deletion
       filename: img.filename,
     }))
   );
@@ -222,30 +262,125 @@ export default function ProductForm({
     }
   }, [initialData, reset, isEdit]);
 
-  // Dropzone for adding images
+  // ---------------- Crop states and queue ----------------
+  const [showCrop, setShowCrop] = useState(false);
+  const [cropSrc, setCropSrc] = useState(null); // current image URL for cropping
+  const [pendingFile, setPendingFile] = useState(null); // current File object to crop
+  const [crop, setCrop] = useState({ unit: "%", width: 50, aspect: 1 });
+  const [completedCrop, setCompletedCrop] = useState(null);
+  const imgRef = useRef(null);
+
+  // queue for multiple dropped files
+  const [cropQueue, setCropQueue] = useState([]); // array of File objects
+
+  // Dropzone for adding images (now supports queueing & cropping)
   const onDrop = useCallback(
     (acceptedFiles) => {
       if (!acceptedFiles || acceptedFiles.length === 0) return;
 
-      const newFileObjects = acceptedFiles.map((file) => ({
-        id: `${file.name}-${Date.now()}-${Math.random()}`,
-        _localFile: file, // Store file for upload later
-        previewUrl: URL.createObjectURL(file),
-        alt: file.name,
-        isPrimary: false,
-        filename: null, // No filename yet
-      }));
-
-      setImages((prevImages) => [...prevImages, ...newFileObjects]);
+      // Add accepted files to queue (we will process sequentially)
+      setCropQueue((prev) => [...prev, ...acceptedFiles]);
     },
-    [setImages]
+    [setCropQueue]
   );
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const {
+    getRootProps,
+    getInputProps,
+    isDragActive,
+    open: openFileDialog,
+  } = useDropzone({
     onDrop,
     accept: { "image/*": [] },
     multiple: true,
+    noClick: false,
+    noKeyboard: false,
   });
+
+  // When queue changes and nothing currently open, start cropping the first item
+  useEffect(() => {
+    if (!showCrop && cropQueue.length > 0) {
+      const next = cropQueue[0];
+      setPendingFile(next);
+      setCropSrc(URL.createObjectURL(next));
+      setShowCrop(true);
+      // set default crop
+      setCrop({ unit: "%", width: 80, aspect: 1 });
+      // don't remove from queue yet; removal happens after apply/cancel
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cropQueue, showCrop]);
+
+  const processNextInQueue = () => {
+    setCropQueue((prev) => prev.slice(1));
+  };
+
+  // Apply crop (create file from blob and push to images)
+  const handleCropApply = async () => {
+    if (!completedCrop || !imgRef.current) {
+      toast.error("Please complete crop selection");
+      return;
+    }
+    try {
+      // Calculate pixelCrop taking into account displayed vs natural size
+      const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
+      const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
+      const pixelCrop = {
+        x: Math.round(completedCrop.x * scaleX),
+        y: Math.round(completedCrop.y * scaleY),
+        width: Math.round(completedCrop.width * scaleX),
+        height: Math.round(completedCrop.height * scaleY),
+      };
+
+      const blob = await getCroppedImg(imgRef.current.src, pixelCrop);
+      const fileName = pendingFile
+        ? pendingFile.name
+        : `cropped-${Date.now()}.jpg`;
+      const file = new File([blob], fileName, { type: "image/jpeg" });
+
+      const newImg = {
+        id: `${file.name}-${Date.now()}`,
+        _localFile: file,
+        previewUrl: URL.createObjectURL(file),
+        alt: file.name,
+        isPrimary: images.length === 0,
+        filename: null,
+      };
+
+      setImages((prev) => [...prev, newImg]);
+
+      // cleanup and move to next queued file
+      try {
+        URL.revokeObjectURL(cropSrc);
+      } catch (e) {}
+      setShowCrop(false);
+      setPendingFile(null);
+      setCropSrc(null);
+      setCompletedCrop(null);
+      processNextInQueue();
+    } catch (e) {
+      console.error("Crop failed", e);
+      toast.error("Crop failed");
+      // still proceed to next
+      setShowCrop(false);
+      setPendingFile(null);
+      setCropSrc(null);
+      setCompletedCrop(null);
+      processNextInQueue();
+    }
+  };
+
+  const handleCropCancel = () => {
+    // user cancelled cropping this image — skip it
+    try {
+      URL.revokeObjectURL(cropSrc);
+    } catch (e) {}
+    setShowCrop(false);
+    setPendingFile(null);
+    setCropSrc(null);
+    setCompletedCrop(null);
+    processNextInQueue();
+  };
 
   // Handle removing image (mark for deletion if it exists on server)
   const handleRemoveImage = (id) => {
@@ -528,6 +663,9 @@ export default function ProductForm({
 
           <Paper
             {...getRootProps()}
+            onClick={(e) => {
+              // let dropzone handle click
+            }}
             sx={{
               border: "2px dashed",
               borderColor: isDragActive ? "primary.main" : "#66BB6A",
@@ -555,8 +693,18 @@ export default function ProductForm({
                   Drag & drop images here, or click to browse
                 </Typography>
                 <Typography variant="caption" color="textSecondary">
-                  (You can add multiple images)
+                  (You can add multiple images — each will open for crop)
                 </Typography>
+                <Button
+                  variant="text"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openFileDialog();
+                  }}
+                  sx={{ mt: 1 }}
+                >
+                  Browse files
+                </Button>
               </>
             )}
           </Paper>
@@ -755,7 +903,7 @@ export default function ProductForm({
                 >
                   <MenuItem value="draft">Draft</MenuItem>
                   <MenuItem value="active">Active</MenuItem>
-                  <MenuItem valueValue="inactive">Inactive</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
                 </TextField>
               )}
             />
@@ -834,12 +982,66 @@ export default function ProductForm({
     </DialogActions>
   );
 
+  // Crop dialog UI
+  const CropDialog = (
+    <Dialog open={showCrop} maxWidth="sm" fullWidth onClose={handleCropCancel}>
+      <DialogTitle>
+        Crop Image
+        <IconButton
+          aria-label="close"
+          onClick={handleCropCancel}
+          sx={{ position: "absolute", right: 8, top: 8 }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+      <DialogContent dividers>
+        {cropSrc ? (
+          <Box>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                mb: 2,
+              }}
+            >
+              <ReactCrop
+                src={cropSrc}
+                crop={crop}
+                onImageLoaded={(img) => {
+                  imgRef.current = img;
+                }}
+                onChange={(newCrop) => setCrop(newCrop)}
+                onComplete={(c) => setCompletedCrop(c)}
+                keepSelection
+              />
+            </Box>
+
+            <Typography variant="caption" display="block" sx={{ mb: 1 }}>
+              Tip: drag handles to adjust crop. Aspect is set to 1:1 by default.
+            </Typography>
+          </Box>
+        ) : (
+          <Typography>Loading image...</Typography>
+        )}
+      </DialogContent>
+      <MuiDialogActions>
+        <Button onClick={handleCropCancel}>Skip</Button>
+        <Button variant="contained" onClick={handleCropApply}>
+          Apply Crop
+        </Button>
+      </MuiDialogActions>
+    </Dialog>
+  );
+
   if (embedded) {
     return (
-      <>
+      <Fragment>
         {formInner}
         {actions}
-      </>
+        {CropDialog}
+      </Fragment>
     );
   }
 
@@ -883,6 +1085,7 @@ export default function ProductForm({
 
       <Box sx={{ p: 0, bgcolor: "#fff" }}>{formInner}</Box>
       {actions}
+      {CropDialog}
     </StyledFormDialog>
   );
 }

@@ -1,4 +1,3 @@
-// src/components/Modals/ImageUploadModal.jsx
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   Dialog,
@@ -20,46 +19,38 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Chip,
+  Tooltip,
+  useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import {
   CloudUpload,
   Delete,
   Star,
   StarBorder,
-  Edit,
   Close,
+  Image as ImageIcon,
+  CheckCircle,
+  Edit,
 } from "@mui/icons-material";
-import { productService } from "../../services/productService";
-import { inventoryService } from "../../services/inventoryService";
+import { useDropzone } from "react-dropzone";
 import toast from "react-hot-toast";
 import ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import { useDropzone } from "react-dropzone";
+import { productService } from "../../services/productService";
+import { inventoryService } from "../../services/inventoryService";
+import { uploadToCloudinary } from "../../utils/uploadCloudinary";
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-
-/**
- * Helper: create a cropped Blob from image src and pixelCrop
- * NOTE: sets image.crossOrigin = 'anonymous' to avoid tainting the canvas
- */
+// Helper for canvas cropping
 const getCroppedImg = async (imageSrc, pixelCrop) => {
   const image = new Image();
   image.crossOrigin = "anonymous";
   image.src = imageSrc;
-
-  await new Promise((resolve, reject) => {
-    image.onload = resolve;
-    image.onerror = reject;
-  });
-
+  await new Promise((resolve) => (image.onload = resolve));
   const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-
   canvas.width = pixelCrop.width;
   canvas.height = pixelCrop.height;
-
+  const ctx = canvas.getContext("2d");
   ctx.drawImage(
     image,
     pixelCrop.x,
@@ -71,115 +62,60 @@ const getCroppedImg = async (imageSrc, pixelCrop) => {
     pixelCrop.width,
     pixelCrop.height
   );
-
-  return new Promise((resolve) => {
-    canvas.toBlob(
-      (blob) => {
-        resolve(blob);
-      },
-      "image/jpeg",
-      0.95
-    );
-  });
+  return new Promise((resolve) =>
+    canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.95)
+  );
 };
 
+// Crop Dialog Component
 const CropDialog = ({ open, src, onCancel, onApply }) => {
-  const [crop, setCrop] = useState();
-  const [completedCrop, setCompletedCrop] = useState();
+  const [crop, setCrop] = useState({ unit: "%", width: 50, aspect: 1 });
+  const [completedCrop, setCompletedCrop] = useState(null);
   const imgRef = useRef(null);
 
-  const onLoad = useCallback((img) => {
-    imgRef.current = img;
-    const aspect = 1;
-    // start with a centered square crop that fits
-    const width = img.width > img.height ? (img.height / img.width) * 100 : 100;
-    const height =
-      img.height > img.width ? (img.width / img.height) * 100 : 100;
-    const x = (100 - width) / 2;
-    const y = (100 - height) / 2;
-
-    setCrop({
-      unit: "%",
-      width: Math.min(width, height) * 0.8,
-      height: Math.min(width, height) * 0.8,
-      x: x + width * 0.1,
-      y: y + height * 0.1,
-      aspect,
-    });
-  }, []);
-
   const handleApply = async () => {
-    if (!completedCrop || !imgRef.current) {
-      toast.error("Please select a crop area");
-      return;
-    }
-
+    if (!completedCrop || !imgRef.current) return;
     try {
       const scaleX = imgRef.current.naturalWidth / imgRef.current.width;
       const scaleY = imgRef.current.naturalHeight / imgRef.current.height;
-
       const pixelCrop = {
         x: completedCrop.x * scaleX,
         y: completedCrop.y * scaleY,
         width: completedCrop.width * scaleX,
         height: completedCrop.height * scaleY,
       };
-
       const blob = await getCroppedImg(imgRef.current.src, pixelCrop);
       onApply(blob);
-    } catch (error) {
-      console.error("Crop error:", error);
+    } catch (e) {
+      console.error(e);
       toast.error("Failed to crop image");
     }
   };
 
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="md" fullWidth>
-      <DialogTitle>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-        >
-          <Typography variant="h6">Crop Image</Typography>
-          <IconButton size="small" onClick={onCancel}>
-            <Close />
-          </IconButton>
-        </Stack>
-      </DialogTitle>
-
+      <DialogTitle>Crop Image</DialogTitle>
       <DialogContent>
         <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
-          {src && (
-            <ReactCrop
-              crop={crop}
-              onChange={(c) => setCrop(c)}
-              onComplete={(c) => setCompletedCrop(c)}
-              aspect={1}
-            >
-              {/* IMPORTANT: crossOrigin added to avoid canvas tainting issues */}
-              <img
-                ref={imgRef}
-                src={src}
-                onLoad={(e) => onLoad(e.currentTarget)}
-                style={{ maxWidth: "100%", maxHeight: "60vh" }}
-                alt="Crop"
-                crossOrigin="anonymous"
-              />
-            </ReactCrop>
-          )}
+          <ReactCrop
+            crop={crop}
+            onChange={(c) => setCrop(c)}
+            onComplete={(c) => setCompletedCrop(c)}
+            aspect={1}
+          >
+            <img
+              ref={imgRef}
+              src={src}
+              alt="Crop"
+              style={{ maxWidth: "100%", maxHeight: "60vh" }}
+              crossOrigin="anonymous"
+            />
+          </ReactCrop>
         </Box>
       </DialogContent>
-
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onCancel} color="inherit">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleApply}
-          variant="contained"
-          disabled={!completedCrop}
-        >
+      <DialogActions>
+        <Button onClick={onCancel}>Cancel</Button>
+        <Button onClick={handleApply} variant="contained">
           Apply & Upload
         </Button>
       </DialogActions>
@@ -193,26 +129,52 @@ export default function ImageUploadModal({
   product,
   onUploadSuccess,
 }) {
+  const theme = useTheme();
   const [images, setImages] = useState([]);
+  const [variants, setVariants] = useState([]);
+  const [selectedVariant, setSelectedVariant] = useState("");
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const [pendingSrc, setPendingSrc] = useState(null);
-  const [pendingFile, setPendingFile] = useState(null);
+  // Crop state
   const [showCrop, setShowCrop] = useState(false);
+  const [cropSrc, setCropSrc] = useState(null);
+  const [pendingFile, setPendingFile] = useState(null); // File waiting to be cropped
 
-  const [reCrop, setReCrop] = useState(null);
+  // Re-crop state
+  const [reCrop, setReCrop] = useState(null); // Object { img, src }
 
-  const [variants, setVariants] = useState([]);
-  const [selectedVariant, setSelectedVariant] = useState("");
+  // --- 1. Fetch Data on Load ---
+  const fetchData = useCallback(async () => {
+    if (!product?._id) return;
+    setLoading(true);
+    try {
+      const [imgs, vRes] = await Promise.all([
+        productService.getProductImages(product._id),
+        inventoryService.getProductVariants(product._id),
+      ]);
+      setImages(imgs || []);
+      setVariants(Array.isArray(vRes) ? vRes : vRes?.data || []);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  }, [product]);
 
-  // Dropzone handlers (single-file flow)
+  useEffect(() => {
+    if (open) fetchData();
+  }, [open, fetchData]);
+
+  // --- 2. Handle File Selection (Trigger Crop) ---
   const onDrop = useCallback((acceptedFiles) => {
-    const file = acceptedFiles?.[0];
-    if (!file) return;
+    if (!acceptedFiles?.length) return;
+    // For simplicity, handle one file crop at a time.
+    // You can enhance this to loop through files if needed.
+    const file = acceptedFiles[0];
     setPendingFile(file);
-    const src = URL.createObjectURL(file);
-    setPendingSrc(src);
+    setCropSrc(URL.createObjectURL(file));
     setShowCrop(true);
   }, []);
 
@@ -224,374 +186,452 @@ export default function ImageUploadModal({
   } = useDropzone({
     onDrop,
     accept: { "image/*": [] },
-    maxFiles: 1,
-    multiple: false,
+    multiple: false, // Changed to false to simplify crop flow (one by one)
     noClick: true,
     noKeyboard: true,
   });
 
-  const fetchImagesAndVariants = useCallback(async () => {
-    if (!product?._id) return;
-    setLoading(true);
-    try {
-      const [imgs, vRes] = await Promise.all([
-        productService.getProductImages(product._id),
-        inventoryService.getProductVariants(product._id),
-      ]);
-
-      setImages(imgs || []);
-      // both shapes handled: vRes may be { data: [...] } or [...]
-      setVariants(vRes?.data || vRes || []);
-    } catch (e) {
-      console.error("Fetch data error:", e);
-      toast.error("Failed to load images or variants");
-    } finally {
-      setLoading(false);
-    }
-  }, [product]);
-
-  useEffect(() => {
-    if (open) {
-      fetchImagesAndVariants();
-    }
-  }, [open, fetchImagesAndVariants]);
-
+  // --- 3. Apply New Image Crop & Upload ---
   const applyNewCropAndUpload = async (blob) => {
     setShowCrop(false);
     setUploading(true);
-    try {
-      const file = new File(
-        [blob],
-        pendingFile?.name || `img-${Date.now()}.jpg`,
-        {
-          type: "image/jpeg",
-        }
-      );
-      const fd = new FormData();
-      fd.append("images", file);
-      if (selectedVariant) fd.append("variantId", selectedVariant);
+    const toastId = toast.loading("Uploading...");
 
-      await productService.uploadMultipleProductImages(product._id, fd);
-      toast.success("Image uploaded");
+    try {
+      const file = new File([blob], pendingFile?.name || "image.jpg", {
+        type: "image/jpeg",
+      });
+
+      // 1. Upload to Cloudinary
+      const uploaded = await uploadToCloudinary(file);
+
+      // 2. Prepare new image object
+      const newImage = {
+        url: uploaded.url,
+        filename: uploaded.publicId,
+        alt: product?.name || "Product Image",
+        isPrimary: images.length === 0,
+        variant: selectedVariant || null,
+      };
+
+      // 3. Send to backend (append to existing)
+      const allImages = [...images, newImage];
+
+      // We need to send minimal data for existing images to avoid re-processing issues if backend logic is complex,
+      // but typically sending the full updated array is standard for 'updateProduct'.
+      // Ensure backend updateProduct handles the "images" array replacement correctly.
+      await productService.updateProduct(product._id, {
+        images: allImages,
+      });
+
+      toast.success("Image uploaded!", { id: toastId });
       setPendingSrc(null);
       setPendingFile(null);
-      await fetchImagesAndVariants();
-      onUploadSuccess?.();
-    } catch (e) {
-      console.error("Upload error:", e);
-      toast.error("Upload failed");
+      await fetchData();
+      if (onUploadSuccess) onUploadSuccess();
+    } catch (error) {
+      console.error(error);
+      toast.error("Upload failed", { id: toastId });
     } finally {
       setUploading(false);
     }
   };
 
+  // --- 4. Re-Crop Existing Image ---
+  const openReCrop = (img) => {
+    // Use fullUrl or url
+    const src = img.fullUrl || img.url || img.imageUrl;
+    if (!src) return toast.error("Cannot load image for editing");
+    setReCrop({ img, src });
+  };
+
+  const applyReCrop = async (blob) => {
+    const oldImg = reCrop.img;
+    setReCrop(null);
+    setUploading(true);
+    const toastId = toast.loading("Updating image...");
+
+    try {
+      const file = new File([blob], "recrop.jpg", { type: "image/jpeg" });
+
+      // 1. Upload new version
+      const uploaded = await uploadToCloudinary(file);
+
+      // 2. Construct new image object
+      const newImageObj = {
+        ...oldImg,
+        url: uploaded.url,
+        filename: uploaded.publicId,
+        // Preserve other fields
+      };
+
+      // 3. Replace in array
+      const updatedImages = images.map((img) =>
+        img.filename === oldImg.filename || img._id === oldImg._id
+          ? newImageObj
+          : img
+      );
+
+      // 4. Update product (and explicitly delete old image from Cloudinary via backend)
+      await productService.updateProduct(product._id, {
+        images: updatedImages,
+        deleteFilenames: [oldImg.filename], // Delete old ID
+      });
+
+      toast.success("Image updated!", { id: toastId });
+      await fetchData();
+      if (onUploadSuccess) onUploadSuccess();
+    } catch (e) {
+      console.error(e);
+      toast.error("Update failed", { id: toastId });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // --- 5. Other Actions ---
   const handleDelete = async (img) => {
     if (!window.confirm("Delete this image?")) return;
     try {
-      const filename = img.filename || img._id;
-      await productService.deleteProductImage(product._id, filename);
+      const idToDelete = img.filename || img._id;
+      await productService.deleteProductImage(product._id, idToDelete);
       toast.success("Image deleted");
-      await fetchImagesAndVariants();
-      onUploadSuccess?.();
-    } catch (err) {
-      console.error("Delete error:", err);
+      fetchData();
+    } catch (e) {
       toast.error("Delete failed");
     }
   };
 
   const handleSetPrimary = async (img) => {
+    if (img.isPrimary) return;
     try {
-      const filename = img.filename || img._id;
-      await productService.setPrimaryImage(product._id, filename);
+      const idToUpdate = img.filename || img._id;
+      await productService.setPrimaryImage(product._id, idToUpdate);
       toast.success("Primary image updated");
-      await fetchImagesAndVariants();
-      onUploadSuccess?.();
-    } catch (err) {
-      console.error("Set primary error:", err);
-      toast.error("Update failed");
-    }
-  };
-
-  const openReCrop = (img) => {
-    const src =
-      img.fullUrl ||
-      img.fullImageUrl ||
-      img.previewUrl ||
-      `${API_BASE_URL}${img.url || img.imageUrl}`;
-    setReCrop({ img, src });
-  };
-
-  const applyReCrop = async (blob) => {
-    // reCrop may be referenced in the outer scope; capture it early
-    const localReCrop = reCrop;
-    setReCrop(null);
-    setUploading(true);
-    try {
-      const file = new File([blob], `recrop-${Date.now()}.jpg`, {
-        type: "image/jpeg",
-      });
-      const fd = new FormData();
-      fd.append("images", file);
-      if (selectedVariant) fd.append("variantId", selectedVariant);
-
-      await productService.uploadMultipleProductImages(product._id, fd);
-
-      // delete original image (best-effort)
-      try {
-        await productService.deleteProductImage(
-          product._id,
-          localReCrop.img.filename || localReCrop.img._id
-        );
-      } catch (err) {
-        // ignore delete errors
-      }
-
-      toast.success("Image updated");
-      await fetchImagesAndVariants();
-      onUploadSuccess?.();
+      fetchData();
     } catch (e) {
-      console.error("Re-crop error:", e);
       toast.error("Update failed");
-    } finally {
-      setUploading(false);
     }
   };
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-        <DialogTitle>
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-          >
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            overflow: "hidden",
+            boxShadow: "0 24px 48px rgba(0,0,0,0.2)",
+          },
+        }}
+      >
+        {/* Header */}
+        <DialogTitle
+          sx={{
+            background: "linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)",
+            color: "#fff",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            p: 2,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <ImageIcon />
             <Box>
-              <Typography variant="h6" fontWeight={600}>
-                Product Images
+              <Typography variant="h6" fontWeight={700} lineHeight={1.2}>
+                Manage Images
               </Typography>
-              <Typography variant="caption" color="text.secondary">
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
                 {product?.name}
               </Typography>
             </Box>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Button
-                component="span"
-                variant="contained"
-                startIcon={<CloudUpload />}
-                size="small"
-                onClick={openFileDialog}
-              >
-                Upload
-              </Button>
-              <IconButton size="small" onClick={onClose}>
-                <Close />
-              </IconButton>
-            </Stack>
-          </Stack>
+          </Box>
+          <IconButton onClick={onClose} sx={{ color: "#fff" }}>
+            <Close />
+          </IconButton>
         </DialogTitle>
 
-        <DialogContent
-          sx={{ minHeight: 300, outline: "none" }}
-          {...getRootProps()}
-        >
-          <input {...getInputProps()} />
-
-          {(uploading || loading) && <LinearProgress sx={{ mb: 2 }} />}
-
-          {variants && variants.length > 0 && (
-            <FormControl fullWidth sx={{ mb: 2 }} size="small">
-              <InputLabel>Assign new images to (Optional)</InputLabel>
-              <Select
-                value={selectedVariant}
-                label="Assign new images to (Optional)"
-                onChange={(e) => setSelectedVariant(e.target.value)}
-              >
-                <MenuItem value="">
-                  <em>General Images (No Variant)</em>
-                </MenuItem>
-                {variants.map((v) => (
-                  <MenuItem key={v._id} value={v._id}>
-                    {v.color?.colorName ? `${v.color.colorName} ` : ""}
-                    {v.size?.sizeName ? ` / ${v.size.sizeName}` : ""}
+        <DialogContent sx={{ p: 3, bgcolor: "#FAFAFA", minHeight: 400 }}>
+          {/* Variant Selector */}
+          {variants.length > 0 && (
+            <Paper
+              elevation={0}
+              sx={{
+                p: 2,
+                mb: 3,
+                border: "1px solid",
+                borderColor: "divider",
+                bgcolor: "#fff",
+                borderRadius: 2,
+              }}
+            >
+              <FormControl fullWidth size="small">
+                <InputLabel id="variant-select-label">
+                  Upload for Specific Variant (Optional)
+                </InputLabel>
+                <Select
+                  labelId="variant-select-label"
+                  value={selectedVariant}
+                  label="Upload for Specific Variant (Optional)"
+                  onChange={(e) => setSelectedVariant(e.target.value)}
+                >
+                  <MenuItem value="">
+                    <em>General (All Variants)</em>
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
-
-          {isDragActive && (
-            <Paper
-              sx={{
-                p: 6,
-                border: "2px dashed",
-                borderColor: "primary.main",
-                textAlign: "center",
-                bgcolor: alpha("#E8F5E9", 0.7),
-                mb: 2,
-              }}
-            >
-              <Typography variant="h6" color="primary.main">
-                Drop the image here...
-              </Typography>
+                  {variants.map((v) => (
+                    <MenuItem key={v._id} value={v._id}>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip
+                          label={`${v.size?.sizeName || "Size"} • ${
+                            v.color?.colorName || "Color"
+                          }`}
+                          size="small"
+                          sx={{
+                            bgcolor: v.color?.value,
+                            color:
+                              v.color?.value === "#FFFFFF" ? "#000" : "#fff",
+                            border: "1px solid #eee",
+                            fontWeight: 600,
+                          }}
+                        />
+                        <Typography variant="body2" color="text.secondary">
+                          SKU: {v.sku || "N/A"}
+                        </Typography>
+                      </Stack>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Paper>
           )}
 
-          {images.length === 0 && !loading && !isDragActive && (
-            <Paper
-              sx={{
-                p: 6,
-                border: "2px dashed",
-                borderColor: "grey.300",
-                textAlign: "center",
-                bgcolor: alpha("#f5f5f5", 0.3),
-                pointerEvents: "none",
-                mb: 2,
-              }}
-            >
-              <CloudUpload sx={{ fontSize: 48, color: "grey.400", mb: 1 }} />
-              <Typography variant="body1" color="text.secondary" gutterBottom>
-                No images yet
+          {/* Dropzone Area */}
+          <Box
+            {...getRootProps()}
+            sx={{
+              border: "2px dashed",
+              borderColor: isDragActive ? "primary.main" : "#4CAF50",
+              borderRadius: 3,
+              bgcolor: isDragActive ? "rgba(76, 175, 80, 0.1)" : "#F1F8E9",
+              p: 4,
+              textAlign: "center",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              "&:hover": {
+                bgcolor: "rgba(76, 175, 80, 0.08)",
+                borderColor: "primary.dark",
+                transform: "translateY(-2px)",
+              },
+              mb: 4,
+            }}
+            onClick={openFileDialog}
+          >
+            <input {...getInputProps()} />
+            <CloudUpload sx={{ fontSize: 48, color: "primary.main", mb: 1 }} />
+            <Typography variant="h6" color="primary.dark" fontWeight={600}>
+              {isDragActive ? "Drop file now" : "Click or Drag Image Here"}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mt={0.5}>
+              Supports: JPG, PNG, WEBP (Max 5MB)
+            </Typography>
+            {selectedVariant && (
+              <Chip
+                label="Uploading to Variant"
+                size="small"
+                color="primary"
+                sx={{ mt: 1.5 }}
+              />
+            )}
+          </Box>
+
+          {/* Loading Bar */}
+          {(uploading || loading) && (
+            <Box sx={{ width: "100%", mb: 3 }}>
+              <LinearProgress
+                sx={{
+                  height: 8,
+                  borderRadius: 4,
+                  bgcolor: "#E8F5E9",
+                  "& .MuiLinearProgress-bar": {
+                    bgcolor: "primary.main",
+                  },
+                }}
+              />
+              <Typography
+                variant="caption"
+                align="center"
+                display="block"
+                sx={{ mt: 0.5, color: "primary.main", fontWeight: 600 }}
+              >
+                {uploading ? "Uploading to Cloud..." : "Loading Gallery..."}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Click "Upload" or drag & drop an image here
-              </Typography>
-            </Paper>
+            </Box>
           )}
 
-          {images.length > 0 && (
+          {/* Image Grid */}
+          {images.length === 0 && !loading ? (
+            <Box textAlign="center" py={4} color="text.disabled">
+              <Typography>No images found for this product.</Typography>
+            </Box>
+          ) : (
             <Grid container spacing={2}>
-              {images.map((img, idx) => {
-                const imgSrc =
-                  img.fullUrl ||
-                  img.fullImageUrl ||
-                  img.previewUrl ||
-                  `${API_BASE_URL}${img.url || img.imageUrl}`;
-                return (
-                  <Grid
-                    item
-                    xs={6}
-                    sm={4}
-                    md={3}
-                    key={img.filename || img._id || img.id || idx}
+              {images.map((img, index) => (
+                <Grid item xs={6} sm={4} md={3} key={img._id || index}>
+                  <Card
+                    sx={{
+                      position: "relative",
+                      borderRadius: 2,
+                      border: img.isPrimary
+                        ? "2px solid #2E7D32"
+                        : "1px solid #eee",
+                      boxShadow: img.isPrimary
+                        ? "0 4px 12px rgba(46, 125, 50, 0.2)"
+                        : "none",
+                      transition: "all 0.2s",
+                      "&:hover": { boxShadow: 3 },
+                    }}
                   >
-                    <Card
-                      sx={{
-                        position: "relative",
-                        border: "1px solid",
-                        borderColor: img.isPrimary
-                          ? "primary.main"
-                          : "grey.300",
-                        transition: "all 0.2s",
-                        "&:hover": { boxShadow: 3 },
-                      }}
+                    {/* Badges */}
+                    <Stack
+                      direction="row"
+                      spacing={0.5}
+                      sx={{ position: "absolute", top: 8, left: 8, zIndex: 2 }}
                     >
                       {img.isPrimary && (
-                        <Box
+                        <Chip
+                          label="Primary"
+                          size="small"
+                          color="primary"
+                          icon={
+                            <CheckCircle sx={{ "&&": { color: "#fff" } }} />
+                          }
                           sx={{
-                            position: "absolute",
-                            top: 6,
-                            left: 6,
-                            zIndex: 1,
-                            bgcolor: "primary.main",
-                            color: "white",
-                            px: 1,
-                            py: 0.25,
-                            borderRadius: 0.5,
-                            fontSize: 11,
-                            fontWeight: 600,
+                            height: 20,
+                            fontSize: "0.65rem",
+                            fontWeight: 700,
                           }}
-                        >
-                          Primary
-                        </Box>
+                        />
                       )}
                       {img.variant && (
-                        <Box
+                        <Chip
+                          label="Variant"
+                          size="small"
                           sx={{
-                            position: "absolute",
-                            top: 6,
-                            right: 6,
-                            zIndex: 1,
-                            bgcolor: "info.main",
-                            color: "white",
-                            px: 1,
-                            py: 0.25,
-                            borderRadius: 0.5,
-                            fontSize: 11,
-                            fontWeight: 600,
+                            height: 20,
+                            bgcolor: "secondary.main",
+                            color: "#fff",
+                            fontSize: "0.65rem",
+                            fontWeight: 700,
                           }}
-                        >
-                          Variant
-                        </Box>
+                        />
                       )}
-                      <CardMedia
-                        component="img"
-                        height="140"
-                        image={imgSrc}
-                        alt=""
-                        sx={{ objectFit: "cover" }}
-                      />
-                      <CardActions
-                        sx={{ justifyContent: "space-between", p: 1 }}
+                    </Stack>
+
+                    <CardMedia
+                      component="img"
+                      height="140"
+                      image={img.url || img.fullUrl}
+                      alt="Product"
+                      sx={{
+                        objectFit: "contain",
+                        bgcolor: "#fff",
+                        p: 1,
+                      }}
+                    />
+
+                    <CardActions
+                      sx={{
+                        justifyContent: "space-between",
+                        bgcolor: "#FAFAFA",
+                        borderTop: "1px solid #f0f0f0",
+                        p: 0.5,
+                      }}
+                    >
+                      <Tooltip
+                        title={
+                          img.isPrimary ? "Already Primary" : "Set as Primary"
+                        }
                       >
-                        <Stack direction="row" spacing={0.5}>
+                        <span>
                           <IconButton
                             size="small"
                             onClick={() => handleSetPrimary(img)}
-                            disabled={img.isPrimary || img._localFile}
+                            disabled={img.isPrimary}
+                            color={img.isPrimary ? "primary" : "default"}
                           >
-                            {img.isPrimary ? (
-                              <Star fontSize="small" color="primary" />
-                            ) : (
-                              <StarBorder fontSize="small" />
-                            )}
+                            {img.isPrimary ? <Star /> : <StarBorder />}
                           </IconButton>
+                        </span>
+                      </Tooltip>
+
+                      <Stack direction="row" spacing={0.5}>
+                        <Tooltip title="Edit/Crop">
                           <IconButton
                             size="small"
                             onClick={() => openReCrop(img)}
-                            disabled={img._localFile}
                           >
                             <Edit fontSize="small" />
                           </IconButton>
-                        </Stack>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDelete(img)}
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </CardActions>
-                    </Card>
-                  </Grid>
-                );
-              })}
+                        </Tooltip>
+                        <Tooltip title="Delete Image">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleDelete(img)}
+                            sx={{
+                              color: "error.main",
+                              "&:hover": { bgcolor: "rgba(211, 47, 47, 0.04)" },
+                            }}
+                          >
+                            <Delete fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              ))}
             </Grid>
           )}
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={onClose} variant="contained" size="small">
+        <DialogActions
+          sx={{ p: 2, bgcolor: "#fff", borderTop: "1px solid #eee" }}
+        >
+          <Button
+            onClick={onClose}
+            variant="contained"
+            color="primary"
+            sx={{
+              borderRadius: 50,
+              px: 4,
+              background: "linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)",
+            }}
+          >
             Done
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Crop dialog for new uploads */}
-      {showCrop && pendingSrc && (
+      {showCrop && cropSrc && (
         <CropDialog
           open={showCrop}
-          src={pendingSrc}
+          src={cropSrc}
           onCancel={() => {
             setShowCrop(false);
-            setPendingSrc(null);
+            setCropSrc(null);
             setPendingFile(null);
           }}
           onApply={applyNewCropAndUpload}
         />
       )}
 
-      {/* Crop dialog for recropping existing images */}
+      {/* Crop dialog for recropping */}
       {reCrop && (
         <CropDialog
           open={Boolean(reCrop)}

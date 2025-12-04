@@ -1,4 +1,3 @@
-// src/pages/Profile.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Container,
@@ -9,17 +8,16 @@ import {
   TextField,
   Button,
   Avatar,
-  IconButton,
-  Stack,
   Divider,
+  Stack,
 } from "@mui/material";
 import {
   CameraAlt,
   Save,
   Person,
-  DeleteOutline,
   Home,
   Lock,
+  DeleteOutline,
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import { useSelector, useDispatch } from "react-redux";
@@ -27,7 +25,8 @@ import { useForm, Controller } from "react-hook-form";
 import { useDropzone } from "react-dropzone";
 import toast from "react-hot-toast";
 import api from "../data/api";
-import { setCredentials } from "../store/authSlice"; // To update state after save
+import { setCredentials } from "../store/authSlice";
+import { uploadToCloudinary } from "../utils/uploadCloudinary"; // ✅ New Import
 
 const API_BASE =
   (process.env.REACT_APP_API_URL && String(process.env.REACT_APP_API_URL)) ||
@@ -37,8 +36,8 @@ const Profile = () => {
   const dispatch = useDispatch();
   const { userInfo } = useSelector((state) => state.auth);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false); // ✅ Upload state
 
-  // Format date for input type=date (YYYY-MM-DD)
   const formatDateForInput = (date) => {
     if (!date) return "";
     try {
@@ -53,7 +52,7 @@ const Profile = () => {
     control,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm({
     defaultValues: {
       name: "",
@@ -75,10 +74,9 @@ const Profile = () => {
   const [preview, setPreview] = useState(null);
   const [fileBlob, setFileBlob] = useState(null);
 
-  // Helper to get full image URL
-  const getAvatarUrl = (relative) => {
-    if (!relative) return null;
-    return relative.startsWith("http") ? relative : `${API_BASE}${relative}`;
+  const getAvatarUrl = (url) => {
+    if (!url) return null;
+    return url.startsWith("http") ? url : `${API_BASE}${url}`;
   };
 
   useEffect(() => {
@@ -120,39 +118,57 @@ const Profile = () => {
     setFileBlob(null);
   };
 
+  // ✅ UPDATED SUBMIT HANDLER
   const onSubmit = async (values) => {
     setLoading(true);
-    const fd = new FormData();
-    fd.append("name", values.name);
-    fd.append("username", values.username);
-    fd.append("phone", values.phone);
-    if (values.birthday) fd.append("birthday", values.birthday);
-    if (values.password) fd.append("password", values.password);
-
-    // Append nested address fields
-    if (values.address) {
-      fd.append("address[street]", values.address.street || "");
-      fd.append("address[city]", values.address.city || "");
-      fd.append("address[state]", values.address.state || "");
-      fd.append("address[postalCode]", values.address.postalCode || "");
-      fd.append("address[country]", values.address.country || "");
-    }
-
-    if (fileBlob) {
-      fd.append("image", fileBlob); // 'image' field from middleware
-    }
 
     try {
-      // Use the new PUT /api/users/profile route
-      const res = await api.put("/users/profile", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      dispatch(setCredentials(res.data)); // Update Redux state
+      let imageUrl = userInfo.profileImage; // Default to existing
+
+      // 1. Upload new image to Cloudinary (if selected)
+      if (fileBlob) {
+        setUploading(true);
+        const uploadRes = await uploadToCloudinary(fileBlob);
+        imageUrl = uploadRes.url;
+        setUploading(false);
+      } else if (preview === null) {
+        // User removed the image
+        imageUrl = "";
+      }
+
+      // 2. Prepare Payload (JSON now, NOT FormData)
+      const payload = {
+        name: values.name,
+        username: values.username,
+        phone: values.phone,
+        birthday: values.birthday,
+        profileImage: imageUrl, // Send URL string
+        address: {
+          street: values.address.street,
+          city: values.address.city,
+          state: values.address.state,
+          postalCode: values.address.postalCode,
+          country: values.address.country,
+        },
+      };
+
+      if (values.password) {
+        payload.password = values.password;
+      }
+
+      // 3. Send JSON to Backend
+      // Note: api.put automatically handles JSON content-type
+      const res = await api.put("/users/profile", payload);
+
+      dispatch(setCredentials(res.data));
       toast.success("Profile updated successfully!");
+      setFileBlob(null); // Reset file
     } catch (e) {
-      toast.error(e.response?.data?.message || e.message || "Update failed");
+      console.error(e);
+      toast.error(e.response?.data?.message || "Update failed");
     } finally {
       setLoading(false);
+      setUploading(false);
     }
   };
 
@@ -174,11 +190,11 @@ const Profile = () => {
               color: "primary.dark",
             }}
           >
-            <Person sx={{ fontSize: "2.5rem" }} />
-            My Profile
+            <Person sx={{ fontSize: "2.5rem" }} /> My Profile
           </Typography>
 
           <form onSubmit={handleSubmit(onSubmit)}>
+            {/* Image Upload Section */}
             <Typography
               variant="h6"
               sx={{ fontWeight: 600, mb: 2, color: "primary.main" }}
@@ -238,6 +254,7 @@ const Profile = () => {
 
             <Divider sx={{ my: 3 }} />
 
+            {/* Personal Details */}
             <Typography
               variant="h6"
               sx={{ fontWeight: 600, mb: 2, color: "primary.main" }}
@@ -258,8 +275,6 @@ const Profile = () => {
                 <TextField
                   label="Username"
                   {...register("username")}
-                  error={!!errors.username}
-                  helperText={errors.username?.message}
                   fullWidth
                 />
               </Grid>
@@ -273,21 +288,13 @@ const Profile = () => {
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField
-                  label="Phone"
-                  {...register("phone")}
-                  error={!!errors.phone}
-                  helperText={errors.phone?.message}
-                  fullWidth
-                />
+                <TextField label="Phone" {...register("phone")} fullWidth />
               </Grid>
               <Grid item xs={12} md={6}>
                 <TextField
                   label="Birthday"
                   type="date"
                   {...register("birthday")}
-                  error={!!errors.birthday}
-                  helperText={errors.birthday?.message}
                   fullWidth
                   InputLabelProps={{ shrink: true }}
                 />
@@ -296,12 +303,12 @@ const Profile = () => {
 
             <Divider sx={{ my: 3 }} />
 
+            {/* Address */}
             <Typography
               variant="h6"
               sx={{ fontWeight: 600, mb: 2, color: "primary.main" }}
             >
-              <Home sx={{ mb: -0.5, mr: 0.5 }} />
-              Shipping Address
+              <Home sx={{ mb: -0.5, mr: 0.5 }} /> Shipping Address
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={12}>
@@ -343,12 +350,12 @@ const Profile = () => {
 
             <Divider sx={{ my: 3 }} />
 
+            {/* Security */}
             <Typography
               variant="h6"
               sx={{ fontWeight: 600, mb: 2, color: "primary.main" }}
             >
-              <Lock sx={{ mb: -0.5, mr: 0.5 }} />
-              Security
+              <Lock sx={{ mb: -0.5, mr: 0.5 }} /> Security
             </Typography>
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
@@ -356,8 +363,7 @@ const Profile = () => {
                   label="New Password (optional)"
                   type="password"
                   {...register("password")}
-                  error={!!errors.password}
-                  helperText="Leave blank to keep your current password"
+                  helperText="Leave blank to keep current password"
                   fullWidth
                 />
               </Grid>
@@ -370,10 +376,14 @@ const Profile = () => {
                 variant="contained"
                 size="large"
                 startIcon={<Save />}
-                disabled={loading || isSubmitting}
+                disabled={loading || uploading}
                 sx={{ py: 1.5, fontWeight: 700 }}
               >
-                {loading ? "Saving..." : "Save Changes"}
+                {uploading
+                  ? "Uploading Image..."
+                  : loading
+                  ? "Saving..."
+                  : "Save Changes"}
               </Button>
             </Grid>
           </form>
