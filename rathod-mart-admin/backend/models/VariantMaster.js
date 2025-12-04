@@ -1,4 +1,3 @@
-// backend/models/VariantMaster.js
 import mongoose from "mongoose";
 
 const variantMasterSchema = new mongoose.Schema(
@@ -19,7 +18,8 @@ const variantMasterSchema = new mongoose.Schema(
       required: true,
     },
     price: { type: Number, required: true, min: 0 },
-    sku: { type: String, sparse: true, trim: true },
+    // Warning Fix: 'sparse: true' yahan se hata diya, niche index me hai
+    sku: { type: String, trim: true },
     status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date },
@@ -27,6 +27,7 @@ const variantMasterSchema = new mongoose.Schema(
   { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
+// SKU auto-generate logic
 variantMasterSchema.pre("save", async function (next) {
   if (!this.sku && this.isNew) {
     const product = await mongoose.model("Product").findById(this.product);
@@ -38,10 +39,12 @@ variantMasterSchema.pre("save", async function (next) {
   next();
 });
 
+// Indexes
 variantMasterSchema.index({ product: 1, size: 1, color: 1 }, { unique: true });
 variantMasterSchema.index({ product: 1 });
 variantMasterSchema.index({ status: 1 });
 variantMasterSchema.index({ isDeleted: 1 });
+// SKU index yahan define hai, isliye upar field me 'sparse' hata diya
 variantMasterSchema.index({ sku: 1 }, { unique: true, sparse: true });
 
 export default mongoose.model("VariantMaster", variantMasterSchema);

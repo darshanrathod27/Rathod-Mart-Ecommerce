@@ -1,4 +1,3 @@
-// backend/server.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -6,8 +5,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import connectDB from "./config/database.js";
+import cloudinary from "./utils/cloudinary.js"; // Cloudinary import
 
-// routes
+// routes imports
 import userRoutes from "./routes/userRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
@@ -37,13 +37,11 @@ app.use(
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-
 app.use(cookieParser());
 
-// ensure uploads folder served
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// basic routes
+// Health check
 app.get("/health", (req, res) => res.json({ success: true, time: new Date() }));
 
 // API Routes
@@ -58,10 +56,9 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/promocodes", promocodeRoutes);
-app.use("/api/users", userRoutes);
 app.use("/api/orders", orderRoutes);
 
-// Global error handler
+// Error handlers
 app.use((err, req, res, next) => {
   console.error(err);
   const statusCode = err.statusCode || 500;
@@ -79,4 +76,19 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on ${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running on port ${PORT}`);
+
+  // Cloudinary Connection Check
+  if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY) {
+    cloudinary.api
+      .ping()
+      .then(() => console.log("✅ Cloudinary Connected"))
+      .catch((err) =>
+        console.error("❌ Cloudinary Connection Failed:", err.message)
+      );
+  } else {
+    console.warn("⚠️ Cloudinary credentials missing in .env");
+  }
+});

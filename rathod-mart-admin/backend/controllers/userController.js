@@ -2,41 +2,11 @@
 
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
-import fs from "fs";
-import path from "path";
-import sharp from "sharp";
 import generateToken from "../utils/generateToken.js";
+import { uploadToCloudinary } from "../utils/cloudinary.js"; // Cloudinary helper
 
 const ah = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
-
-const UPLOAD_DIR = path.join(process.cwd(), "uploads", "profile");
-
-// --- HELPER FUNCTIONS ---
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
-const makeFilename = (prefix = "profile") =>
-  `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-
-async function saveBufferAsJpeg(buffer, filename, size = 300) {
-  const out = path.join(UPLOAD_DIR, filename);
-  await sharp(buffer)
-    .rotate()
-    .resize(size, size, { fit: "cover" })
-    .jpeg({ quality: 85 })
-    .toFile(out);
-  return `/uploads/profile/${filename}`;
-}
-
-async function removeFileByUrl(urlPath) {
-  if (!urlPath) return;
-  try {
-    const p = path.join(process.cwd(), urlPath.replace(/^\//, ""));
-    if (fs.existsSync(p)) await fs.promises.unlink(p);
-  } catch (err) {
-    console.warn("Failed to delete file", urlPath, err.message);
-  }
-}
 
 const SORT_ALLOW = new Set([
   "name",
@@ -50,8 +20,6 @@ const SORT_ALLOW = new Set([
 // --- AUTH CONTROLLERS ---
 
 // @desc Auth admin/staff user (Login) - FOR ADMIN APP
-// @route POST /api/users/admin-login
-// @access Public
 export const loginAdminUser = ah(async (req, res) => {
   const { email, password } = req.body;
 
@@ -70,15 +38,13 @@ export const loginAdminUser = ah(async (req, res) => {
     });
   }
 
-  // 2. If not Super Admin, Check Database
+  // 2. Check Database
   const user = await User.findOne({ email }).select("+password");
 
   if (user && (await bcrypt.compare(password, user.password))) {
-    // 3. Check if user has allowed role (Admin, Manager, or Staff)
     const allowedRoles = ["admin", "manager", "staff"];
 
     if (allowedRoles.includes(user.role)) {
-      // 4. Check if account is active
       if (user.status !== "active") {
         res.status(401);
         throw new Error(
@@ -86,11 +52,10 @@ export const loginAdminUser = ah(async (req, res) => {
         );
       }
 
-      // 5. Generate Token (Valid for 30 Days via generateToken utility)
       generateToken(res, user._id, "admin_jwt");
 
       const userObj = user.toObject();
-      delete userObj.password; // Do not send password back
+      delete userObj.password;
       return res.json(userObj);
     } else {
       res.status(401);
@@ -105,8 +70,6 @@ export const loginAdminUser = ah(async (req, res) => {
 });
 
 // @desc Auth customer user (Login) - FOR CUSTOMER APP
-// @route POST /api/users/login
-// @access Public
 export const loginUser = ah(async (req, res) => {
   const { email, password } = req.body;
   const dbUser = await User.findOne({ email }).select("+password");
@@ -118,7 +81,6 @@ export const loginUser = ah(async (req, res) => {
         "Account is inactive or blocked. Please contact support."
       );
     }
-    // Use 'jwt' cookie for customers
     generateToken(res, dbUser._id, "jwt");
     const user = dbUser.toObject();
     delete user.password;
@@ -129,9 +91,7 @@ export const loginUser = ah(async (req, res) => {
   }
 });
 
-// @desc Logout admin / clear cookie
-// @route POST /api/users/admin-logout
-// @access Public
+// @desc Logout admin
 export const logoutAdmin = ah(async (req, res) => {
   res.cookie("admin_jwt", "", {
     httpOnly: true,
@@ -140,9 +100,7 @@ export const logoutAdmin = ah(async (req, res) => {
   res.status(200).json({ message: "Admin logged out" });
 });
 
-// @desc Logout customer / clear cookie
-// @route POST /api/users/logout
-// @access Public
+// @desc Logout customer
 export const logoutUser = ah(async (req, res) => {
   res.cookie("jwt", "", {
     httpOnly: true,
@@ -151,7 +109,7 @@ export const logoutUser = ah(async (req, res) => {
   res.status(200).json({ message: "Customer logged out" });
 });
 
-// --- CRUD & PROFILE CONTROLLERS (Existing code kept same) ---
+// --- CRUD & PROFILE CONTROLLERS ---
 
 // @desc Register a new user (customer)
 export const registerUser = ah(async (req, res) => {
@@ -226,10 +184,15 @@ export const updateUserProfile = ah(async (req, res) => {
   }
   if (password) user.password = password;
 
+  // CLOUDINARY IMAGE UPLOAD
   if (req.file) {
-    if (user.profileImage) await removeFileByUrl(user.profileImage);
-    const filename = makeFilename(`profile-${user._id}`);
-    user.profileImage = await saveBufferAsJpeg(req.file.buffer, filename, 300);
+    try {
+      const result = await uploadToCloudinary(req.file.buffer);
+      user.profileImage = result.secure_url; // Use secure Cloudinary URL
+    } catch (error) {
+      console.error("Cloudinary Upload Error:", error);
+      // Optionally throw error or continue without updating image
+    }
   }
 
   const updatedUser = await user.save();
@@ -253,15 +216,15 @@ export const createUser = ah(async (req, res) => {
       throw e;
     }
   }
+
   const payload = { email, username, password, ...rest };
+
+  // CLOUDINARY IMAGE UPLOAD
   if (req.file) {
-    const filename = makeFilename("profile");
-    payload.profileImage = await saveBufferAsJpeg(
-      req.file.buffer,
-      filename,
-      300
-    );
+    const result = await uploadToCloudinary(req.file.buffer);
+    payload.profileImage = result.secure_url;
   }
+
   const user = await User.create(payload);
   res.status(201).json({ success: true, data: user });
 });
@@ -362,15 +325,11 @@ export const updateUser = ah(async (req, res) => {
   } else {
     delete update.password;
   }
+
+  // CLOUDINARY IMAGE UPLOAD
   if (req.file) {
-    const userOld = await User.findById(id);
-    if (userOld?.profileImage) await removeFileByUrl(userOld.profileImage);
-    const filename = makeFilename("profile");
-    update.profileImage = await saveBufferAsJpeg(
-      req.file.buffer,
-      filename,
-      300
-    );
+    const result = await uploadToCloudinary(req.file.buffer);
+    update.profileImage = result.secure_url;
   }
 
   const user = await User.findByIdAndUpdate(id, update, {
@@ -393,6 +352,8 @@ export const deleteUser = ah(async (req, res) => {
     e.statusCode = 404;
     throw e;
   }
-  if (user.profileImage) await removeFileByUrl(user.profileImage);
+  // Note: We are not deleting the image from Cloudinary to keep things simple and safe.
+  // The database record is deleted, which is sufficient for this project.
+
   res.json({ success: true, message: "User deleted" });
 });

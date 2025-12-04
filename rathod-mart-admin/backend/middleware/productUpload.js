@@ -1,22 +1,8 @@
-// middleware/productUpload.js
+// backend/middleware/productUpload.js
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 
-const UPLOAD_DIR = path.join(process.cwd(), "uploads", "products");
-// ensure dir
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, UPLOAD_DIR);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, name);
-  },
-});
+// Hum MemoryStorage use karenge taaki file RAM mein aaye aur phir Cloudinary par jaye
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   if (!file.mimetype.startsWith("image/")) {
