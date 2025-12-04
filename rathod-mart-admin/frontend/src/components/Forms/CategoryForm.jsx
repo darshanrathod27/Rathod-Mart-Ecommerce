@@ -1,3 +1,4 @@
+// src/components/Forms/CategoryForm.jsx
 import React from "react";
 import PropTypes from "prop-types";
 import {
@@ -9,7 +10,6 @@ import {
   IconButton,
   DialogActions,
   Stack,
-  Divider,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
@@ -56,7 +56,8 @@ export default function CategoryForm({
     defaultValues: {
       name: initialData?.name || "",
       description: initialData?.description || "",
-      status: initialData?.status || "active",
+      // FIX: 'active' ki jagah 'Active' (Backend needs Capitalized)
+      status: initialData?.status || "Active",
     },
   });
 
@@ -124,8 +125,9 @@ export default function CategoryForm({
                   helperText={errors.status?.message}
                   sx={textFieldStyles}
                 >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
+                  {/* FIX: Values must be Capitalized to match Backend Validation */}
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Inactive">Inactive</MenuItem>
                 </TextField>
               )}
             />
@@ -186,7 +188,6 @@ export default function CategoryForm({
       }}
       BackdropProps={{ sx: { backgroundColor: "rgba(0,0,0,0.55)" } }}
     >
-      {/* Header - Fixed "Double Header" Issue by using Box instead of DialogTitle */}
       <Box sx={{ ...formHeaderStyles }}>
         <Stack
           direction="row"

@@ -156,6 +156,7 @@ const Users = () => {
     try {
       await deleteUser(userToDelete._id);
       toast.success("User deleted successfully");
+      // Refresh list
       fetchUsers();
     } catch (e) {
       toast.error(e.message || "Delete failed");
@@ -174,6 +175,18 @@ const Users = () => {
     setEditUser(user);
     setOpenForm(true);
     handleMenuClose();
+  };
+
+  // FIX: Handle Form Success (Refresh list and reset pagination)
+  const handleFormSuccess = () => {
+    setOpenForm(false);
+    // Reset page to 0 to trigger a fresh fetch via useEffect
+    // This solves the issue of data disappearing or not updating
+    setPaginationModel((prev) => ({ ...prev, page: 0 }));
+    // Alternatively, if page is already 0, force fetch:
+    if (paginationModel.page === 0) {
+      fetchUsers();
+    }
   };
 
   const columns = [
@@ -410,10 +423,7 @@ const Users = () => {
             open={openForm}
             onClose={() => setOpenForm(false)}
             initialData={editUser}
-            onSaved={() => {
-              setOpenForm(false);
-              fetchUsers();
-            }}
+            onSaved={handleFormSuccess} // FIX: Use updated handler
           />
         )}
 
