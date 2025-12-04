@@ -1,6 +1,6 @@
 // ========================================
-// THEME CONTEXT - Light/Dark/Green modes
-// LocalStorage me save hoga
+// THEME CONTEXT - FIXED VERSION
+// localStorage error handling added
 // ========================================
 
 import { createContext, useContext, useEffect } from "react";
@@ -9,15 +9,19 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  // LocalStorage se theme load - default green
+  // FIXED: Safe localStorage with proper error handling
   const [theme, setTheme] = useLocalStorage("rathod-mart-theme", "green");
 
-  // Theme apply karo jab change ho
+  // Apply theme on mount and change
   useEffect(() => {
-    // Body class update
-    document.body.className = `theme-${theme}`;
+    // Validate theme value
+    const validThemes = ["light", "dark", "green"];
+    const safeTheme = validThemes.includes(theme) ? theme : "green";
 
-    // Meta theme color (mobile browser bar)
+    // Apply to body
+    document.body.className = `theme-${safeTheme}`;
+
+    // Update meta theme color for mobile browsers
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
       const colors = {
@@ -25,12 +29,15 @@ export const ThemeProvider = ({ children }) => {
         dark: "#121212",
         green: "#E8F5E9",
       };
-      metaThemeColor.setAttribute("content", colors[theme]);
+      metaThemeColor.setAttribute("content", colors[safeTheme] || colors.green);
     }
   }, [theme]);
 
   const toggleTheme = (newTheme) => {
-    setTheme(newTheme);
+    const validThemes = ["light", "dark", "green"];
+    if (validThemes.includes(newTheme)) {
+      setTheme(newTheme);
+    }
   };
 
   return (

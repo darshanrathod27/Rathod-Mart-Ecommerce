@@ -1,13 +1,12 @@
 // ========================================
-// USE LOCAL STORAGE HOOK
-// Persistent state with localStorage
-// Theme, settings, preferences save
+// USE LOCAL STORAGE - FIXED VERSION
+// Better error handling
 // ========================================
 
 import { useState, useEffect } from "react";
 
 export const useLocalStorage = (key, initialValue) => {
-  // State to store value
+  // Initialize state with safe localStorage access
   const [storedValue, setStoredValue] = useState(() => {
     // SSR safe check
     if (typeof window === "undefined") {
@@ -18,16 +17,28 @@ export const useLocalStorage = (key, initialValue) => {
       // Get from local storage by key
       const item = window.localStorage.getItem(key);
 
-      // Parse stored json or return initialValue
-      return item ? JSON.parse(item) : initialValue;
+      if (!item) {
+        return initialValue;
+      }
+
+      // Try to parse as JSON
+      try {
+        return JSON.parse(item);
+      } catch (parseError) {
+        // If it's a plain string (not JSON), return as-is
+        console.warn(
+          `localStorage key "${key}" contains non-JSON value, using as string:`,
+          item
+        );
+        return item;
+      }
     } catch (error) {
       console.error(`Error loading localStorage key "${key}":`, error);
       return initialValue;
     }
   });
 
-  // Return a wrapped version of useState's setter function that
-  // persists the new value to localStorage
+  // Save to localStorage whenever value changes
   const setValue = (value) => {
     try {
       // Allow value to be a function (same API as useState)
@@ -61,11 +72,7 @@ export const useLocalStorage = (key, initialValue) => {
   return [storedValue, setValue, removeValue];
 };
 
-// ========================================
-// USE SESSION STORAGE HOOK
-// Similar to localStorage but session-based
-// ========================================
-
+// Session storage version
 export const useSessionStorage = (key, initialValue) => {
   const [storedValue, setStoredValue] = useState(() => {
     if (typeof window === "undefined") {
@@ -74,7 +81,20 @@ export const useSessionStorage = (key, initialValue) => {
 
     try {
       const item = window.sessionStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+
+      if (!item) {
+        return initialValue;
+      }
+
+      try {
+        return JSON.parse(item);
+      } catch (parseError) {
+        console.warn(
+          `sessionStorage key "${key}" contains non-JSON value:`,
+          item
+        );
+        return item;
+      }
     } catch (error) {
       console.error(`Error loading sessionStorage key "${key}":`, error);
       return initialValue;
