@@ -1,6 +1,8 @@
 // frontend/src/pages/Categories.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { categoryService } from "../services/categoryService";
+import MobileSearchBar from "../components/Common/MobileSearchBar";
+import MobileTable from "../components/Common/MobileTable";
 import {
   Box,
   Button,
@@ -22,6 +24,8 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import {
@@ -39,7 +43,6 @@ import CategoryForm from "../components/Forms/CategoryForm";
 import toast from "react-hot-toast";
 import { useDebounce } from "../hooks/useDebounce";
 
-// --- Delete Confirmation Component ---
 const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
   <Dialog open={open} onClose={onClose}>
     <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -63,6 +66,9 @@ const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
 );
 
 const Categories = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   // Table Data
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -272,6 +278,30 @@ const Categories = () => {
     },
   ];
 
+  /* ---------- Mobile helpers ---------- */
+  const mobileColumns = [
+    { field: "icon", label: "Icon" },
+    { field: "name", label: "Name", primary: true },
+    { field: "description", label: "Description" },
+    { field: "productsCount", label: "Products" },
+    { field: "status", label: "Status" },
+    { field: "createdAt", label: "Created" },
+  ];
+
+  const handleMobileEdit = (row) => {
+    handleEdit(row);
+  };
+
+  const handleMobileDelete = (row) => {
+    confirmDelete(row);
+  };
+
+  const handleMobileRowClick = (row) => {
+    // Open edit modal on row click for categories (change as you prefer)
+    setEditItem(row);
+    setOpenModal(true);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -279,97 +309,120 @@ const Categories = () => {
       transition={{ duration: 0.4 }}
     >
       <Box sx={{ p: 3 }}>
-        {/* --- Header: Single Row --- */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-            <Box
-              sx={{
-                display: "flex",
-                gap: 2,
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              {/* Search */}
-              <TextField
-                placeholder="Search categories..."
-                size="small"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchTerm && (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={() => setSearchTerm("")}
-                      >
-                        <Clear fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ flexGrow: 1, minWidth: 220 }}
-              />
+        {isMobile ? (
+          <>
+            <MobileSearchBar
+              searchValue={searchTerm}
+              onSearchChange={(e) => setSearchTerm(e.target.value)}
+              roleValue={""}
+              onRoleChange={() => {}}
+              statusValue={filterStatus}
+              onStatusChange={(e) => setFilterStatus(e.target.value)}
+              onAddClick={handleAdd}
+              addButtonText="Add Category"
+              searchPlaceholder="Search categories..."
+              rolePlaceholder="Category"
+              statusPlaceholder="Status"
+              showRole={false} // no role filter for categories
+            />
 
-              {/* Filter */}
-              <FormControl size="small" sx={{ minWidth: 150 }}>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={filterStatus}
-                  label="Status"
-                  onChange={(e) => setFilterStatus(e.target.value)}
+            <MobileTable
+              data={rows}
+              columns={mobileColumns}
+              onEdit={handleMobileEdit}
+              onDelete={handleMobileDelete}
+              onRowClick={handleMobileRowClick}
+            />
+          </>
+        ) : (
+          <>
+            <Card sx={{ mb: 3 }}>
+              <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 2,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
                 >
-                  <MenuItem value="">All</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                </Select>
-              </FormControl>
+                  <TextField
+                    placeholder="Search categories..."
+                    size="small"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Search fontSize="small" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: searchTerm && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            onClick={() => setSearchTerm("")}
+                          >
+                            <Clear fontSize="small" />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ flexGrow: 1, minWidth: 220 }}
+                  />
 
-              {/* Add Button */}
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={handleAdd}
-                sx={{ whiteSpace: "nowrap", height: 40 }}
-              >
-                Add Category
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
+                  <FormControl size="small" sx={{ minWidth: 150 }}>
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      value={filterStatus}
+                      label="Status"
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                    >
+                      <MenuItem value="">All</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                    </Select>
+                  </FormControl>
 
-        {/* --- Table --- */}
-        <Card>
-          <DataGrid
-            rows={rows}
-            columns={columns}
-            getRowId={(row) => row._id}
-            rowCount={rowCount}
-            loading={loading}
-            paginationMode="server"
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            pageSizeOptions={[10, 20, 50]}
-            sortingMode="server"
-            sortModel={sortModel}
-            onSortModelChange={setSortModel}
-            disableRowSelectionOnClick
-            autoHeight
-            sx={{
-              border: "none",
-              "& .MuiDataGrid-columnHeaders": {
-                backgroundColor: "rgba(76, 175, 80, 0.05)",
-              },
-            }}
-          />
-        </Card>
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={handleAdd}
+                    sx={{ whiteSpace: "nowrap", height: 40 }}
+                  >
+                    Add Category
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
 
-        {/* --- Menus & Modals --- */}
+            <Card>
+              <DataGrid
+                rows={rows}
+                columns={columns}
+                getRowId={(row) => row._id}
+                rowCount={rowCount}
+                loading={loading}
+                paginationMode="server"
+                paginationModel={paginationModel}
+                onPaginationModelChange={setPaginationModel}
+                pageSizeOptions={[10, 20, 50]}
+                sortingMode="server"
+                sortModel={sortModel}
+                onSortModelChange={setSortModel}
+                disableRowSelectionOnClick
+                autoHeight
+                sx={{
+                  border: "none",
+                  "& .MuiDataGrid-columnHeaders": {
+                    backgroundColor: "rgba(76, 175, 80, 0.05)",
+                  },
+                }}
+              />
+            </Card>
+          </>
+        )}
+
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}

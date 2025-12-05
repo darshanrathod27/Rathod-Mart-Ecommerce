@@ -3,6 +3,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { getUsers, deleteUser } from "../services/userService";
 import UserForm from "../components/Forms/UserForm.jsx";
 import UserViewModal from "../components/Modals/UserViewModal.jsx";
+import MobileSearchBar from "../components/Common/MobileSearchBar";
+import MobileTable from "../components/Common/MobileTable";
 import {
   Box,
   Button,
@@ -24,6 +26,8 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import {
@@ -66,6 +70,9 @@ const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
 );
 
 const Users = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [rowCount, setRowCount] = useState(0);
@@ -156,7 +163,6 @@ const Users = () => {
     try {
       await deleteUser(userToDelete._id);
       toast.success("User deleted successfully");
-      // Refresh list
       fetchUsers();
     } catch (e) {
       toast.error(e.message || "Delete failed");
@@ -177,18 +183,7 @@ const Users = () => {
     handleMenuClose();
   };
 
-  // FIX: Handle Form Success (Refresh list and reset pagination)
-  const handleFormSuccess = () => {
-    setOpenForm(false);
-    // Reset page to 0 to trigger a fresh fetch via useEffect
-    // This solves the issue of data disappearing or not updating
-    setPaginationModel((prev) => ({ ...prev, page: 0 }));
-    // Alternatively, if page is already 0, force fetch:
-    if (paginationModel.page === 0) {
-      fetchUsers();
-    }
-  };
-
+  // Desktop columns (unchanged)
   const columns = [
     {
       field: "avatar",
@@ -294,6 +289,30 @@ const Users = () => {
     },
   ];
 
+  /* ---------- Mobile helpers ---------- */
+  // Mobile columns suitable for MobileTable (primary field indicated)
+  const mobileColumns = [
+    { field: "avatar", label: "Avatar" },
+    { field: "name", label: "Name", primary: true },
+    { field: "email", label: "Email" },
+    { field: "phone", label: "Phone" },
+    { field: "role", label: "Role" },
+    { field: "status", label: "Status" },
+  ];
+
+  const handleMobileEdit = (row) => {
+    handleEdit(row);
+  };
+
+  const handleMobileDelete = (row) => {
+    confirmDelete(row);
+  };
+
+  const handleMobileRowClick = (row) => {
+    // open view modal on row click
+    setViewUser(row);
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -301,103 +320,134 @@ const Users = () => {
       transition={{ duration: 0.4 }}
     >
       <Box sx={{ p: 3 }}>
-        <Card sx={{ mb: 3 }}>
-          <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-            <Box
-              sx={{
-                display: "flex",
-                gap: 2,
-                alignItems: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              <TextField
-                placeholder="Search users..."
-                size="small"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchTerm && (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={() => setSearchTerm("")}
-                      >
-                        <Clear fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ flexGrow: 1, minWidth: 220 }}
-              />
-              <FormControl size="small" sx={{ minWidth: 140 }}>
-                <InputLabel>Role</InputLabel>
-                <Select
-                  value={filterRole}
-                  label="Role"
-                  onChange={(e) => setFilterRole(e.target.value)}
-                >
-                  <MenuItem value="">All Roles</MenuItem>
-                  <MenuItem value="admin">Admin</MenuItem>
-                  <MenuItem value="manager">Manager</MenuItem>
-                  <MenuItem value="staff">Staff</MenuItem>
-                  <MenuItem value="customer">Customer</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ minWidth: 140 }}>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={filterStatus}
-                  label="Status"
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                >
-                  <MenuItem value="">All Status</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                  <MenuItem value="blocked">Blocked</MenuItem>
-                </Select>
-              </FormControl>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={handleAdd}
-                sx={{ whiteSpace: "nowrap", height: 40 }}
-              >
-                Add User
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
+        {isMobile ? (
+          <>
+            {/* Mobile Search & Controls (single line-like layout inside MobileSearchBar) */}
+            <MobileSearchBar
+              searchValue={searchTerm}
+              onSearchChange={(e) => setSearchTerm(e.target.value)}
+              roleValue={filterRole}
+              onRoleChange={(e) => setFilterRole(e.target.value)}
+              statusValue={filterStatus}
+              onStatusChange={(e) => setFilterStatus(e.target.value)}
+              onAddClick={handleAdd}
+              addButtonText="Add User"
+              searchPlaceholder="Search users..."
+              rolePlaceholder="Role"
+              statusPlaceholder="Status"
+            />
 
-        <Card>
-          <DataGrid
-            rows={users}
-            columns={columns}
-            getRowId={(row) => row._id}
-            rowCount={rowCount}
-            loading={loading}
-            paginationMode="server"
-            paginationModel={paginationModel}
-            onPaginationModelChange={setPaginationModel}
-            pageSizeOptions={[10, 20, 50]}
-            sortingMode="server"
-            sortModel={sortModel}
-            onSortModelChange={setSortModel}
-            disableRowSelectionOnClick
-            autoHeight
-            sx={{
-              border: "none",
-              "& .MuiDataGrid-columnHeaders": {
-                backgroundColor: "rgba(76, 175, 80, 0.05)",
-              },
-            }}
-          />
-        </Card>
+            {/* Mobile Table */}
+            <MobileTable
+              data={users}
+              columns={mobileColumns}
+              onEdit={handleMobileEdit}
+              onDelete={handleMobileDelete}
+              onRowClick={handleMobileRowClick}
+            />
+          </>
+        ) : (
+          <>
+            {/* Desktop header (kept exactly as before) */}
+            <Card sx={{ mb: 3 }}>
+              <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 2,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <TextField
+                    placeholder="Search users..."
+                    size="small"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Search fontSize="small" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: searchTerm && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            onClick={() => setSearchTerm("")}
+                          >
+                            <Clear fontSize="small" />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ flexGrow: 1, minWidth: 220 }}
+                  />
+                  <FormControl size="small" sx={{ minWidth: 140 }}>
+                    <InputLabel>Role</InputLabel>
+                    <Select
+                      value={filterRole}
+                      label="Role"
+                      onChange={(e) => setFilterRole(e.target.value)}
+                    >
+                      <MenuItem value="">All Roles</MenuItem>
+                      <MenuItem value="admin">Admin</MenuItem>
+                      <MenuItem value="manager">Manager</MenuItem>
+                      <MenuItem value="staff">Staff</MenuItem>
+                      <MenuItem value="customer">Customer</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <FormControl size="small" sx={{ minWidth: 140 }}>
+                    <InputLabel>Status</InputLabel>
+                    <Select
+                      value={filterStatus}
+                      label="Status"
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                    >
+                      <MenuItem value="">All Status</MenuItem>
+                      <MenuItem value="active">Active</MenuItem>
+                      <MenuItem value="inactive">Inactive</MenuItem>
+                      <MenuItem value="blocked">Blocked</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={handleAdd}
+                    sx={{ whiteSpace: "nowrap", height: 40 }}
+                  >
+                    Add User
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <DataGrid
+                rows={users}
+                columns={columns}
+                getRowId={(row) => row._id}
+                rowCount={rowCount}
+                loading={loading}
+                paginationMode="server"
+                paginationModel={paginationModel}
+                onPaginationModelChange={setPaginationModel}
+                pageSizeOptions={[10, 20, 50]}
+                sortingMode="server"
+                sortModel={sortModel}
+                onSortModelChange={setSortModel}
+                disableRowSelectionOnClick
+                autoHeight
+                sx={{
+                  border: "none",
+                  "& .MuiDataGrid-columnHeaders": {
+                    backgroundColor: "rgba(76, 175, 80, 0.05)",
+                  },
+                }}
+              />
+            </Card>
+          </>
+        )}
 
         <Menu
           anchorEl={anchorEl}
@@ -423,7 +473,10 @@ const Users = () => {
             open={openForm}
             onClose={() => setOpenForm(false)}
             initialData={editUser}
-            onSaved={handleFormSuccess} // FIX: Use updated handler
+            onSaved={() => {
+              setOpenForm(false);
+              fetchUsers();
+            }}
           />
         )}
 
