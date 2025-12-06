@@ -8,6 +8,7 @@ import Header from "./Header";
 import MobileBottomNav from "./MobileBottomNav";
 import MobileHeader from "./MobileHeader";
 import ResponsiveSidebar from "./ResponsiveSidebar";
+
 import {
   People,
   Category,

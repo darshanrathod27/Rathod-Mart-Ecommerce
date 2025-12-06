@@ -1,10 +1,11 @@
-// frontend/src/pages/Users.jsx
+// src/pages/Users.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { getUsers, deleteUser } from "../services/userService";
 import UserForm from "../components/Forms/UserForm.jsx";
 import UserViewModal from "../components/Modals/UserViewModal.jsx";
-import MobileSearchBar from "../components/Common/MobileSearchBar";
-import MobileTable from "../components/Common/MobileTable";
+import DynamicResponsiveTable from "../components/Shared/DynamicResponsiveTable.jsx";
+import MobileHeader from "../components/Layout/MobileHeader.jsx";
+
 import {
   Box,
   Button,
@@ -28,10 +29,14 @@ import {
   DialogContentText,
   useMediaQuery,
   useTheme,
+  Stack,
+  Tooltip,
+  Divider,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+
 import {
-  Add,
   Search,
   MoreVert,
   Edit,
@@ -39,7 +44,10 @@ import {
   Visibility,
   Clear,
   Warning,
+  Refresh,
+  PersonAdd,
 } from "@mui/icons-material";
+
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { useDebounce } from "../hooks/useDebounce";
@@ -47,29 +55,60 @@ import { useDebounce } from "../hooks/useDebounce";
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
+// --- Delete Confirmation Dialog ---
 const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
-  <Dialog open={open} onClose={onClose}>
-    <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      <Warning color="error" /> Confirm Deletion
+  <Dialog
+    open={open}
+    onClose={onClose}
+    PaperProps={{
+      sx: {
+        borderRadius: 3,
+        minWidth: { xs: "90%", sm: 400 },
+      },
+    }}
+  >
+    <DialogTitle
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        pb: 1,
+      }}
+    >
+      <Warning color="error" />
+      <Typography variant="h6" fontWeight={700}>
+        Confirm Deletion
+      </Typography>
     </DialogTitle>
-    <DialogContent>
+    <Divider />
+    <DialogContent sx={{ pt: 2 }}>
       <DialogContentText>
         Are you sure you want to delete user <strong>{itemName}</strong>? This
-        action cannot be undone.
+        action cannot be undone and will permanently remove all associated data.
       </DialogContentText>
     </DialogContent>
-    <DialogActions sx={{ p: 2 }}>
-      <Button onClick={onClose} variant="outlined" color="inherit">
+    <DialogActions sx={{ p: 2, gap: 1 }}>
+      <Button
+        onClick={onClose}
+        variant="outlined"
+        color="inherit"
+        sx={{ borderRadius: 2 }}
+      >
         Cancel
       </Button>
-      <Button onClick={onConfirm} variant="contained" color="error">
+      <Button
+        onClick={onConfirm}
+        variant="contained"
+        color="error"
+        sx={{ borderRadius: 2 }}
+      >
         Delete
       </Button>
     </DialogActions>
   </Dialog>
 );
 
-const Users = () => {
+const Users = ({ toggleSidebar }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -81,6 +120,7 @@ const Users = () => {
     page: 0,
     pageSize: 10,
   });
+
   const [sortModel, setSortModel] = useState([
     { field: "createdAt", sort: "desc" },
   ]);
@@ -119,14 +159,17 @@ const Users = () => {
         sortBy: sortModel[0]?.field || "createdAt",
         sortOrder: sortModel[0]?.sort || "desc",
       };
+
       const res = await getUsers(params);
       const list = (res?.data || []).map((u) => ({
         ...u,
         _avatarUrl: getAvatarUrl(u.profileImage),
       }));
+
       setUsers(list);
       setRowCount(res?.pagination?.total || 0);
     } catch (e) {
+      console.error(e);
       toast.error("Failed to load users");
     } finally {
       setLoading(false);
@@ -183,7 +226,12 @@ const Users = () => {
     handleMenuClose();
   };
 
-  // Desktop columns (unchanged)
+  const handleRefresh = () => {
+    fetchUsers();
+    toast.success("Data refreshed");
+  };
+
+  // Columns for DataGrid + mobile cards
   const columns = [
     {
       field: "avatar",
@@ -194,16 +242,17 @@ const Users = () => {
         <Avatar
           src={params.row._avatarUrl}
           alt={params.row.name}
-          sx={{ width: 32, height: 32 }}
+          sx={{ width: 36, height: 36 }}
         >
-          {!params.row._avatarUrl ? "👤" : null}
+          {!params.row._avatarUrl ? params.row.name?.charAt(0) : null}
         </Avatar>
       ),
     },
     {
       field: "name",
       headerName: "Name",
-      width: 180,
+      flex: 1,
+      minWidth: 180,
       renderCell: (p) => (
         <Typography variant="body2" fontWeight={600}>
           {p.value}
@@ -213,7 +262,8 @@ const Users = () => {
     {
       field: "email",
       headerName: "Email",
-      width: 220,
+      flex: 1,
+      minWidth: 200,
       renderCell: (p) => (
         <Typography variant="body2" color="text.secondary">
           {p.value}
@@ -231,20 +281,20 @@ const Users = () => {
     {
       field: "role",
       headerName: "Role",
-      width: 110,
+      width: 120,
       renderCell: (p) => (
         <Chip
           label={p.value}
           color={p.value === "admin" ? "primary" : "default"}
           size="small"
-          sx={{ textTransform: "capitalize" }}
+          sx={{ textTransform: "capitalize", fontWeight: 600 }}
         />
       ),
     },
     {
       field: "status",
       headerName: "Status",
-      width: 110,
+      width: 120,
       renderCell: (p) => {
         const colorMap = {
           active: "success",
@@ -256,7 +306,7 @@ const Users = () => {
             label={p.value}
             color={colorMap[p.value?.toLowerCase()] || "default"}
             size="small"
-            sx={{ textTransform: "capitalize" }}
+            sx={{ textTransform: "capitalize", fontWeight: 600 }}
           />
         );
       },
@@ -266,9 +316,13 @@ const Users = () => {
       headerName: "Created",
       width: 130,
       renderCell: (params) => (
-        <Typography variant="caption">
+        <Typography variant="caption" color="text.secondary">
           {params.row.createdAt
-            ? new Date(params.row.createdAt).toLocaleDateString("en-IN")
+            ? new Date(params.row.createdAt).toLocaleDateString("en-IN", {
+                day: "2-digit",
+                month: "short",
+                year: "2-digit",
+              })
             : "—"}
         </Typography>
       ),
@@ -276,12 +330,19 @@ const Users = () => {
     {
       field: "actions",
       headerName: "Actions",
-      width: 70,
+      width: 80,
       sortable: false,
+      align: "center",
+      headerAlign: "center",
       renderCell: (params) => (
         <IconButton
           onClick={(e) => handleMenuClick(e, params.row)}
           size="small"
+          sx={{
+            "&:hover": {
+              bgcolor: theme.palette.action.hover,
+            },
+          }}
         >
           <MoreVert />
         </IconButton>
@@ -289,76 +350,55 @@ const Users = () => {
     },
   ];
 
-  /* ---------- Mobile helpers ---------- */
-  // Mobile columns suitable for MobileTable (primary field indicated)
-  const mobileColumns = [
-    { field: "avatar", label: "Avatar" },
-    { field: "name", label: "Name", primary: true },
-    { field: "email", label: "Email" },
-    { field: "phone", label: "Phone" },
-    { field: "role", label: "Role" },
-    { field: "status", label: "Status" },
-  ];
-
-  const handleMobileEdit = (row) => {
-    handleEdit(row);
-  };
-
-  const handleMobileDelete = (row) => {
-    confirmDelete(row);
-  };
-
-  const handleMobileRowClick = (row) => {
-    // open view modal on row click
-    setViewUser(row);
-  };
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+    <Box
+      sx={{
+        minHeight: "100vh",
+        bgcolor: theme.palette.background.default,
+      }}
     >
-      <Box sx={{ p: 3 }}>
-        {isMobile ? (
-          <>
-            {/* Mobile Search & Controls (single line-like layout inside MobileSearchBar) */}
-            <MobileSearchBar
-              searchValue={searchTerm}
-              onSearchChange={(e) => setSearchTerm(e.target.value)}
-              roleValue={filterRole}
-              onRoleChange={(e) => setFilterRole(e.target.value)}
-              statusValue={filterStatus}
-              onStatusChange={(e) => setFilterStatus(e.target.value)}
-              onAddClick={handleAdd}
-              addButtonText="Add User"
-              searchPlaceholder="Search users..."
-              rolePlaceholder="Role"
-              statusPlaceholder="Status"
-            />
+      {/* Mobile header */}
+      {isMobile && (
+        <MobileHeader
+          toggleSidebar={toggleSidebar}
+          showSearch={true}
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
+      )}
 
-            {/* Mobile Table */}
-            <MobileTable
-              data={users}
-              columns={mobileColumns}
-              onEdit={handleMobileEdit}
-              onDelete={handleMobileDelete}
-              onRowClick={handleMobileRowClick}
-            />
-          </>
-        ) : (
-          <>
-            {/* Desktop header (kept exactly as before) */}
-            <Card sx={{ mb: 3 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <Box
+          className="mobile-content-wrapper"
+          sx={{
+            maxWidth: "1600px",
+            mx: "auto",
+            p: { xs: 2, sm: 3 },
+          }}
+        >
+          {/* Desktop header / filters */}
+          {!isMobile && (
+            <Card
+              elevation={0}
+              sx={{
+                mb: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 2,
+              }}
+            >
               <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    gap: 2,
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                  }}
+                <Stack
+                  direction="row"
+                  spacing={2}
+                  alignItems="center"
+                  flexWrap="wrap"
+                  useFlexGap
                 >
+                  {/* Search */}
                   <TextField
                     placeholder="Search users..."
                     size="small"
@@ -367,7 +407,7 @@ const Users = () => {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <Search fontSize="small" />
+                          <Search fontSize="small" color="action" />
                         </InputAdornment>
                       ),
                       endAdornment: searchTerm && (
@@ -381,14 +421,23 @@ const Users = () => {
                         </InputAdornment>
                       ),
                     }}
-                    sx={{ flexGrow: 1, minWidth: 220 }}
+                    sx={{
+                      flexGrow: 1,
+                      minWidth: 250,
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                      },
+                    }}
                   />
+
+                  {/* Role Filter */}
                   <FormControl size="small" sx={{ minWidth: 140 }}>
                     <InputLabel>Role</InputLabel>
                     <Select
                       value={filterRole}
                       label="Role"
                       onChange={(e) => setFilterRole(e.target.value)}
+                      sx={{ borderRadius: 2 }}
                     >
                       <MenuItem value="">All Roles</MenuItem>
                       <MenuItem value="admin">Admin</MenuItem>
@@ -397,12 +446,15 @@ const Users = () => {
                       <MenuItem value="customer">Customer</MenuItem>
                     </Select>
                   </FormControl>
+
+                  {/* Status Filter */}
                   <FormControl size="small" sx={{ minWidth: 140 }}>
                     <InputLabel>Status</InputLabel>
                     <Select
                       value={filterStatus}
                       label="Status"
                       onChange={(e) => setFilterStatus(e.target.value)}
+                      sx={{ borderRadius: 2 }}
                     >
                       <MenuItem value="">All Status</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
@@ -410,94 +462,197 @@ const Users = () => {
                       <MenuItem value="blocked">Blocked</MenuItem>
                     </Select>
                   </FormControl>
+
+                  {/* Refresh */}
+                  <Tooltip title="Refresh">
+                    <IconButton
+                      onClick={handleRefresh}
+                      sx={{
+                        border: `1px solid ${theme.palette.divider}`,
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Refresh />
+                    </IconButton>
+                  </Tooltip>
+
+                  {/* Add User */}
                   <Button
                     variant="contained"
-                    startIcon={<Add />}
+                    startIcon={<PersonAdd />}
                     onClick={handleAdd}
-                    sx={{ whiteSpace: "nowrap", height: 40 }}
+                    sx={{
+                      whiteSpace: "nowrap",
+                      borderRadius: 2,
+                      px: 3,
+                      boxShadow: theme.shadows[2],
+                    }}
                   >
                     Add User
                   </Button>
-                </Box>
+                </Stack>
               </CardContent>
             </Card>
+          )}
 
-            <Card>
-              <DataGrid
-                rows={users}
-                columns={columns}
-                getRowId={(row) => row._id}
-                rowCount={rowCount}
-                loading={loading}
-                paginationMode="server"
-                paginationModel={paginationModel}
-                onPaginationModelChange={setPaginationModel}
-                pageSizeOptions={[10, 20, 50]}
-                sortingMode="server"
-                sortModel={sortModel}
-                onSortModelChange={setSortModel}
-                disableRowSelectionOnClick
-                autoHeight
-                sx={{
-                  border: "none",
-                  "& .MuiDataGrid-columnHeaders": {
-                    backgroundColor: "rgba(76, 175, 80, 0.05)",
-                  },
-                }}
-              />
+          {/* Mobile filters + add button */}
+          {isMobile && (
+            <Card
+              elevation={0}
+              sx={{
+                mb: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 2,
+              }}
+            >
+              <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                <Stack spacing={1.5}>
+                  <Stack direction="row" spacing={1}>
+                    <FormControl size="small" fullWidth>
+                      <InputLabel>Role</InputLabel>
+                      <Select
+                        value={filterRole}
+                        label="Role"
+                        onChange={(e) => setFilterRole(e.target.value)}
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="">All</MenuItem>
+                        <MenuItem value="admin">Admin</MenuItem>
+                        <MenuItem value="manager">Manager</MenuItem>
+                        <MenuItem value="staff">Staff</MenuItem>
+                        <MenuItem value="customer">Customer</MenuItem>
+                      </Select>
+                    </FormControl>
+
+                    <FormControl size="small" fullWidth>
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        value={filterStatus}
+                        label="Status"
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                        sx={{ borderRadius: 2 }}
+                      >
+                        <MenuItem value="">All</MenuItem>
+                        <MenuItem value="active">Active</MenuItem>
+                        <MenuItem value="inactive">Inactive</MenuItem>
+                        <MenuItem value="blocked">Blocked</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Stack>
+
+                  <Button
+                    variant="contained"
+                    startIcon={<PersonAdd />}
+                    onClick={handleAdd}
+                    fullWidth
+                    sx={{
+                      borderRadius: 2,
+                      py: 1.2,
+                      boxShadow: theme.shadows[2],
+                    }}
+                  >
+                    Add New User
+                  </Button>
+                </Stack>
+              </CardContent>
             </Card>
-          </>
-        )}
+          )}
 
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-        >
-          <MenuItem onClick={() => handleView(selectedUser)}>
-            <Visibility sx={{ mr: 1, fontSize: 20 }} /> View
-          </MenuItem>
-          <MenuItem onClick={() => handleEdit(selectedUser)}>
-            <Edit sx={{ mr: 1, fontSize: 20 }} /> Edit
-          </MenuItem>
-          <MenuItem
-            onClick={() => confirmDelete(selectedUser)}
-            sx={{ color: "error.main" }}
+          {/* Responsive Table (desktop DataGrid + mobile cards) */}
+          <DynamicResponsiveTable
+            rows={users}
+            columns={columns}
+            loading={loading}
+            rowCount={rowCount}
+            paginationModel={paginationModel}
+            onPaginationModelChange={setPaginationModel}
+            pageSizeOptions={[10, 25, 50]}
+            sortModel={sortModel}
+            onSortModelChange={setSortModel}
+            onEdit={handleEdit}
+            onDelete={confirmDelete}
+            onView={handleView}
+            imageField="_avatarUrl"
+            titleField="name"
+            subtitleField="email"
+            statusField="status"
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+          />
+
+          {/* Action Menu */}
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+            transformOrigin={{ horizontal: "right", vertical: "top" }}
+            anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+            PaperProps={{
+              elevation: 8,
+              sx: {
+                mt: 1,
+                borderRadius: 2,
+                minWidth: 180,
+                boxShadow: theme.shadows[8],
+              },
+            }}
           >
-            <Delete sx={{ mr: 1, fontSize: 20 }} /> Delete
-          </MenuItem>
-        </Menu>
+            <MenuItem onClick={() => handleView(selectedUser)}>
+              <ListItemIcon>
+                <Visibility fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>View Details</ListItemText>
+            </MenuItem>
+            <MenuItem onClick={() => handleEdit(selectedUser)}>
+              <ListItemIcon>
+                <Edit fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>Edit User</ListItemText>
+            </MenuItem>
+            <Divider />
+            <MenuItem
+              onClick={() => confirmDelete(selectedUser)}
+              sx={{ color: "error.main" }}
+            >
+              <ListItemIcon>
+                <Delete fontSize="small" color="error" />
+              </ListItemIcon>
+              <ListItemText>Delete User</ListItemText>
+            </MenuItem>
+          </Menu>
 
-        {openForm && (
-          <UserForm
-            open={openForm}
-            onClose={() => setOpenForm(false)}
-            initialData={editUser}
-            onSaved={() => {
-              setOpenForm(false);
-              fetchUsers();
+          {/* Modals */}
+          {openForm && (
+            <UserForm
+              open={openForm}
+              onClose={() => setOpenForm(false)}
+              initialData={editUser}
+              onSaved={() => {
+                setOpenForm(false);
+                fetchUsers();
+              }}
+            />
+          )}
+
+          <UserViewModal
+            open={Boolean(viewUser)}
+            onClose={() => setViewUser(null)}
+            user={viewUser}
+            onEdit={(user) => {
+              setViewUser(null);
+              handleEdit(user);
             }}
           />
-        )}
 
-        <UserViewModal
-          open={Boolean(viewUser)}
-          onClose={() => setViewUser(null)}
-          user={viewUser}
-          onEdit={(user) => {
-            setViewUser(null);
-            handleEdit(user);
-          }}
-        />
-
-        <DeleteConfirmDialog
-          open={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-          onConfirm={handleDelete}
-          itemName={userToDelete?.name}
-        />
-      </Box>
-    </motion.div>
+          <DeleteConfirmDialog
+            open={deleteDialogOpen}
+            onClose={() => setDeleteDialogOpen(false)}
+            onConfirm={handleDelete}
+            itemName={userToDelete?.name}
+          />
+        </Box>
+      </motion.div>
+    </Box>
   );
 };
 
