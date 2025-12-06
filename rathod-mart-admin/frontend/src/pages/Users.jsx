@@ -4,7 +4,7 @@ import { getUsers, deleteUser } from "../services/userService";
 import UserForm from "../components/Forms/UserForm.jsx";
 import UserViewModal from "../components/Modals/UserViewModal.jsx";
 import DynamicResponsiveTable from "../components/Shared/DynamicResponsiveTable.jsx";
-import MobileHeader from "../components/Layout/MobileHeader.jsx";
+import MobileSearchBar from "../components/Common/MobileSearchBar.jsx"; // ✅ Import MobileSearchBar
 
 import {
   Box,
@@ -108,7 +108,7 @@ const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
   </Dialog>
 );
 
-const Users = ({ toggleSidebar }) => {
+const Users = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -357,15 +357,9 @@ const Users = ({ toggleSidebar }) => {
         bgcolor: theme.palette.background.default,
       }}
     >
-      {/* Mobile header */}
-      {isMobile && (
-        <MobileHeader
-          toggleSidebar={toggleSidebar}
-          showSearch={true}
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-        />
-      )}
+      {/* ✅ FIX: Removed manual <MobileHeader /> here.
+        It is already in Layout.jsx. This prevents the "Green Screen" overlay.
+      */}
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -380,8 +374,32 @@ const Users = ({ toggleSidebar }) => {
             p: { xs: 2, sm: 3 },
           }}
         >
-          {/* Desktop header / filters */}
-          {!isMobile && (
+          {/* Mobile Search Bar (Only for mobile) */}
+          {isMobile ? (
+            <MobileSearchBar
+              searchValue={searchTerm}
+              onSearchChange={(e) => setSearchTerm(e.target.value)}
+              roleValue={filterRole}
+              onRoleChange={(e) => setFilterRole(e.target.value)}
+              statusValue={filterStatus}
+              onStatusChange={(e) => setFilterStatus(e.target.value)}
+              onAddClick={handleAdd}
+              addButtonText="Add User"
+              searchPlaceholder="Search users..."
+              roleOptions={[
+                { value: "admin", label: "Admin" },
+                { value: "manager", label: "Manager" },
+                { value: "staff", label: "Staff" },
+                { value: "customer", label: "Customer" },
+              ]}
+              statusOptions={[
+                { value: "active", label: "Active" },
+                { value: "inactive", label: "Inactive" },
+                { value: "blocked", label: "Blocked" },
+              ]}
+            />
+          ) : (
+            /* Desktop Header/Filters */
             <Card
               elevation={0}
               sx={{
@@ -495,70 +513,7 @@ const Users = ({ toggleSidebar }) => {
             </Card>
           )}
 
-          {/* Mobile filters + add button */}
-          {isMobile && (
-            <Card
-              elevation={0}
-              sx={{
-                mb: 2,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2,
-              }}
-            >
-              <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                <Stack spacing={1.5}>
-                  <Stack direction="row" spacing={1}>
-                    <FormControl size="small" fullWidth>
-                      <InputLabel>Role</InputLabel>
-                      <Select
-                        value={filterRole}
-                        label="Role"
-                        onChange={(e) => setFilterRole(e.target.value)}
-                        sx={{ borderRadius: 2 }}
-                      >
-                        <MenuItem value="">All</MenuItem>
-                        <MenuItem value="admin">Admin</MenuItem>
-                        <MenuItem value="manager">Manager</MenuItem>
-                        <MenuItem value="staff">Staff</MenuItem>
-                        <MenuItem value="customer">Customer</MenuItem>
-                      </Select>
-                    </FormControl>
-
-                    <FormControl size="small" fullWidth>
-                      <InputLabel>Status</InputLabel>
-                      <Select
-                        value={filterStatus}
-                        label="Status"
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                        sx={{ borderRadius: 2 }}
-                      >
-                        <MenuItem value="">All</MenuItem>
-                        <MenuItem value="active">Active</MenuItem>
-                        <MenuItem value="inactive">Inactive</MenuItem>
-                        <MenuItem value="blocked">Blocked</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Stack>
-
-                  <Button
-                    variant="contained"
-                    startIcon={<PersonAdd />}
-                    onClick={handleAdd}
-                    fullWidth
-                    sx={{
-                      borderRadius: 2,
-                      py: 1.2,
-                      boxShadow: theme.shadows[2],
-                    }}
-                  >
-                    Add New User
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Responsive Table (desktop DataGrid + mobile cards) */}
+          {/* Responsive Table */}
           <DynamicResponsiveTable
             rows={users}
             columns={columns}

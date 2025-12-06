@@ -93,10 +93,7 @@ const Header = ({
   const handleLogout = async () => {
     handleClose();
     try {
-      // --- THIS IS THE FIX ---
       await api.post("/users/admin-logout"); // Call the new admin-logout route
-      // --- END FIX ---
-
       dispatch(logoutAction()); // update redux auth state
       toast.success("Logged out successfully!");
       navigate("/login");
@@ -459,51 +456,46 @@ const Header = ({
                   },
                 }}
               >
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
+                {/* REMOVED motion.div wrapper to fix error */}
+                <MenuItem
+                  onClick={handleClose}
+                  sx={{
+                    "&:hover": {
+                      background: "rgba(76, 175, 80, 0.1)",
+                      transform: "translateX(5px)",
+                    },
+                    transition: "all 0.3s ease",
+                  }}
                 >
-                  <MenuItem
-                    onClick={handleClose}
-                    sx={{
-                      "&:hover": {
-                        background: "rgba(76, 175, 80, 0.1)",
-                        transform: "translateX(5px)",
-                      },
-                      transition: "all 0.3s ease",
-                    }}
-                  >
-                    <AccountCircle sx={{ mr: 2, color: "primary.main" }} />
-                    Profile
-                  </MenuItem>
-                  <MenuItem
-                    onClick={handleClose}
-                    sx={{
-                      "&:hover": {
-                        background: "rgba(76, 175, 80, 0.1)",
-                        transform: "translateX(5px)",
-                      },
-                      transition: "all 0.3s ease",
-                    }}
-                  >
-                    <Settings sx={{ mr: 2, color: "primary.main" }} />
-                    Settings
-                  </MenuItem>
-                  <MenuItem
-                    onClick={handleLogout}
-                    sx={{
-                      "&:hover": {
-                        background: "rgba(244, 67, 54, 0.1)",
-                        transform: "translateX(5px)",
-                      },
-                      transition: "all 0.3s ease",
-                    }}
-                  >
-                    <Logout sx={{ mr: 2, color: "error.main" }} />
-                    Logout
-                  </MenuItem>
-                </motion.div>
+                  <AccountCircle sx={{ mr: 2, color: "primary.main" }} />
+                  Profile
+                </MenuItem>
+                <MenuItem
+                  onClick={handleClose}
+                  sx={{
+                    "&:hover": {
+                      background: "rgba(76, 175, 80, 0.1)",
+                      transform: "translateX(5px)",
+                    },
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  <Settings sx={{ mr: 2, color: "primary.main" }} />
+                  Settings
+                </MenuItem>
+                <MenuItem
+                  onClick={handleLogout}
+                  sx={{
+                    "&:hover": {
+                      background: "rgba(244, 67, 54, 0.1)",
+                      transform: "translateX(5px)",
+                    },
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  <Logout sx={{ mr: 2, color: "error.main" }} />
+                  Logout
+                </MenuItem>
               </Menu>
             </motion.div>
           </Toolbar>

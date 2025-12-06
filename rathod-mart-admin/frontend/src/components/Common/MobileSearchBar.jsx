@@ -1,3 +1,4 @@
+// src/components/Common/MobileSearchBar.jsx
 import React from "react";
 import {
   Box,
@@ -37,7 +38,6 @@ const MobileSearchBar = ({
         boxShadow: "0 2px 8px rgba(76, 175, 80, 0.1)",
       }}
     >
-      {/* Search Input */}
       <TextField
         fullWidth
         size="small"
@@ -56,20 +56,13 @@ const MobileSearchBar = ({
           "& .MuiOutlinedInput-root": {
             bgcolor: "rgba(76, 175, 80, 0.04)",
             fontSize: "0.9rem",
-            "& fieldset": {
-              borderColor: "rgba(76, 175, 80, 0.2)",
-            },
-            "&:hover fieldset": {
-              borderColor: "rgba(76, 175, 80, 0.4)",
-            },
-            "&.Mui-focused fieldset": {
-              borderColor: "#4CAF50",
-            },
+            "& fieldset": { borderColor: "rgba(76, 175, 80, 0.2)" },
+            "&:hover fieldset": { borderColor: "rgba(76, 175, 80, 0.4)" },
+            "&.Mui-focused fieldset": { borderColor: "#4CAF50" },
           },
         }}
       />
 
-      {/* Filters Row - All Same Height */}
       <Box
         sx={{
           display: "grid",
@@ -83,7 +76,7 @@ const MobileSearchBar = ({
           alignItems: "stretch",
         }}
       >
-        {/* Role Dropdown */}
+        {/* ✅ FIX: Removed Fragments inside Select */}
         {showRole && (
           <FormControl size="small" fullWidth>
             <Select
@@ -97,9 +90,6 @@ const MobileSearchBar = ({
                 "& .MuiOutlinedInput-notchedOutline": {
                   borderColor: "rgba(76, 175, 80, 0.2)",
                 },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "rgba(76, 175, 80, 0.4)",
-                },
                 "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#4CAF50",
                 },
@@ -108,34 +98,44 @@ const MobileSearchBar = ({
               <MenuItem value="" sx={{ fontSize: "0.85rem" }}>
                 {rolePlaceholder}
               </MenuItem>
-              {roleOptions.length > 0 ? (
-                roleOptions.map((option) => (
-                  <MenuItem
-                    key={option.value}
-                    value={option.value}
-                    sx={{ fontSize: "0.85rem" }}
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))
-              ) : (
-                <>
-                  <MenuItem value="admin" sx={{ fontSize: "0.85rem" }}>
-                    Admin
-                  </MenuItem>
-                  <MenuItem value="manager" sx={{ fontSize: "0.85rem" }}>
-                    Manager
-                  </MenuItem>
-                  <MenuItem value="customer" sx={{ fontSize: "0.85rem" }}>
-                    Customer
-                  </MenuItem>
-                </>
-              )}
+              {roleOptions.length > 0
+                ? roleOptions.map((option) => (
+                    <MenuItem
+                      key={option.value}
+                      value={option.value}
+                      sx={{ fontSize: "0.85rem" }}
+                    >
+                      {option.label}
+                    </MenuItem>
+                  ))
+                : [
+                    <MenuItem
+                      key="admin"
+                      value="admin"
+                      sx={{ fontSize: "0.85rem" }}
+                    >
+                      Admin
+                    </MenuItem>,
+                    <MenuItem
+                      key="manager"
+                      value="manager"
+                      sx={{ fontSize: "0.85rem" }}
+                    >
+                      Manager
+                    </MenuItem>,
+                    <MenuItem
+                      key="customer"
+                      value="customer"
+                      sx={{ fontSize: "0.85rem" }}
+                    >
+                      Customer
+                    </MenuItem>,
+                  ]}
             </Select>
           </FormControl>
         )}
 
-        {/* Status Dropdown */}
+        {/* ✅ FIX: Removed Fragments inside Select */}
         {showStatus && (
           <FormControl size="small" fullWidth>
             <Select
@@ -149,9 +149,6 @@ const MobileSearchBar = ({
                 "& .MuiOutlinedInput-notchedOutline": {
                   borderColor: "rgba(76, 175, 80, 0.2)",
                 },
-                "&:hover .MuiOutlinedInput-notchedOutline": {
-                  borderColor: "rgba(76, 175, 80, 0.4)",
-                },
                 "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
                   borderColor: "#4CAF50",
                 },
@@ -160,31 +157,36 @@ const MobileSearchBar = ({
               <MenuItem value="" sx={{ fontSize: "0.85rem" }}>
                 {statusPlaceholder}
               </MenuItem>
-              {statusOptions.length > 0 ? (
-                statusOptions.map((option) => (
-                  <MenuItem
-                    key={option.value}
-                    value={option.value}
-                    sx={{ fontSize: "0.85rem" }}
-                  >
-                    {option.label}
-                  </MenuItem>
-                ))
-              ) : (
-                <>
-                  <MenuItem value="active" sx={{ fontSize: "0.85rem" }}>
-                    Active
-                  </MenuItem>
-                  <MenuItem value="inactive" sx={{ fontSize: "0.85rem" }}>
-                    Inactive
-                  </MenuItem>
-                </>
-              )}
+              {statusOptions.length > 0
+                ? statusOptions.map((option) => (
+                    <MenuItem
+                      key={option.value}
+                      value={option.value}
+                      sx={{ fontSize: "0.85rem" }}
+                    >
+                      {option.label}
+                    </MenuItem>
+                  ))
+                : [
+                    <MenuItem
+                      key="active"
+                      value="active"
+                      sx={{ fontSize: "0.85rem" }}
+                    >
+                      Active
+                    </MenuItem>,
+                    <MenuItem
+                      key="inactive"
+                      value="inactive"
+                      sx={{ fontSize: "0.85rem" }}
+                    >
+                      Inactive
+                    </MenuItem>,
+                  ]}
             </Select>
           </FormControl>
         )}
 
-        {/* Add Button */}
         <motion.div whileTap={{ scale: 0.95 }}>
           <Button
             variant="contained"
@@ -201,10 +203,6 @@ const MobileSearchBar = ({
               whiteSpace: "nowrap",
               boxShadow: "0 2px 8px rgba(76, 175, 80, 0.3)",
               background: "linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)",
-              "&:hover": {
-                background: "linear-gradient(135deg, #388E3C 0%, #4CAF50 100%)",
-                boxShadow: "0 4px 12px rgba(76, 175, 80, 0.4)",
-              },
             }}
           >
             {addButtonText}

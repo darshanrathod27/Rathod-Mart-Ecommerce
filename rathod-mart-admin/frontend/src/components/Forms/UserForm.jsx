@@ -383,13 +383,13 @@ export default function UserForm({
           </Box>
         </Box>
 
-        {/* Form Fields... (same as before) */}
+        {/* Form Fields - Updated with Grid Size syntax */}
         <Typography sx={sectionHeaderStyles}>
           <PersonIcon sx={{ fontSize: 20 }} />
           Personal Details
         </Typography>
         <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="name"
               control={control}
@@ -405,7 +405,7 @@ export default function UserForm({
               )}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="username"
               control={control}
@@ -421,7 +421,7 @@ export default function UserForm({
               )}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="email"
               control={control}
@@ -438,7 +438,7 @@ export default function UserForm({
               )}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="phone"
               control={control}
@@ -454,7 +454,7 @@ export default function UserForm({
               )}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="birthday"
               control={control}
@@ -481,7 +481,7 @@ export default function UserForm({
           Address
         </Typography>
         <Grid container spacing={2} sx={{ mb: 2 }}>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Controller
               name="address.street"
               control={control}
@@ -495,7 +495,7 @@ export default function UserForm({
               )}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="address.city"
               control={control}
@@ -509,7 +509,7 @@ export default function UserForm({
               )}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="address.state"
               control={control}
@@ -523,7 +523,7 @@ export default function UserForm({
               )}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="address.postalCode"
               control={control}
@@ -537,7 +537,7 @@ export default function UserForm({
               )}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="address.country"
               control={control}
@@ -557,7 +557,7 @@ export default function UserForm({
 
         <Typography sx={sectionHeaderStyles}>Access & Security</Typography>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <FormControl fullWidth sx={textFieldStyles} error={!!errors.role}>
               <InputLabel>Role</InputLabel>
               <Controller
@@ -577,7 +577,7 @@ export default function UserForm({
               )}
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <FormControl fullWidth sx={textFieldStyles} error={!!errors.status}>
               <InputLabel>Status</InputLabel>
               <Controller
@@ -596,7 +596,7 @@ export default function UserForm({
               )}
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Controller
               name="password"
               control={control}
