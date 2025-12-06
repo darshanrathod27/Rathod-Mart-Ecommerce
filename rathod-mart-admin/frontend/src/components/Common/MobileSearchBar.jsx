@@ -35,9 +35,14 @@ const MobileSearchBar = ({
         bgcolor: "white",
         p: 1.5,
         mb: 1.5,
+        borderRadius: 1,
         boxShadow: "0 2px 8px rgba(76, 175, 80, 0.1)",
+        position: "sticky", // ✅ FIX: Make it sticky on scroll
+        top: 0,
+        zIndex: 10, // ✅ FIX: Ensure it stays on top
       }}
     >
+      {/* Search TextField */}
       <TextField
         fullWidth
         size="small"
@@ -63,6 +68,7 @@ const MobileSearchBar = ({
         }}
       />
 
+      {/* Filters and Add Button */}
       <Box
         sx={{
           display: "grid",
@@ -76,7 +82,7 @@ const MobileSearchBar = ({
           alignItems: "stretch",
         }}
       >
-        {/* ✅ FIX: Removed Fragments inside Select */}
+        {/* Role Select - ✅ FIXED: Removed Fragments */}
         {showRole && (
           <FormControl size="small" fullWidth>
             <Select
@@ -135,7 +141,7 @@ const MobileSearchBar = ({
           </FormControl>
         )}
 
-        {/* ✅ FIX: Removed Fragments inside Select */}
+        {/* Status Select - ✅ FIXED: Removed Fragments */}
         {showStatus && (
           <FormControl size="small" fullWidth>
             <Select
@@ -187,6 +193,7 @@ const MobileSearchBar = ({
           </FormControl>
         )}
 
+        {/* Add Button with Animation */}
         <motion.div whileTap={{ scale: 0.95 }}>
           <Button
             variant="contained"
@@ -203,6 +210,10 @@ const MobileSearchBar = ({
               whiteSpace: "nowrap",
               boxShadow: "0 2px 8px rgba(76, 175, 80, 0.3)",
               background: "linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #45a049 0%, #5cb860 100%)",
+                boxShadow: "0 4px 12px rgba(76, 175, 80, 0.4)",
+              },
             }}
           >
             {addButtonText}

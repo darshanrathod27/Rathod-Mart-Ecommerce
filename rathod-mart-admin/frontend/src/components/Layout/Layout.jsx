@@ -1,14 +1,12 @@
 // frontend/src/components/Layout/Layout.jsx
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Box, useTheme, useMediaQuery, Toolbar } from "@mui/material";
+import { Box, useTheme, useMediaQuery } from "@mui/material";
 import { motion } from "framer-motion";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import MobileBottomNav from "./MobileBottomNav";
-import MobileHeader from "./MobileHeader";
-import ResponsiveSidebar from "./ResponsiveSidebar";
-
 import {
   People,
   Category,
@@ -18,16 +16,9 @@ import {
   ViewInAr,
   Inventory2,
   LocalOffer,
-  Dashboard,
 } from "@mui/icons-material";
 
-// Page Configuration
 const pageConfig = {
-  "/": {
-    title: "Dashboard",
-    subtitle: "Overview of your e-commerce platform",
-    icon: Dashboard,
-  },
   "/users": {
     title: "Users Management",
     subtitle: "Manage all registered users and their permissions",
@@ -72,7 +63,6 @@ const pageConfig = {
 
 const Layout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isTablet = useMediaQuery(theme.breakpoints.between("md", "lg"));
@@ -80,180 +70,79 @@ const Layout = () => {
 
   const drawerWidth = isMobile ? 0 : isTablet ? 240 : 280;
 
-  // Auto-close mobile sidebar when switching to desktop
-  useEffect(() => {
-    if (!isMobile) {
-      setMobileSidebarOpen(false);
-    }
-  }, [isMobile]);
-
-  // Close mobile sidebar on route change
-  useEffect(() => {
-    setMobileSidebarOpen(false);
-  }, [location.pathname]);
-
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
-  };
-
-  const toggleMobileSidebar = () => {
-    setMobileSidebarOpen(!mobileSidebarOpen);
   };
 
   const currentPageConfig =
     pageConfig[location.pathname] || pageConfig["/users"];
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* Desktop/Tablet Layout */}
-      {!isMobile ? (
-        <>
-          {/* Desktop Header */}
-          <Header
-            drawerWidth={drawerWidth}
-            handleDrawerToggle={handleDrawerToggle}
-            isMobile={false}
-            title={currentPageConfig.title}
-            subtitle={currentPageConfig.subtitle}
-            Icon={currentPageConfig.icon}
-          />
-
-          {/* Desktop Sidebar */}
-          <Sidebar
-            drawerWidth={drawerWidth}
-            mobileOpen={mobileOpen}
-            handleDrawerToggle={handleDrawerToggle}
-            isMobile={false}
-            isTablet={isTablet}
-          />
-
-          {/* Desktop Main Content */}
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              width: { sm: `calc(100% - ${drawerWidth}px)` },
-              background: "linear-gradient(135deg, #F1F8E9 0%, #E8F5E8 100%)",
-              minHeight: "100vh",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            <Toolbar sx={{ minHeight: { xs: 64, sm: 70 } }} />
-
-            <Box
-              sx={{
-                position: "relative",
-                zIndex: 1,
-                pt: 3,
-                pb: 2,
-                px: { xs: 2, sm: 3, lg: 4 },
-                minHeight: "calc(100vh - 70px)",
-              }}
-            >
-              {/* Background Pattern */}
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: `
-                    radial-gradient(circle at 20% 50%, rgba(76, 175, 80, 0.04) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 20%, rgba(102, 187, 106, 0.04) 0%, transparent 50%),
-                    radial-gradient(circle at 40% 80%, rgba(129, 199, 132, 0.04) 0%, transparent 50%),
-                    linear-gradient(135deg, transparent 0%, rgba(76, 175, 80, 0.02) 50%, transparent 100%)
-                  `,
-                  pointerEvents: "none",
-                  zIndex: -1,
-                }}
-              />
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                style={{ height: "100%" }}
-              >
-                <Outlet />
-              </motion.div>
-            </Box>
-          </Box>
-        </>
-      ) : (
-        <>
-          {/* Mobile Layout */}
-
-          {/* Mobile Header */}
-          <MobileHeader
-            sidebarOpen={mobileSidebarOpen}
-            toggleSidebar={toggleMobileSidebar}
-          />
-
-          {/* Mobile Sidebar */}
-          <ResponsiveSidebar
-            open={mobileSidebarOpen}
-            onClose={() => setMobileSidebarOpen(false)}
-          />
-
-          {/* Mobile Main Content */}
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              width: "100%",
-              background: "linear-gradient(135deg, #F1F8E9 0%, #E8F5E8 100%)",
-              minHeight: "100vh",
-              position: "relative",
-              overflow: "hidden",
-            }}
-          >
-            {/* Mobile Content with proper spacing for header and bottom nav */}
-            <Box
-              sx={{
-                position: "relative",
-                zIndex: 1,
-                pt: "80px", // Mobile header height + spacing
-                pb: "80px", // Mobile bottom nav height + spacing
-                px: 2,
-                minHeight: "100vh",
-              }}
-            >
-              {/* Background Pattern */}
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: `
-                    radial-gradient(circle at 20% 50%, rgba(76, 175, 80, 0.04) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 20%, rgba(102, 187, 106, 0.04) 0%, transparent 50%),
-                    radial-gradient(circle at 40% 80%, rgba(129, 199, 132, 0.04) 0%, transparent 50%)
-                  `,
-                  pointerEvents: "none",
-                  zIndex: -1,
-                }}
-              />
-
-              {/* Page Content with Animation */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                style={{ height: "100%" }}
-              >
-                <Outlet />
-              </motion.div>
-            </Box>
-          </Box>
-
-          {/* Mobile Bottom Navigation */}
-          <MobileBottomNav />
-        </>
+    <Box
+      sx={{
+        display: "flex",
+        minHeight: "100vh",
+        maxHeight: isMobile ? "100vh" : "none", // ✅ FIX: Limit height on mobile
+        overflow: "hidden", // ✅ FIX: Prevent overflow on main container
+        bgcolor: "#f5f5f5",
+      }}
+    >
+      {/* Sidebar - Only on Desktop/Tablet */}
+      {!isMobile && (
+        <Sidebar
+          mobileOpen={mobileOpen}
+          handleDrawerToggle={handleDrawerToggle}
+          drawerWidth={drawerWidth}
+        />
       )}
+
+      {/* Main Content Area */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
+          minHeight: "100vh",
+          maxHeight: isMobile ? "100vh" : "none", // ✅ FIX: Limit height on mobile
+          overflow: "auto", // ✅ FIX: Allow scrolling inside content
+          display: "flex",
+          flexDirection: "column",
+          bgcolor: "#f5f5f5",
+          position: "relative",
+        }}
+      >
+        {/* Header - Only on Desktop */}
+        {!isMobile && (
+          <Header
+            pageTitle={currentPageConfig.title}
+            pageSubtitle={currentPageConfig.subtitle}
+            PageIcon={currentPageConfig.icon}
+          />
+        )}
+
+        {/* Page Content with Animation */}
+        <Box
+          sx={{
+            flexGrow: 1,
+            p: { xs: 2, sm: 2.5, md: 3 },
+            pb: { xs: 10, md: 3 }, // ✅ FIX: Extra padding bottom on mobile for bottom nav
+            overflow: "auto", // ✅ FIX: Allow content scrolling
+            maxHeight: isMobile ? "calc(100vh - 56px)" : "none", // ✅ FIX: Account for mobile nav
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ height: "100%" }}
+          >
+            <Outlet />
+          </motion.div>
+        </Box>
+
+        {/* Mobile Bottom Navigation */}
+        {isMobile && <MobileBottomNav />}
+      </Box>
     </Box>
   );
 };
