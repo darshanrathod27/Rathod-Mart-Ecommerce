@@ -1,9 +1,25 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+/* ============================================= */
+/* RATHOD MART ADMIN - GLOBAL STYLES */
+/* ============================================= */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+
+/* ============================================= */
+/* BASE RESET */
+/* ============================================= */
 
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -12,10 +28,13 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+  background: #f5f7fa;
 }
 
-/* Custom Scrollbar */
+/* ============================================= */
+/* CUSTOM SCROLLBAR */
+/* ============================================= */
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -35,35 +54,44 @@ body {
 }
 
 /* ============================================= */
-/*     MOBILE RESPONSIVE STYLES (ONLY)          */
+/* MOBILE RESPONSIVE STYLES (ONLY) */
 /* ============================================= */
 
-/* Mobile: 0-768px */
 @media screen and (max-width: 768px) {
-  /* Mobile Content Padding */
+  /* Touch Optimization */
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  * {
+    -webkit-tap-highlight-color: rgba(76, 175, 80, 0.1);
+    -webkit-touch-callout: none;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    -webkit-tap-highlight-color: rgba(76, 175, 80, 0.2);
+  }
+
+  /* Mobile Content Wrapper */
   .mobile-content-wrapper {
-    padding-top: 72px !important; /* Header height */
-    padding-bottom: 72px !important; /* Bottom nav height */
-    padding-left: 12px;
-    padding-right: 12px;
+    padding: 80px 12px 80px 12px !important;
     min-height: 100vh;
   }
 
-  /* Mobile Page Container */
-  .mobile-page-container {
-    max-width: 100%;
-    margin: 0 auto;
+  /* Mobile Containers */
+  .MuiContainer-root {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 
-  /* Mobile Card Styles */
-  .mobile-card {
-    border-radius: 12px !important;
-    padding: 12px !important;
-    margin-bottom: 12px;
-    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.1) !important;
-  }
-
-  /* Mobile Table Container */
+  /* Mobile Table Wrapper */
   .mobile-table-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -93,140 +121,23 @@ body {
     white-space: nowrap;
   }
 
-  /* Mobile Table Actions */
-  .mobile-table-actions {
-    display: flex;
-    gap: 4px;
-    flex-wrap: nowrap;
-  }
-
-  .mobile-table-actions button,
-  .mobile-table-actions .MuiIconButton-root {
-    min-width: 32px !important;
-    padding: 6px !important;
-  }
-
   /* Mobile Form Styles */
   .mobile-form-container {
     padding: 16px 12px;
   }
 
-  .mobile-form-field {
-    margin-bottom: 16px !important;
-  }
-
-  .mobile-form-field .MuiInputBase-root {
-    font-size: 14px !important;
-  }
-
-  .mobile-form-field .MuiInputLabel-root {
-    font-size: 14px !important;
-  }
-
-  /* Mobile Form Grid */
   .mobile-form-grid {
     display: grid;
     grid-template-columns: 1fr;
     gap: 16px;
   }
 
-  /* 2 Column Grid for larger mobile */
-  @media (min-width: 480px) {
-    .mobile-form-grid-2 {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-
-  /* Mobile Button Styles */
-  .mobile-btn-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    position: sticky;
-    bottom: 72px;
-    background: white;
-    padding: 12px;
-    border-top: 1px solid rgba(76, 175, 80, 0.2);
-    margin: 0 -12px;
-    z-index: 100;
-  }
-
+  /* Mobile Buttons */
   .mobile-btn-full {
     width: 100% !important;
     padding: 12px 16px !important;
     font-size: 14px !important;
     font-weight: 600 !important;
-  }
-
-  .mobile-btn-group {
-    display: flex;
-    gap: 8px;
-  }
-
-  .mobile-btn-group button {
-    flex: 1;
-    font-size: 13px !important;
-    padding: 10px 12px !important;
-  }
-
-  /* Mobile Typography */
-  .mobile-heading {
-    font-size: 20px !important;
-    font-weight: 700 !important;
-    margin-bottom: 12px;
-    color: #4caf50;
-  }
-
-  .mobile-subheading {
-    font-size: 16px !important;
-    font-weight: 600 !important;
-    margin-bottom: 8px;
-  }
-
-  .mobile-text {
-    font-size: 14px !important;
-  }
-
-  .mobile-caption {
-    font-size: 12px !important;
-    color: #757575;
-  }
-
-  /* Mobile Search & Filter Bar */
-  .mobile-search-bar {
-    position: sticky;
-    top: 72px;
-    z-index: 99;
-    background: white;
-    padding: 12px;
-    margin: 0 -12px 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-
-  .mobile-search-input {
-    width: 100%;
-    font-size: 14px !important;
-  }
-
-  .mobile-filter-chips {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 8px 0;
-    margin: 0 -12px;
-    padding-left: 12px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-
-  .mobile-filter-chips::-webkit-scrollbar {
-    display: none;
-  }
-
-  .mobile-filter-chips .MuiChip-root {
-    font-size: 12px !important;
-    height: 28px !important;
   }
 
   /* Mobile Dialog/Modal */
@@ -236,279 +147,12 @@ body {
     border-radius: 16px !important;
   }
 
-  .mobile-dialog-title {
-    padding: 16px !important;
-    font-size: 18px !important;
-    font-weight: 700 !important;
-  }
-
-  .mobile-dialog-content {
-    padding: 16px !important;
-  }
-
-  .mobile-dialog-actions {
-    padding: 12px 16px !important;
-    gap: 8px;
-  }
-
-  /* Mobile List Items */
-  .mobile-list-item {
-    padding: 12px !important;
-    border-radius: 8px !important;
-    margin-bottom: 8px;
-    background: white;
-    border: 1px solid rgba(76, 175, 80, 0.1);
-  }
-
-  .mobile-list-item:active {
-    background: rgba(76, 175, 80, 0.05);
-  }
-
-  /* Mobile Accordion */
-  .mobile-accordion {
-    margin-bottom: 8px !important;
-    border-radius: 8px !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
-  }
-
-  .mobile-accordion-summary {
-    min-height: 48px !important;
-    padding: 0 12px !important;
-  }
-
-  .mobile-accordion-details {
-    padding: 12px !important;
-  }
-
-  /* Mobile Tabs */
-  .mobile-tabs .MuiTabs-root {
-    position: sticky;
-    top: 72px;
-    z-index: 99;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  }
-
-  .mobile-tabs .MuiTab-root {
-    font-size: 13px !important;
-    min-width: auto !important;
-    padding: 12px 16px !important;
-    flex: 1;
-  }
-
-  /* Mobile Stepper */
-  .mobile-stepper {
-    padding: 12px 8px !important;
-  }
-
-  .mobile-stepper .MuiStepLabel-label {
-    font-size: 11px !important;
-  }
-
-  /* Mobile Avatar & Images */
-  .mobile-avatar-large {
-    width: 80px !important;
-    height: 80px !important;
-  }
-
-  .mobile-avatar-medium {
-    width: 56px !important;
-    height: 56px !important;
-  }
-
-  .mobile-avatar-small {
-    width: 40px !important;
-    height: 40px !important;
-  }
-
-  .mobile-image-preview {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-    object-fit: cover;
-  }
-
-  /* Mobile Stats Cards */
+  /* Mobile Stats Grid */
   .mobile-stats-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
     margin-bottom: 16px;
-  }
-
-  .mobile-stat-card {
-    padding: 16px 12px !important;
-    border-radius: 12px !important;
-    text-align: center;
-    background: linear-gradient(135deg, #f1f8e9 0%, #ffffff 100%);
-    border: 1px solid rgba(76, 175, 80, 0.2);
-  }
-
-  .mobile-stat-value {
-    font-size: 24px !important;
-    font-weight: 700 !important;
-    color: #4caf50;
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-
-  .mobile-stat-label {
-    font-size: 12px !important;
-    color: #757575;
-    font-weight: 500;
-  }
-
-  /* Mobile Empty State */
-  .mobile-empty-state {
-    padding: 48px 24px;
-    text-align: center;
-  }
-
-  .mobile-empty-state svg {
-    font-size: 64px !important;
-    opacity: 0.3;
-    margin-bottom: 16px;
-  }
-
-  .mobile-empty-state-text {
-    font-size: 14px !important;
-    color: #757575;
-  }
-
-  /* Mobile Loading State */
-  .mobile-loading-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 200px;
-    gap: 16px;
-  }
-
-  /* Mobile Badge & Chips */
-  .mobile-badge {
-    font-size: 11px !important;
-    height: 20px !important;
-    padding: 0 6px !important;
-  }
-
-  .mobile-chip-small {
-    height: 24px !important;
-    font-size: 11px !important;
-  }
-
-  /* Mobile Menu Items */
-  .mobile-menu-item {
-    min-height: 48px !important;
-    padding: 12px 16px !important;
-  }
-
-  .mobile-menu-item .MuiListItemIcon-root {
-    min-width: 40px !important;
-  }
-
-  /* Mobile Drawer */
-  .mobile-drawer .MuiDrawer-paper {
-    max-width: 85vw !important;
-  }
-
-  /* Mobile Floating Action Button */
-  .mobile-fab {
-    position: fixed !important;
-    bottom: 88px !important;
-    right: 16px !important;
-    z-index: 1000;
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4) !important;
-  }
-
-  /* Mobile Snackbar */
-  .mobile-snackbar {
-    bottom: 88px !important;
-    left: 16px !important;
-    right: 16px !important;
-  }
-
-  /* Mobile File Upload */
-  .mobile-file-upload-area {
-    padding: 32px 16px !important;
-    border: 2px dashed rgba(76, 175, 80, 0.3) !important;
-    border-radius: 12px !important;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-
-  .mobile-file-upload-area:active {
-    border-color: #4caf50 !important;
-    background: rgba(76, 175, 80, 0.05);
-  }
-
-  /* Mobile Select Dropdown */
-  .mobile-select .MuiSelect-select {
-    font-size: 14px !important;
-    padding: 12px 14px !important;
-  }
-
-  /* Mobile Date Picker */
-  .mobile-date-picker input {
-    font-size: 14px !important;
-    padding: 12px 14px !important;
-  }
-
-  /* Mobile Pagination */
-  .mobile-pagination {
-    display: flex;
-    justify-content: center;
-    padding: 16px;
-    position: sticky;
-    bottom: 72px;
-    background: white;
-    border-top: 1px solid rgba(76, 175, 80, 0.2);
-    margin: 0 -12px;
-  }
-
-  .mobile-pagination .MuiPaginationItem-root {
-    min-width: 32px !important;
-    height: 32px !important;
-    font-size: 13px !important;
-  }
-
-  /* Mobile Skeleton Loading */
-  .mobile-skeleton-card {
-    padding: 12px;
-    margin-bottom: 12px;
-    border-radius: 12px;
-    background: white;
-    border: 1px solid rgba(76, 175, 80, 0.1);
-  }
-
-  /* Mobile Pull to Refresh Indicator */
-  .mobile-pull-refresh {
-    position: fixed;
-    top: 72px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-  }
-
-  /* Mobile Swipeable Actions */
-  .mobile-swipe-action-left,
-  .mobile-swipe-action-right {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 20px;
-    height: 100%;
-  }
-
-  .mobile-swipe-action-left {
-    background: #4caf50;
-    color: white;
-  }
-
-  .mobile-swipe-action-right {
-    background: #f44336;
-    color: white;
   }
 
   /* Mobile Image Gallery */
@@ -532,50 +176,13 @@ body {
     object-fit: cover;
   }
 
-  /* Mobile Color Picker */
-  .mobile-color-picker-grid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 8px;
-    padding: 12px 0;
-  }
-
-  .mobile-color-option {
-    aspect-ratio: 1;
-    border-radius: 50%;
-    border: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .mobile-color-option.selected {
-    border-color: #4caf50;
-    transform: scale(1.1);
-  }
-
-  /* Mobile Size Selector */
-  .mobile-size-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin: 12px 0;
-  }
-
-  .mobile-size-option {
-    padding: 12px 8px;
-    text-align: center;
-    border: 2px solid rgba(76, 175, 80, 0.3);
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .mobile-size-option.selected {
-    background: #4caf50;
-    color: white;
-    border-color: #4caf50;
+  /* Mobile FAB */
+  .mobile-fab {
+    position: fixed !important;
+    bottom: 88px !important;
+    right: 16px !important;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4) !important;
   }
 
   /* Mobile Bottom Sheet */
@@ -593,27 +200,35 @@ body {
     margin: 8px auto;
   }
 
-  /* Mobile Safe Area for notched devices */
-  .mobile-safe-area-top {
-    padding-top: env(safe-area-inset-top) !important;
-  }
-
+  /* Mobile Safe Area */
   .mobile-safe-area-bottom {
     padding-bottom: calc(72px + env(safe-area-inset-bottom)) !important;
   }
 
-  /* Hide desktop-only elements on mobile */
+  /* Hide Desktop Elements */
   .desktop-only {
     display: none !important;
   }
 
-  /* Show mobile-only elements */
   .mobile-only {
     display: block !important;
   }
+
+  /* Compact Spacing */
+  .MuiCard-root {
+    margin-bottom: 12px !important;
+  }
+
+  .MuiTextField-root,
+  .MuiFormControl-root {
+    margin-bottom: 12px !important;
+  }
 }
 
-/* Tablet: 769px - 1024px */
+/* ============================================= */
+/* TABLET RESPONSIVE (769px - 1024px) */
+/* ============================================= */
+
 @media screen and (min-width: 769px) and (max-width: 1024px) {
   .mobile-content-wrapper {
     padding-top: 0 !important;
@@ -625,37 +240,34 @@ body {
   }
 }
 
-/* Desktop: Above 1024px */
+/* ============================================= */
+/* DESKTOP STYLES (1025px+) */
+/* ============================================= */
+
 @media screen and (min-width: 1025px) {
-  /* Hide mobile-only elements on desktop */
   .mobile-only {
     display: none !important;
   }
 
-  /* Show desktop-only elements */
   .desktop-only {
     display: block !important;
   }
 
-  /* Reset mobile styles for desktop */
   .mobile-content-wrapper {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
   }
 }
 
-/* Animation Keyframes */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
+/* ============================================= */
+/* ANIMATIONS */
+/* ============================================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
   }
-  50% {
-    transform: scale(1.05);
-    opacity: 0.8;
-  }
-  100% {
-    transform: scale(1);
+  to {
     opacity: 1;
   }
 }
@@ -682,21 +294,24 @@ body {
   }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
   }
   100% {
     background-position: 1000px 0;
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
   }
 }
 
@@ -707,130 +322,19 @@ body {
   animation: shimmer 2s infinite;
 }
 
-/* Smooth scroll behavior for mobile */
-@media screen and (max-width: 768px) {
-  html {
-    scroll-behavior: smooth;
-  }
+/* ============================================= */
+/* UTILITY CLASSES */
+/* ============================================= */
 
-  /* Touch action optimization */
-  * {
-    -webkit-tap-highlight-color: rgba(76, 175, 80, 0.1);
-    -webkit-touch-callout: none;
-  }
-
-  input,
-  textarea,
-  select,
-  button {
-    -webkit-tap-highlight-color: rgba(76, 175, 80, 0.2);
-  }
-}
-/* Mobile Optimized Spacing */
-@media screen and (max-width: 768px) {
-  /* Reduce overall padding */
-  .mobile-content-wrapper {
-    padding: 80px 8px 80px 8px !important;
-  }
-
-  /* Compact Cards */
-  .MuiCard-root {
-    margin-bottom: 12px !important;
-  }
-
-  /* Compact Form Fields */
-  .MuiTextField-root,
-  .MuiFormControl-root {
-    margin-bottom: 12px !important;
-  }
-
-  /* Compact Buttons */
-  .MuiButton-root {
-    padding: 8px 16px !important;
-  }
-
-  /* Remove excessive gaps */
-  .MuiBox-root {
-    gap: 8px !important;
-  }
-}
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  height: 100%;
-  width: 100%;
-  overflow-x: hidden;
-}
-
-body {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
-    "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background: #f5f7fa;
-}
-
-/* Remove default padding from main container */
 .main-container {
   padding: 0 !important;
   margin: 0 !important;
   width: 100%;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f8e9;
-}
-
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #388e3c 0%, #4caf50 100%);
-}
-
-/* Mobile optimizations */
-@media (max-width: 768px) {
-  body {
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  /* Remove side padding on mobile */
-  .MuiContainer-root {
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-  }
-
-  .MuiBox-root {
-    max-width: 100vw;
-  }
-}
-/* Add this to your global CSS or index.css */
-@media (max-width: 768px) {
-  html,
-  body {
-    overflow-x: hidden !important;
-    max-height: 100vh;
-  }
-
-  #root {
-    max-height: 100vh;
-    overflow: hidden;
+/* Mobile 2-Column Grid for larger phones (480px+) */
+@media (min-width: 480px) and (max-width: 768px) {
+  .mobile-form-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
