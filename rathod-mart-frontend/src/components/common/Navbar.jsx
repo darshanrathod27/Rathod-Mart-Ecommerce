@@ -54,7 +54,10 @@ const Navbar = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  // 🎯 Responsive Breakpoints
+  const isMobile = useMediaQuery(theme.breakpoints.down("md")); // < 900px
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm")); // < 600px
 
   const { getCartItemsCount, openCart } = useCart();
   const { getWishlistItemsCount, openWishlist } = useWishlist();
@@ -163,12 +166,10 @@ const Navbar = () => {
     <>
       <AppBar
         position="fixed"
-        // Removed motion.header and variants to fix the Gradient Error
         sx={{
-          // We use CSS transition for smooth gradient switch
           background: isScrolled
-            ? "linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%)" // Scrolled (Darker)
-            : "linear-gradient(135deg, #2E7D32 0%, #00BFA5 100%)", // Top (Lighter)
+            ? "linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%)"
+            : "linear-gradient(135deg, #2E7D32 0%, #00BFA5 100%)",
           transition: "background 0.4s ease-in-out, box-shadow 0.3s ease",
           boxShadow: isScrolled ? "0px 4px 20px rgba(0, 0, 0, 0.2)" : "none",
           borderBottom: "1px solid",
@@ -179,20 +180,34 @@ const Navbar = () => {
         <Container maxWidth="xl">
           <Toolbar
             disableGutters
-            sx={{ minHeight: { xs: "64px", md: "74px" }, gap: 2 }}
+            sx={{
+              // 📱 Responsive Height - Mobile par shorter
+              minHeight: { xs: "56px", md: "74px" },
+              // 📱 Responsive Gap - Mobile par kam gap
+              gap: { xs: 1, md: 2 },
+              // 📱 Responsive Padding
+              px: { xs: 1, md: 2 },
+            }}
           >
-            {/* Logo */}
+            {/* 🏪 Logo */}
             <Box
               onClick={() => navigate("/")}
               sx={{
                 display: "flex",
                 alignItems: "center",
-                gap: 1,
+                gap: { xs: 0.5, md: 1 },
                 cursor: "pointer",
-                mr: 1,
+                mr: { xs: 0.5, md: 1 },
               }}
             >
-              <Store sx={{ color: "#fff", fontSize: { xs: 28, md: 32 } }} />
+              {/* 📱 Responsive Store Icon */}
+              <Store
+                sx={{
+                  color: "#fff",
+                  fontSize: { xs: 24, sm: 28, md: 32 },
+                }}
+              />
+              {/* 📱 Hide text on extra small, show on small+ */}
               <Typography
                 variant="h5"
                 noWrap
@@ -200,6 +215,8 @@ const Navbar = () => {
                   fontWeight: 800,
                   color: "#fff",
                   display: { xs: "none", sm: "block" },
+                  // 📱 Responsive Font Size
+                  fontSize: { xs: "1rem", sm: "1.2rem", md: "1.5rem" },
                   letterSpacing: "-0.5px",
                 }}
               >
@@ -207,7 +224,7 @@ const Navbar = () => {
               </Typography>
             </Box>
 
-            {/* Desktop Nav Links */}
+            {/* 🖥️ Desktop Nav Links (Hide on Mobile) */}
             {!isMobile && (
               <Box sx={{ display: "flex", gap: 1 }}>
                 {navigationItems.map((item) => (
@@ -221,6 +238,8 @@ const Navbar = () => {
                           ? "#ffffff"
                           : "rgba(255,255,255,0.85)",
                       fontWeight: 600,
+                      px: { md: 1.5, lg: 2 },
+                      py: { md: 0.75 },
                       "&:hover": {
                         bgcolor: "rgba(255,255,255,0.15)",
                         color: "#ffffff",
@@ -233,81 +252,158 @@ const Navbar = () => {
               </Box>
             )}
 
-            <Box sx={{ flexGrow: 1 }} />
+            {/* Spacer for Desktop */}
+            {!isMobile && <Box sx={{ flexGrow: 1 }} />}
 
-            {/* Search Bar */}
+            {/* 🔍 Search Bar - Fully Responsive */}
             <Box
               sx={{
                 flexGrow: 1,
                 display: "flex",
                 justifyContent: "center",
-                mx: 2,
+                // 📱 Responsive Margin - Mobile par kam
+                mx: { xs: 1, md: 2 },
+                // 📱 Max Width Control
+                maxWidth: { xs: "100%", sm: 400, md: 500 },
               }}
             >
               <SearchBar categories={navCategories} />
             </Box>
 
-            <Box sx={{ flexGrow: 1 }} />
+            {/* Spacer for Desktop */}
+            {!isMobile && <Box sx={{ flexGrow: 1 }} />}
 
-            {/* Right Actions */}
+            {/* 🎯 Right Action Icons - Fully Responsive */}
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
-                gap: { xs: 0.5, md: 1.5 },
+                // 📱 Responsive Gap
+                gap: { xs: 0.5, sm: 1, md: 1.5 },
               }}
             >
+              {/* 🔧 Filter Button */}
               <Tooltip title="Filters">
                 <IconButton
                   onClick={() => setIsFilterOpen(true)}
                   sx={{
                     color: "#fff",
                     bgcolor: "rgba(255,255,255,0.1)",
+                    // 📱 Touch-friendly size (minimum 44x44px)
+                    minWidth: { xs: 44, md: 40 },
+                    minHeight: { xs: 44, md: 40 },
+                    p: { xs: 1, md: 1 },
                     "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
                   }}
                 >
-                  <FilterList />
+                  <FilterList sx={{ fontSize: { xs: 20, md: 24 } }} />
                 </IconButton>
               </Tooltip>
 
+              {/* ❤️ Wishlist Icon */}
               <Tooltip title="Wishlist">
-                <IconButton onClick={openWishlist} sx={{ color: "#fff" }}>
-                  <Badge badgeContent={wishlistItemCount} color="error">
-                    <FavoriteBorder />
+                <IconButton
+                  onClick={openWishlist}
+                  sx={{
+                    color: "#fff",
+                    // 📱 Responsive Padding
+                    p: { xs: 0.75, md: 1 },
+                    // 📱 Touch-friendly size
+                    minWidth: { xs: 44, md: 40 },
+                    minHeight: { xs: 44, md: 40 },
+                  }}
+                >
+                  <Badge
+                    badgeContent={wishlistItemCount}
+                    color="error"
+                    // 📱 Smaller badge on mobile
+                    sx={{
+                      "& .MuiBadge-badge": {
+                        fontSize: { xs: "0.65rem", md: "0.75rem" },
+                        minWidth: { xs: 16, md: 20 },
+                        height: { xs: 16, md: 20 },
+                      },
+                    }}
+                  >
+                    {/* 📱 Responsive Icon Size */}
+                    <FavoriteBorder sx={{ fontSize: { xs: 20, md: 24 } }} />
                   </Badge>
                 </IconButton>
               </Tooltip>
 
+              {/* 🛒 Cart Icon */}
               <Tooltip title="Cart">
-                <IconButton onClick={openCart} sx={{ color: "#fff" }}>
-                  <Badge badgeContent={cartItemCount} color="warning">
-                    <ShoppingCart />
+                <IconButton
+                  onClick={openCart}
+                  sx={{
+                    color: "#fff",
+                    // 📱 Responsive Padding
+                    p: { xs: 0.75, md: 1 },
+                    // 📱 Touch-friendly size
+                    minWidth: { xs: 44, md: 40 },
+                    minHeight: { xs: 44, md: 40 },
+                  }}
+                >
+                  <Badge
+                    badgeContent={cartItemCount}
+                    color="warning"
+                    // 📱 Smaller badge on mobile
+                    sx={{
+                      "& .MuiBadge-badge": {
+                        fontSize: { xs: "0.65rem", md: "0.75rem" },
+                        minWidth: { xs: 16, md: 20 },
+                        height: { xs: 16, md: 20 },
+                      },
+                    }}
+                  >
+                    {/* 📱 Responsive Icon Size */}
+                    <ShoppingCart sx={{ fontSize: { xs: 20, md: 24 } }} />
                   </Badge>
                 </IconButton>
               </Tooltip>
 
+              {/* 👤 Profile Icon */}
               <Tooltip title="Profile">
                 <IconButton
                   onClick={(e) => setUserMenuAnchor(e.currentTarget)}
-                  sx={{ color: "#fff" }}
+                  sx={{
+                    color: "#fff",
+                    p: { xs: 0.75, md: 1 },
+                    // 📱 Touch-friendly size
+                    minWidth: { xs: 44, md: 40 },
+                    minHeight: { xs: 44, md: 40 },
+                  }}
                 >
                   {isAuthenticated && userInfo?.profileImage ? (
                     <Avatar
                       src={getAvatarUrl(userInfo.profileImage)}
-                      sx={{ width: 32, height: 32, border: "2px solid #fff" }}
+                      sx={{
+                        // 📱 Responsive Avatar Size
+                        width: { xs: 28, md: 32 },
+                        height: { xs: 28, md: 32 },
+                        border: "2px solid #fff",
+                      }}
                     />
                   ) : (
-                    <AccountCircle />
+                    // 📱 Responsive Icon Size
+                    <AccountCircle sx={{ fontSize: { xs: 24, md: 28 } }} />
                   )}
                 </IconButton>
               </Tooltip>
 
+              {/* 📱 Mobile Menu Button (Show only on Mobile) */}
               {isMobile && (
                 <IconButton
                   onClick={() => setMobileOpen(true)}
-                  sx={{ color: "#fff" }}
+                  sx={{
+                    color: "#fff",
+                    // 📱 Touch-friendly size
+                    minWidth: 44,
+                    minHeight: 44,
+                    p: 1,
+                  }}
                 >
-                  <MenuIcon />
+                  <MenuIcon sx={{ fontSize: { xs: 24, md: 28 } }} />
                 </IconButton>
               )}
             </Box>
@@ -315,31 +411,50 @@ const Navbar = () => {
         </Container>
       </AppBar>
 
-      {/* Drawers & Menus */}
+      {/* 📱 Mobile Drawer Menu - Enhanced */}
       <Drawer
         anchor="right"
         open={mobileOpen}
         onClose={() => setMobileOpen(false)}
-        sx={{ "& .MuiDrawer-paper": { width: 280 } }}
+        sx={{
+          "& .MuiDrawer-paper": {
+            // 📱 Full width on small mobile, fixed width on larger
+            width: { xs: "85%", sm: 320, md: 350 },
+            maxWidth: "100%",
+          },
+        }}
       >
+        {/* Drawer Header */}
         <Box
           sx={{
             p: 2,
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            bgcolor: "#f5f5f5",
+            bgcolor: "linear-gradient(135deg, #2E7D32 0%, #00BFA5 100%)",
+            background: "linear-gradient(135deg, #2E7D32 0%, #00BFA5 100%)",
+            color: "#fff",
           }}
         >
-          <Typography variant="h6" color="primary" fontWeight={700}>
+          <Typography variant="h6" fontWeight={700}>
             Menu
           </Typography>
-          <IconButton onClick={() => setMobileOpen(false)}>
+          <IconButton
+            onClick={() => setMobileOpen(false)}
+            sx={{
+              color: "#fff",
+              // 📱 Touch-friendly size
+              minWidth: 44,
+              minHeight: 44,
+            }}
+          >
             <Close />
           </IconButton>
         </Box>
         <Divider />
-        <List>
+
+        {/* Navigation Items */}
+        <List sx={{ pt: 1 }}>
           {navigationItems.map((item) => (
             <ListItem
               button
@@ -348,16 +463,82 @@ const Navbar = () => {
                 item.action();
                 setMobileOpen(false);
               }}
+              sx={{
+                // 📱 Touch-friendly height
+                minHeight: 48,
+                py: 1.5,
+                px: 2,
+                "&:hover": {
+                  bgcolor: "rgba(46, 125, 50, 0.08)",
+                },
+              }}
             >
-              <ListItemIcon sx={{ color: "primary.main" }}>
+              <ListItemIcon
+                sx={{
+                  color: "primary.main",
+                  minWidth: 40,
+                }}
+              >
                 {item.icon}
               </ListItemIcon>
-              <ListItemText primary={item.name} />
+              <ListItemText
+                primary={item.name}
+                primaryTypographyProps={{
+                  fontSize: { xs: "0.95rem", sm: "1rem" },
+                  fontWeight: 500,
+                }}
+              />
             </ListItem>
           ))}
         </List>
+
+        <Divider sx={{ mt: 1 }} />
+
+        {/* User Info Section in Mobile Menu */}
+        <Box sx={{ p: 2, mt: "auto" }}>
+          {isAuthenticated && userInfo && (
+            <Box
+              sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}
+            >
+              <Avatar
+                src={getAvatarUrl(userInfo.profileImage)}
+                sx={{ width: 40, height: 40 }}
+              />
+              <Box>
+                <Typography variant="body2" fontWeight={600}>
+                  {userInfo.name || "User"}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {userInfo.email}
+                </Typography>
+              </Box>
+            </Box>
+          )}
+
+          <Button
+            fullWidth
+            variant={isAuthenticated ? "outlined" : "contained"}
+            color="primary"
+            onClick={() => {
+              if (isAuthenticated) {
+                handleLogout();
+              } else {
+                navigate("/login");
+              }
+              setMobileOpen(false);
+            }}
+            sx={{
+              // 📱 Touch-friendly height
+              py: 1.2,
+              fontSize: { xs: "0.9rem", sm: "1rem" },
+            }}
+          >
+            {isAuthenticated ? "Logout" : "Login"}
+          </Button>
+        </Box>
       </Drawer>
 
+      {/* 👤 User Menu - Desktop */}
       <Menu
         anchorEl={userMenuAnchor}
         open={Boolean(userMenuAnchor)}
@@ -366,7 +547,8 @@ const Navbar = () => {
           sx: {
             mt: 1.5,
             borderRadius: 2,
-            minWidth: 200,
+            // 📱 Responsive Width
+            minWidth: { xs: 180, sm: 200 },
             boxShadow: theme.shadows[4],
           },
         }}
@@ -379,11 +561,21 @@ const Navbar = () => {
                   navigate("/profile");
                   setUserMenuAnchor(null);
                 }}
+                sx={{
+                  // 📱 Touch-friendly height
+                  minHeight: { xs: 44, md: 40 },
+                  py: { xs: 1.2, md: 1 },
+                }}
               >
                 <ListItemIcon>
                   <AccountCircle fontSize="small" />
-                </ListItemIcon>{" "}
-                Profile
+                </ListItemIcon>
+                <ListItemText
+                  primary="Profile"
+                  primaryTypographyProps={{
+                    fontSize: { xs: "0.9rem", md: "1rem" },
+                  }}
+                />
               </MenuItem>,
               <MenuItem
                 key="set"
@@ -391,18 +583,39 @@ const Navbar = () => {
                   navigate("/profile");
                   setUserMenuAnchor(null);
                 }}
+                sx={{
+                  minHeight: { xs: 44, md: 40 },
+                  py: { xs: 1.2, md: 1 },
+                }}
               >
                 <ListItemIcon>
                   <Settings fontSize="small" />
-                </ListItemIcon>{" "}
-                Settings
+                </ListItemIcon>
+                <ListItemText
+                  primary="Settings"
+                  primaryTypographyProps={{
+                    fontSize: { xs: "0.9rem", md: "1rem" },
+                  }}
+                />
               </MenuItem>,
               <Divider key="div" />,
-              <MenuItem key="out" onClick={handleLogout}>
+              <MenuItem
+                key="out"
+                onClick={handleLogout}
+                sx={{
+                  minHeight: { xs: 44, md: 40 },
+                  py: { xs: 1.2, md: 1 },
+                }}
+              >
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" color="error" />
-                </ListItemIcon>{" "}
-                Logout
+                </ListItemIcon>
+                <ListItemText
+                  primary="Logout"
+                  primaryTypographyProps={{
+                    fontSize: { xs: "0.9rem", md: "1rem" },
+                  }}
+                />
               </MenuItem>,
             ]
           : [
@@ -412,8 +625,17 @@ const Navbar = () => {
                   navigate("/login");
                   setUserMenuAnchor(null);
                 }}
+                sx={{
+                  minHeight: { xs: 44, md: 40 },
+                  py: { xs: 1.2, md: 1 },
+                }}
               >
-                Login
+                <ListItemText
+                  primary="Login"
+                  primaryTypographyProps={{
+                    fontSize: { xs: "0.9rem", md: "1rem" },
+                  }}
+                />
               </MenuItem>,
               <MenuItem
                 key="up"
@@ -421,18 +643,34 @@ const Navbar = () => {
                   navigate("/register");
                   setUserMenuAnchor(null);
                 }}
+                sx={{
+                  minHeight: { xs: 44, md: 40 },
+                  py: { xs: 1.2, md: 1 },
+                }}
               >
-                Register
+                <ListItemText
+                  primary="Register"
+                  primaryTypographyProps={{
+                    fontSize: { xs: "0.9rem", md: "1rem" },
+                  }}
+                />
               </MenuItem>,
             ]}
       </Menu>
 
+      {/* 📂 Category Menu */}
       <Menu
         anchorEl={categoryMenuAnchor}
         open={Boolean(categoryMenuAnchor)}
         onClose={() => setCategoryMenuAnchor(null)}
         PaperProps={{
-          sx: { mt: 1.5, borderRadius: 2, minWidth: 250, maxHeight: 400 },
+          sx: {
+            mt: 1.5,
+            borderRadius: 2,
+            // 📱 Responsive Width
+            minWidth: { xs: 220, sm: 250 },
+            maxHeight: { xs: 350, md: 400 },
+          },
         }}
       >
         {navCategories.map((cat) => (
@@ -442,15 +680,28 @@ const Navbar = () => {
               navigate(`/category?category=${cat.id}`);
               setCategoryMenuAnchor(null);
             }}
+            sx={{
+              // 📱 Touch-friendly height
+              minHeight: { xs: 44, md: 40 },
+              py: { xs: 1.2, md: 1 },
+            }}
           >
             <ListItemIcon>
-              <Typography sx={{ fontSize: "1.2rem" }}>{cat.icon}</Typography>
+              <Typography sx={{ fontSize: { xs: "1.1rem", md: "1.2rem" } }}>
+                {cat.icon}
+              </Typography>
             </ListItemIcon>
-            <ListItemText primary={cat.name} />
+            <ListItemText
+              primary={cat.name}
+              primaryTypographyProps={{
+                fontSize: { xs: "0.9rem", md: "1rem" },
+              }}
+            />
           </MenuItem>
         ))}
       </Menu>
 
+      {/* 🔧 Advanced Filter Drawer */}
       <AdvancedFilterDrawer
         open={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}

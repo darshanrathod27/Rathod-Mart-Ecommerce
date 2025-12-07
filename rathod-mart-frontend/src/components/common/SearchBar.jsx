@@ -6,7 +6,6 @@ import {
   Paper,
   Typography,
   List,
-  // ListItem, // ✅ Removed unused
   ListItemButton,
   ListItemIcon,
   ListItemText,
@@ -14,16 +13,18 @@ import {
   Avatar,
   IconButton,
   useTheme,
+  useMediaQuery,
   CircularProgress,
+  Drawer,
 } from "@mui/material";
 import {
   Search,
-  // History, // ✅ Removed unused
   TrendingUp,
   Category,
   Store,
   Close,
   NorthWest,
+  ArrowBack,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,17 +38,27 @@ const API_BASE =
 const SearchBar = ({ categories = [] }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+
+  // 🎯 Responsive Breakpoints
+  const isMobile = useMediaQuery(theme.breakpoints.down("md")); // < 900px
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm")); // < 600px
+  // eslint-disable-next-line no-unused-vars
+  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md")); // 600-900px
+
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [suggestions, setSuggestions] = useState({
     products: [],
     categories: [],
   });
   const [loading, setLoading] = useState(false);
   const wrapperRef = useRef(null);
+  const inputRef = useRef(null);
 
   const debouncedQuery = useDebounce(query, 300);
 
+  // Click outside handler for desktop
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -58,6 +69,7 @@ const SearchBar = ({ categories = [] }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Fetch suggestions
   useEffect(() => {
     if (!debouncedQuery || debouncedQuery.length < 2) {
       setSuggestions({ products: [], categories: [] });
@@ -92,12 +104,43 @@ const SearchBar = ({ categories = [] }) => {
     fetchSuggestions();
   }, [debouncedQuery, categories]);
 
+  // Auto-focus on mobile drawer open
+  useEffect(() => {
+    if (showMobileSearch && inputRef.current) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }, [showMobileSearch]);
+
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (query.trim()) {
       navigate(`/search?q=${encodeURIComponent(query)}`);
       setIsFocused(false);
+      setShowMobileSearch(false);
     }
+  };
+
+  const handleTrendingClick = (tag) => {
+    setQuery(tag);
+    navigate(`/search?q=${encodeURIComponent(tag)}`);
+    setIsFocused(false);
+    setShowMobileSearch(false);
+  };
+
+  const handleCategoryClick = (catId) => {
+    navigate(`/category?category=${catId}`);
+    setIsFocused(false);
+    setShowMobileSearch(false);
+    setQuery("");
+  };
+
+  const handleProductClick = (prodId) => {
+    navigate(`/product/${prodId}`);
+    setIsFocused(false);
+    setShowMobileSearch(false);
+    setQuery("");
   };
 
   const getImageUrl = (url) => {
@@ -105,6 +148,396 @@ const SearchBar = ({ categories = [] }) => {
     return url.startsWith("http") ? url : `${API_BASE}${url}`;
   };
 
+  const trendingTags = [
+    "Smartphones",
+    "Running Shoes",
+    "Wireless Earbuds",
+    "Kurtas",
+    "Home Decor",
+  ];
+
+  // 📱 Mobile Search Drawer
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile Search Icon/Bar Trigger */}
+        <Box
+          onClick={() => setShowMobileSearch(true)}
+          sx={{
+            width: "100%",
+            maxWidth: { xs: "100%", sm: 400 },
+          }}
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              p: "2px 15px",
+              display: "flex",
+              alignItems: "center",
+              borderRadius: "50px",
+              border: "1px solid rgba(0,0,0,0.1)",
+              bgcolor: "rgba(255,255,255,0.9)",
+              height: { xs: 42, sm: 46 },
+              cursor: "pointer",
+              "&:active": {
+                bgcolor: "rgba(0,0,0,0.05)",
+              },
+            }}
+          >
+            <Search color="action" sx={{ fontSize: { xs: 20, sm: 22 } }} />
+            <Typography
+              sx={{
+                ml: 2,
+                flex: 1,
+                fontSize: { xs: "0.85rem", sm: "0.95rem" },
+                color: "text.secondary",
+              }}
+            >
+              Search products...
+            </Typography>
+          </Paper>
+        </Box>
+
+        {/* Mobile Full-Screen Search Drawer */}
+        <Drawer
+          anchor="top"
+          open={showMobileSearch}
+          onClose={() => {
+            setShowMobileSearch(false);
+            setQuery("");
+            setSuggestions({ products: [], categories: [] });
+          }}
+          PaperProps={{
+            sx: {
+              height: "100vh",
+              width: "100%",
+              bgcolor: "background.default",
+            },
+          }}
+        >
+          <Box
+            sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+          >
+            {/* Mobile Search Header */}
+            <Box
+              sx={{
+                p: 2,
+                borderBottom: "1px solid",
+                borderColor: "divider",
+                bgcolor: "background.paper",
+              }}
+            >
+              <Box
+                component="form"
+                onSubmit={handleSubmit}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
+                <IconButton
+                  onClick={() => {
+                    setShowMobileSearch(false);
+                    setQuery("");
+                    setSuggestions({ products: [], categories: [] });
+                  }}
+                  sx={{ p: 1 }}
+                >
+                  <ArrowBack />
+                </IconButton>
+
+                <Paper
+                  elevation={0}
+                  sx={{
+                    flex: 1,
+                    p: "4px 15px",
+                    display: "flex",
+                    alignItems: "center",
+                    borderRadius: "50px",
+                    border: "1px solid",
+                    borderColor: "primary.main",
+                    bgcolor: "background.paper",
+                    height: 46,
+                  }}
+                >
+                  <Search color="primary" sx={{ fontSize: 22 }} />
+                  <InputBase
+                    ref={inputRef}
+                    sx={{
+                      ml: 2,
+                      flex: 1,
+                      fontSize: { xs: "0.95rem", sm: "1rem" },
+                    }}
+                    placeholder="Search for products..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    autoFocus
+                  />
+                  {query && (
+                    <IconButton
+                      onClick={() => {
+                        setQuery("");
+                        setSuggestions({ products: [], categories: [] });
+                      }}
+                      size="small"
+                      sx={{ p: 0.5 }}
+                    >
+                      <Close fontSize="small" />
+                    </IconButton>
+                  )}
+                  {loading && <CircularProgress size={20} sx={{ ml: 1 }} />}
+                </Paper>
+              </Box>
+            </Box>
+
+            {/* Mobile Search Results */}
+            <Box
+              sx={{ flex: 1, overflowY: "auto", bgcolor: "background.default" }}
+            >
+              {!query && (
+                <Box sx={{ p: 2.5 }}>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    sx={{
+                      mb: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1,
+                      fontWeight: 600,
+                      fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                    }}
+                  >
+                    <TrendingUp fontSize="small" color="primary" /> Trending Now
+                  </Typography>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+                    {trendingTags.map((tag) => (
+                      <Box
+                        key={tag}
+                        onClick={() => handleTrendingClick(tag)}
+                        sx={{
+                          px: { xs: 2, sm: 2.5 },
+                          py: { xs: 0.7, sm: 0.8 },
+                          bgcolor: "rgba(46, 125, 50, 0.08)",
+                          borderRadius: 50,
+                          cursor: "pointer",
+                          fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                          fontWeight: 500,
+                          color: "primary.dark",
+                          transition: "all 0.2s",
+                          minHeight: 44,
+                          display: "flex",
+                          alignItems: "center",
+                          "&:active": {
+                            bgcolor: "primary.main",
+                            color: "white",
+                            transform: "scale(0.95)",
+                          },
+                        }}
+                      >
+                        {tag}
+                      </Box>
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {query && (
+                <List disablePadding>
+                  {/* Categories Section */}
+                  {suggestions.categories.length > 0 && (
+                    <>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          px: 2.5,
+                          py: 1.5,
+                          display: "block",
+                          bgcolor: "#f9fafb",
+                          fontWeight: 700,
+                          color: "text.secondary",
+                          letterSpacing: 0.5,
+                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                        }}
+                      >
+                        CATEGORIES
+                      </Typography>
+                      {suggestions.categories.map((cat) => (
+                        <ListItemButton
+                          key={cat.id}
+                          onClick={() => handleCategoryClick(cat.id)}
+                          sx={{
+                            px: 2.5,
+                            py: 1.5,
+                            minHeight: 56,
+                          }}
+                        >
+                          <ListItemIcon sx={{ minWidth: 40 }}>
+                            <Category fontSize="small" color="action" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={cat.name}
+                            primaryTypographyProps={{
+                              fontWeight: 500,
+                              fontSize: { xs: "0.9rem", sm: "0.95rem" },
+                            }}
+                            secondary="Browse Category"
+                            secondaryTypographyProps={{
+                              fontSize: { xs: "0.75rem", sm: "0.8rem" },
+                            }}
+                          />
+                          <NorthWest
+                            fontSize="small"
+                            color="action"
+                            sx={{ transform: "rotate(90deg)", opacity: 0.5 }}
+                          />
+                        </ListItemButton>
+                      ))}
+                      <Divider />
+                    </>
+                  )}
+
+                  {/* Products Section */}
+                  {suggestions.products.length > 0 && (
+                    <>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          px: 2.5,
+                          py: 1.5,
+                          display: "block",
+                          bgcolor: "#f9fafb",
+                          fontWeight: 700,
+                          color: "text.secondary",
+                          letterSpacing: 0.5,
+                          fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                        }}
+                      >
+                        PRODUCTS
+                      </Typography>
+                      {suggestions.products.map((prod) => (
+                        <ListItemButton
+                          key={prod._id}
+                          onClick={() => handleProductClick(prod._id)}
+                          sx={{
+                            px: 2.5,
+                            py: 1.2,
+                            minHeight: 64,
+                          }}
+                        >
+                          <ListItemIcon sx={{ minWidth: { xs: 52, sm: 56 } }}>
+                            <Avatar
+                              variant="rounded"
+                              src={getImageUrl(prod.primaryImage || prod.image)}
+                              alt={prod.name}
+                              sx={{
+                                width: { xs: 38, sm: 40 },
+                                height: { xs: 38, sm: 40 },
+                                borderRadius: 2,
+                                bgcolor: "grey.100",
+                              }}
+                            >
+                              <Store />
+                            </Avatar>
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={
+                              <Typography
+                                variant="body2"
+                                fontWeight={600}
+                                noWrap
+                                sx={{
+                                  maxWidth: { xs: 180, sm: 250 },
+                                  fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                                }}
+                              >
+                                {prod.name}
+                              </Typography>
+                            }
+                            secondary={
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{
+                                  fontSize: { xs: "0.7rem", sm: "0.75rem" },
+                                }}
+                              >
+                                {prod.brand ? `${prod.brand} • ` : ""}
+                                {prod.category?.name || "Item"}
+                              </Typography>
+                            }
+                          />
+                          <Typography
+                            variant="body2"
+                            fontWeight={700}
+                            color="primary.main"
+                            sx={{
+                              fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                            }}
+                          >
+                            ₹
+                            {(
+                              prod.discountPrice || prod.basePrice
+                            ).toLocaleString()}
+                          </Typography>
+                        </ListItemButton>
+                      ))}
+                    </>
+                  )}
+
+                  {/* No Results */}
+                  {!loading &&
+                    suggestions.categories.length === 0 &&
+                    suggestions.products.length === 0 && (
+                      <Box sx={{ p: 4, textAlign: "center" }}>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ fontSize: { xs: "0.85rem", sm: "0.9rem" } }}
+                        >
+                          No results found for "<strong>{query}</strong>"
+                        </Typography>
+                      </Box>
+                    )}
+
+                  {/* See All Results Button */}
+                  {(suggestions.products.length > 0 ||
+                    suggestions.categories.length > 0) && (
+                    <ListItemButton
+                      sx={{
+                        justifyContent: "center",
+                        bgcolor: "primary.50",
+                        py: 1.8,
+                        minHeight: 56,
+                        "&:active": {
+                          bgcolor: "primary.100",
+                        },
+                      }}
+                      onClick={handleSubmit}
+                    >
+                      <Typography
+                        variant="body2"
+                        fontWeight={700}
+                        color="primary.dark"
+                        sx={{
+                          fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                        }}
+                      >
+                        See all results for "{query}"
+                      </Typography>
+                    </ListItemButton>
+                  )}
+                </List>
+              )}
+            </Box>
+          </Box>
+        </Drawer>
+      </>
+    );
+  }
+
+  // 🖥️ Desktop Search Bar
   return (
     <Box
       ref={wrapperRef}
@@ -148,6 +581,7 @@ const SearchBar = ({ categories = [] }) => {
         {loading && <CircularProgress size={20} sx={{ ml: 1 }} />}
       </Paper>
 
+      {/* Desktop Dropdown */}
       <AnimatePresence>
         {isFocused && (
           <motion.div
@@ -189,20 +623,10 @@ const SearchBar = ({ categories = [] }) => {
                     <TrendingUp fontSize="small" color="primary" /> Trending Now
                   </Typography>
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
-                    {[
-                      "Smartphones",
-                      "Running Shoes",
-                      "Wireless Earbuds",
-                      "Kurtas",
-                      "Home Decor",
-                    ].map((tag) => (
+                    {trendingTags.map((tag) => (
                       <Box
                         key={tag}
-                        onClick={() => {
-                          setQuery(tag);
-                          navigate(`/search?q=${encodeURIComponent(tag)}`);
-                          setIsFocused(false);
-                        }}
+                        onClick={() => handleTrendingClick(tag)}
                         sx={{
                           px: 2.5,
                           py: 0.8,
@@ -247,10 +671,7 @@ const SearchBar = ({ categories = [] }) => {
                       {suggestions.categories.map((cat) => (
                         <ListItemButton
                           key={cat.id}
-                          onClick={() => {
-                            navigate(`/category?category=${cat.id}`);
-                            setIsFocused(false);
-                          }}
+                          onClick={() => handleCategoryClick(cat.id)}
                           sx={{ px: 2.5 }}
                         >
                           <ListItemIcon sx={{ minWidth: 40 }}>
@@ -291,10 +712,7 @@ const SearchBar = ({ categories = [] }) => {
                       {suggestions.products.map((prod) => (
                         <ListItemButton
                           key={prod._id}
-                          onClick={() => {
-                            navigate(`/product/${prod._id}`);
-                            setIsFocused(false);
-                          }}
+                          onClick={() => handleProductClick(prod._id)}
                           sx={{ px: 2.5, py: 1 }}
                         >
                           <ListItemIcon sx={{ minWidth: 56 }}>
@@ -328,7 +746,7 @@ const SearchBar = ({ categories = [] }) => {
                                 variant="caption"
                                 color="text.secondary"
                               >
-                                {prod.brand ? `${prod.brand} • ` : ""}{" "}
+                                {prod.brand ? `${prod.brand} • ` : ""}
                                 {prod.category?.name || "Item"}
                               </Typography>
                             }

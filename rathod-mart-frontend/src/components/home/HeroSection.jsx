@@ -52,7 +52,12 @@ const heroSlides = [
 const HeroBanner = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  // 🎯 Responsive Breakpoints
+  const isMobile = useMediaQuery(theme.breakpoints.down("md")); // < 900px
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm")); // < 600px
+  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md")); // 600-900px
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
@@ -110,7 +115,14 @@ const HeroBanner = () => {
     <Box
       sx={{
         position: "relative",
-        height: { xs: "90vh", md: "85vh" },
+        // 📱 Responsive Height - Mobile par smaller
+        height: {
+          xs: "70vh", // Small mobile
+          sm: "75vh", // Tablet
+          md: "85vh", // Desktop
+        },
+        // 📱 Minimum height for very small screens
+        minHeight: { xs: "500px", md: "600px" },
         overflow: "hidden",
         background: heroSlides[currentSlide].gradient,
         display: "flex",
@@ -132,46 +144,61 @@ const HeroBanner = () => {
           background: `url(${heroSlides[currentSlide].image})`,
           backgroundSize: "cover",
           backgroundPosition: "center",
-          opacity: 0.1,
+          // 📱 Slightly more visible on mobile for better context
+          opacity: isMobile ? 0.15 : 0.1,
         }}
         key={currentSlide}
         initial={{ scale: 1.2, opacity: 0 }}
-        animate={{ scale: 1, opacity: 0.1 }}
+        animate={{ scale: 1, opacity: isMobile ? 0.15 : 0.1 }}
         transition={{ duration: 1 }}
       />
 
-      {/* Floating Decorative Elements */}
-      <motion.div
-        animate={floatingAnimation}
-        style={{
-          position: "absolute",
-          top: "10%",
-          right: "10%",
-          width: 100,
-          height: 100,
-          background: "rgba(255, 255, 255, 0.1)",
-          borderRadius: "50%",
-          backdropFilter: "blur(20px)",
-        }}
-      />
-      <motion.div
-        animate={{
-          ...floatingAnimation,
-          transition: { ...floatingAnimation.transition, delay: 1 },
-        }}
-        style={{
-          position: "absolute",
-          bottom: "20%",
-          left: "5%",
-          width: 60,
-          height: 60,
-          background: "rgba(255, 255, 255, 0.05)",
-          borderRadius: "50%",
-          backdropFilter: "blur(15px)",
-        }}
-      />
+      {/* Floating Decorative Elements - Hide on small mobile */}
+      {!isSmallMobile && (
+        <>
+          <motion.div
+            animate={floatingAnimation}
+            style={{
+              position: "absolute",
+              top: "10%",
+              right: "10%",
+              // 📱 Responsive Size
+              width: isMobile ? 60 : 100,
+              height: isMobile ? 60 : 100,
+              background: "rgba(255, 255, 255, 0.1)",
+              borderRadius: "50%",
+              backdropFilter: "blur(20px)",
+            }}
+          />
+          <motion.div
+            animate={{
+              ...floatingAnimation,
+              transition: { ...floatingAnimation.transition, delay: 1 },
+            }}
+            style={{
+              position: "absolute",
+              bottom: "20%",
+              left: "5%",
+              // 📱 Responsive Size
+              width: isMobile ? 40 : 60,
+              height: isMobile ? 40 : 60,
+              background: "rgba(255, 255, 255, 0.05)",
+              borderRadius: "50%",
+              backdropFilter: "blur(15px)",
+            }}
+          />
+        </>
+      )}
 
-      <Container maxWidth="xl" sx={{ position: "relative", zIndex: 2 }}>
+      <Container
+        maxWidth="xl"
+        sx={{
+          position: "relative",
+          zIndex: 2,
+          // 📱 Responsive Padding
+          px: { xs: 2, sm: 3, md: 4 },
+        }}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSlide}
@@ -185,8 +212,11 @@ const HeroBanner = () => {
                 display: "flex",
                 flexDirection: { xs: "column", md: "row" },
                 alignItems: "center",
-                minHeight: "70vh",
-                gap: 6,
+                // 📱 Responsive Min Height
+                minHeight: { xs: "60vh", md: "70vh" },
+                gap: { xs: 3, sm: 4, md: 6 },
+                // 📱 Better vertical centering on mobile
+                py: { xs: 4, md: 0 },
               }}
             >
               {/* Content Section */}
@@ -195,8 +225,11 @@ const HeroBanner = () => {
                   flex: 1,
                   color: "white",
                   textAlign: { xs: "center", md: "left" },
+                  // 📱 Add max width on mobile for better readability
+                  maxWidth: { xs: "100%", md: "none" },
                 }}
               >
+                {/* Accent Badge */}
                 <motion.div variants={itemVariants}>
                   <Box
                     sx={{
@@ -204,9 +237,10 @@ const HeroBanner = () => {
                       background: "rgba(255, 255, 255, 0.2)",
                       backdropFilter: "blur(20px)",
                       borderRadius: "50px",
-                      px: 3,
-                      py: 1,
-                      mb: 3,
+                      // 📱 Responsive Padding
+                      px: { xs: 2, sm: 2.5, md: 3 },
+                      py: { xs: 0.75, md: 1 },
+                      mb: { xs: 2, md: 3 },
                       border: "1px solid rgba(255, 255, 255, 0.3)",
                     }}
                   >
@@ -217,79 +251,121 @@ const HeroBanner = () => {
                         display: "flex",
                         alignItems: "center",
                         gap: 1,
+                        // 📱 Responsive Font Size
+                        fontSize: {
+                          xs: "0.8rem",
+                          sm: "0.85rem",
+                          md: "0.95rem",
+                        },
                       }}
                     >
-                      <Star sx={{ fontSize: 16, color: "#FFD700" }} />
+                      <Star
+                        sx={{ fontSize: { xs: 14, md: 16 }, color: "#FFD700" }}
+                      />
                       {heroSlides[currentSlide].accent}
                     </Typography>
                   </Box>
                 </motion.div>
 
+                {/* Main Title */}
                 <motion.div variants={itemVariants}>
                   <Typography
-                    variant={isMobile ? "h3" : "h1"}
+                    variant={isSmallMobile ? "h4" : isMobile ? "h3" : "h1"}
                     sx={{
                       fontWeight: 900,
-                      mb: 2,
+                      mb: { xs: 1.5, md: 2 },
                       background: "linear-gradient(45deg, #FFFFFF, #E0E0E0)",
                       backgroundClip: "text",
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
                       lineHeight: 1.2,
+                      // 📱 Responsive Font Size
+                      fontSize: {
+                        xs: "1.75rem", // Extra small
+                        sm: "2.5rem", // Small
+                        md: "3rem", // Medium
+                        lg: "3.5rem", // Large
+                      },
                     }}
                   >
                     {heroSlides[currentSlide].title}
                   </Typography>
                 </motion.div>
 
+                {/* Subtitle */}
                 <motion.div variants={itemVariants}>
                   <Typography
-                    variant="h4"
+                    variant={isSmallMobile ? "h6" : "h4"}
                     sx={{
                       fontWeight: 300,
-                      mb: 3,
+                      mb: { xs: 2, md: 3 },
                       color: "rgba(255, 255, 255, 0.9)",
+                      // 📱 Responsive Font Size
+                      fontSize: {
+                        xs: "1.1rem",
+                        sm: "1.5rem",
+                        md: "2rem",
+                      },
                     }}
                   >
                     {heroSlides[currentSlide].subtitle}
                   </Typography>
                 </motion.div>
 
+                {/* Description */}
                 <motion.div variants={itemVariants}>
                   <Typography
                     variant="body1"
                     sx={{
-                      mb: 4,
+                      mb: { xs: 3, md: 4 },
                       color: "rgba(255, 255, 255, 0.8)",
-                      maxWidth: "500px",
-                      fontSize: "1.2rem",
+                      maxWidth: { xs: "100%", md: "500px" },
+                      // 📱 Responsive Font Size
+                      fontSize: { xs: "0.95rem", sm: "1rem", md: "1.2rem" },
                       lineHeight: 1.6,
+                      // 📱 Center on mobile, left on desktop
+                      mx: { xs: "auto", md: 0 },
                     }}
                   >
                     {heroSlides[currentSlide].description}
                   </Typography>
                 </motion.div>
 
+                {/* Action Buttons */}
                 <motion.div variants={itemVariants}>
                   <Box
                     sx={{
                       display: "flex",
-                      gap: 2,
+                      gap: { xs: 1.5, sm: 2 },
+                      // 📱 Stack on extra small mobile
+                      flexDirection: {
+                        xs: isSmallMobile ? "column" : "row",
+                        md: "row",
+                      },
                       flexWrap: "wrap",
                       justifyContent: { xs: "center", md: "flex-start" },
                     }}
                   >
                     <Button
                       variant="contained"
-                      size="large"
-                      endIcon={<ArrowForward />}
+                      // 📱 Responsive Size
+                      size={isMobile ? "medium" : "large"}
+                      endIcon={
+                        <ArrowForward sx={{ fontSize: { xs: 18, md: 20 } }} />
+                      }
                       onClick={() => navigate("/products")}
+                      // 📱 Full width on extra small mobile
+                      fullWidth={isSmallMobile}
                       sx={{
                         background: "linear-gradient(135deg, #2E7D32, #00695C)",
                         borderRadius: "50px",
-                        px: 4,
-                        py: 2,
-                        fontSize: "1.1rem",
+                        // 📱 Responsive Padding
+                        px: { xs: 3, sm: 3.5, md: 4 },
+                        py: { xs: 1.5, md: 2 },
+                        // 📱 Touch-friendly height
+                        minHeight: { xs: 48, md: 44 },
+                        // 📱 Responsive Font Size
+                        fontSize: { xs: "0.95rem", sm: "1rem", md: "1.1rem" },
                         fontWeight: 600,
                         textTransform: "none",
                         boxShadow: "0 10px 30px rgba(46, 125, 50, 0.3)",
@@ -307,16 +383,25 @@ const HeroBanner = () => {
 
                     <Button
                       variant="outlined"
-                      size="large"
-                      startIcon={<ShoppingBag />}
+                      // 📱 Responsive Size
+                      size={isMobile ? "medium" : "large"}
+                      startIcon={
+                        <ShoppingBag sx={{ fontSize: { xs: 18, md: 20 } }} />
+                      }
                       onClick={() => navigate("/categories")}
+                      // 📱 Full width on extra small mobile
+                      fullWidth={isSmallMobile}
                       sx={{
                         borderColor: "rgba(255, 255, 255, 0.3)",
                         color: "white",
                         borderRadius: "50px",
-                        px: 4,
-                        py: 2,
-                        fontSize: "1.1rem",
+                        // 📱 Responsive Padding
+                        px: { xs: 3, sm: 3.5, md: 4 },
+                        py: { xs: 1.5, md: 2 },
+                        // 📱 Touch-friendly height
+                        minHeight: { xs: 48, md: 44 },
+                        // 📱 Responsive Font Size
+                        fontSize: { xs: "0.95rem", sm: "1rem", md: "1.1rem" },
                         fontWeight: 500,
                         textTransform: "none",
                         backdropFilter: "blur(20px)",
@@ -335,7 +420,7 @@ const HeroBanner = () => {
                 </motion.div>
               </Box>
 
-              {/* Visual Section */}
+              {/* Visual Section - Hide on Mobile */}
               <Box
                 sx={{
                   flex: 1,
@@ -356,8 +441,9 @@ const HeroBanner = () => {
                 >
                   <Box
                     sx={{
-                      width: "400px",
-                      height: "400px",
+                      // 📱 Responsive Circle Size
+                      width: { md: "350px", lg: "400px" },
+                      height: { md: "350px", lg: "400px" },
                       borderRadius: "50%",
                       background: "rgba(255, 255, 255, 0.1)",
                       backdropFilter: "blur(20px)",
@@ -371,7 +457,11 @@ const HeroBanner = () => {
                     }}
                   >
                     <ShoppingBag
-                      sx={{ fontSize: 120, color: "rgba(255, 255, 255, 0.3)" }}
+                      sx={{
+                        // 📱 Responsive Icon Size
+                        fontSize: { md: 100, lg: 120 },
+                        color: "rgba(255, 255, 255, 0.3)",
+                      }}
                     />
 
                     {/* Animated rings */}
@@ -397,11 +487,12 @@ const HeroBanner = () => {
       <Box
         sx={{
           position: "absolute",
-          bottom: 30,
+          // 📱 Responsive Bottom Position
+          bottom: { xs: 20, md: 30 },
           left: "50%",
           transform: "translateX(-50%)",
           display: "flex",
-          gap: 2,
+          gap: { xs: 1.5, md: 2 },
           zIndex: 3,
         }}
       >
@@ -410,8 +501,12 @@ const HeroBanner = () => {
             key={index}
             onClick={() => handleSlideChange(index)}
             sx={{
-              width: currentSlide === index ? 40 : 12,
-              height: 12,
+              // 📱 Responsive Indicator Size
+              width:
+                currentSlide === index
+                  ? { xs: 32, md: 40 }
+                  : { xs: 10, md: 12 },
+              height: { xs: 10, md: 12 },
               borderRadius: "6px",
               background:
                 currentSlide === index
@@ -420,8 +515,23 @@ const HeroBanner = () => {
               cursor: "pointer",
               transition: "all 0.3s ease",
               backdropFilter: "blur(10px)",
+              // 📱 Touch-friendly on mobile
+              minWidth: { xs: 44, md: "auto" },
+              minHeight: { xs: 44, md: "auto" },
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               "&:hover": {
                 background: "rgba(255, 255, 255, 0.6)",
+              },
+              // 📱 Add inner dot for better touch indication on mobile
+              "&::after": {
+                content: '""',
+                display: isMobile && currentSlide === index ? "block" : "none",
+                width: { xs: 32, md: 40 },
+                height: { xs: 10, md: 12 },
+                borderRadius: "6px",
+                background: "rgba(255, 255, 255, 0.9)",
               },
             }}
           />

@@ -15,18 +15,25 @@ import {
   Checkbox,
   Stack,
   CircularProgress,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { MyLocation, ArrowBack } from "@mui/icons-material";
 import { useCart } from "../context/CartContext";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import api from "../data/api"; // Updated API helper
+import api from "../data/api";
 import { useSelector, useDispatch } from "react-redux";
 import { setCredentials } from "../store/authSlice";
 
 const Checkout = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // 🎯 Responsive Breakpoints
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md")); // < 900px
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm")); // < 600px
 
   const { cartItems, getCartTotal, clearCart } = useCart();
   const { userInfo } = useSelector((state) => state.auth);
@@ -168,7 +175,6 @@ const Checkout = () => {
       if (res.status === 201 || res.data) {
         toast.success("Order placed successfully!");
         clearCart();
-        // Redirect to home for now (or create an Order Success page later)
         navigate("/");
       }
     } catch (err) {
@@ -183,38 +189,76 @@ const Checkout = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4, minHeight: "80vh" }}>
+    <Container
+      maxWidth="lg"
+      sx={{
+        // 📱 Responsive Padding
+        py: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 2, sm: 3 },
+        minHeight: "80vh",
+      }}
+    >
+      {/* Back Button */}
       <Button
         startIcon={<ArrowBack />}
         onClick={() => navigate(-1)}
-        sx={{ mb: 2, color: "text.secondary" }}
+        sx={{
+          mb: { xs: 2, md: 2 },
+          color: "text.secondary",
+          // 📱 Touch-friendly size
+          minHeight: { xs: 44, md: 36 },
+          fontSize: { xs: "0.9rem", md: "1rem" },
+        }}
       >
         Back
       </Button>
+
+      {/* Page Title */}
       <Typography
         variant="h4"
         fontWeight="800"
-        sx={{ mb: 4, color: "#2E7D32" }}
+        sx={{
+          mb: { xs: 3, md: 4 },
+          color: "#2E7D32",
+          // 📱 Responsive Font Size
+          fontSize: { xs: "1.75rem", sm: "2rem", md: "2.5rem" },
+        }}
       >
         Checkout
       </Typography>
 
-      <Grid container spacing={4}>
-        {/* Left Column */}
+      <Grid container spacing={{ xs: 2, md: 4 }}>
+        {/* 📝 Left Column - Address & Payment */}
         <Grid item xs={12} md={7}>
+          {/* Shipping Address Section */}
           <Paper
             elevation={0}
-            sx={{ p: 3, mb: 3, border: "1px solid #e0e0e0", borderRadius: 3 }}
+            sx={{
+              p: { xs: 2, sm: 2.5, md: 3 },
+              mb: { xs: 2, md: 3 },
+              border: "1px solid #e0e0e0",
+              borderRadius: { xs: 2, md: 3 },
+            }}
           >
             <Box
               sx={{
                 display: "flex",
+                // 📱 Stack on small mobile
+                flexDirection: { xs: "column", sm: "row" },
                 justifyContent: "space-between",
-                alignItems: "center",
-                mb: 3,
+                alignItems: { xs: "flex-start", sm: "center" },
+                mb: { xs: 2, md: 3 },
+                gap: { xs: 2, sm: 0 },
               }}
             >
-              <Typography variant="h6" fontWeight="700">
+              <Typography
+                variant="h6"
+                fontWeight="700"
+                sx={{
+                  // 📱 Responsive Font Size
+                  fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                }}
+              >
                 Shipping Address
               </Typography>
               <Button
@@ -224,13 +268,21 @@ const Checkout = () => {
                 }
                 onClick={handleLocateMe}
                 disabled={locating || loading}
-                size="small"
-                sx={{ borderRadius: 20 }}
+                // 📱 Responsive Button Size
+                size={isSmallMobile ? "small" : "medium"}
+                fullWidth={isSmallMobile}
+                sx={{
+                  borderRadius: 20,
+                  // 📱 Touch-friendly height
+                  minHeight: { xs: 44, md: 36 },
+                  fontSize: { xs: "0.85rem", md: "0.95rem" },
+                }}
               >
                 {locating ? "Locating..." : "Locate Me"}
               </Button>
             </Box>
-            <Grid container spacing={2}>
+
+            <Grid container spacing={{ xs: 1.5, sm: 2 }}>
               <Grid item xs={12}>
                 <TextField
                   label="Street Address"
@@ -241,10 +293,18 @@ const Checkout = () => {
                   required
                   disabled={loading}
                   multiline
-                  rows={2}
+                  // 📱 Less rows on mobile
+                  rows={isSmallMobile ? 1 : 2}
+                  // 📱 Responsive Size
+                  size={isSmallMobile ? "small" : "medium"}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      fontSize: { xs: "0.9rem", md: "1rem" },
+                    },
+                  }}
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   label="City"
                   name="city"
@@ -253,9 +313,15 @@ const Checkout = () => {
                   onChange={handleAddressChange}
                   required
                   disabled={loading}
+                  size={isSmallMobile ? "small" : "medium"}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      fontSize: { xs: "0.9rem", md: "1rem" },
+                    },
+                  }}
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   label="Pincode"
                   name="zip"
@@ -264,9 +330,15 @@ const Checkout = () => {
                   onChange={handleAddressChange}
                   required
                   disabled={loading}
+                  size={isSmallMobile ? "small" : "medium"}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      fontSize: { xs: "0.9rem", md: "1rem" },
+                    },
+                  }}
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   label="State"
                   name="state"
@@ -275,15 +347,27 @@ const Checkout = () => {
                   onChange={handleAddressChange}
                   required
                   disabled={loading}
+                  size={isSmallMobile ? "small" : "medium"}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      fontSize: { xs: "0.9rem", md: "1rem" },
+                    },
+                  }}
                 />
               </Grid>
-              <Grid item xs={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   label="Country"
                   name="country"
                   fullWidth
                   value={address.country}
                   disabled
+                  size={isSmallMobile ? "small" : "medium"}
+                  sx={{
+                    "& .MuiInputBase-input": {
+                      fontSize: { xs: "0.9rem", md: "1rem" },
+                    },
+                  }}
                 />
               </Grid>
               <Grid item xs={12}>
@@ -293,19 +377,41 @@ const Checkout = () => {
                       checked={saveAddress}
                       onChange={(e) => setSaveAddress(e.target.checked)}
                       color="primary"
+                      // 📱 Responsive Checkbox Size
+                      sx={{
+                        "& .MuiSvgIcon-root": {
+                          fontSize: { xs: 20, md: 24 },
+                        },
+                      }}
                     />
                   }
-                  label="Save address to profile"
+                  label={
+                    <Typography sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}>
+                      Save address to profile
+                    </Typography>
+                  }
                 />
               </Grid>
             </Grid>
           </Paper>
 
+          {/* Payment Method Section */}
           <Paper
             elevation={0}
-            sx={{ p: 3, border: "1px solid #e0e0e0", borderRadius: 3 }}
+            sx={{
+              p: { xs: 2, sm: 2.5, md: 3 },
+              border: "1px solid #e0e0e0",
+              borderRadius: { xs: 2, md: 3 },
+            }}
           >
-            <Typography variant="h6" fontWeight="700" sx={{ mb: 2 }}>
+            <Typography
+              variant="h6"
+              fontWeight="700"
+              sx={{
+                mb: { xs: 1.5, md: 2 },
+                fontSize: { xs: "1.1rem", sm: "1.25rem" },
+              }}
+            >
               Payment Method
             </Typography>
             <RadioGroup
@@ -314,28 +420,68 @@ const Checkout = () => {
             >
               <FormControlLabel
                 value="cod"
-                control={<Radio color="primary" />}
+                control={
+                  <Radio
+                    color="primary"
+                    sx={{
+                      "& .MuiSvgIcon-root": {
+                        fontSize: { xs: 20, md: 24 },
+                      },
+                    }}
+                  />
+                }
                 label={
                   <Box>
-                    <Typography fontWeight="600">
+                    <Typography
+                      fontWeight="600"
+                      sx={{ fontSize: { xs: "0.95rem", md: "1rem" } }}
+                    >
                       Cash on Delivery (COD)
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: "0.75rem", md: "0.85rem" } }}
+                    >
                       Pay when order arrives
                     </Typography>
                   </Box>
                 }
-                sx={{ mb: 2 }}
+                sx={{
+                  mb: { xs: 1.5, md: 2 },
+                  // 📱 Touch-friendly height
+                  "& .MuiFormControlLabel-root": {
+                    minHeight: 44,
+                  },
+                }}
               />
               <Divider sx={{ my: 1 }} />
               <FormControlLabel
                 value="online"
-                control={<Radio color="primary" />}
+                control={
+                  <Radio
+                    color="primary"
+                    sx={{
+                      "& .MuiSvgIcon-root": {
+                        fontSize: { xs: 20, md: 24 },
+                      },
+                    }}
+                  />
+                }
                 disabled
                 label={
                   <Box sx={{ opacity: 0.6 }}>
-                    <Typography fontWeight="600">Online Payment</Typography>
-                    <Typography variant="caption" color="text.secondary">
+                    <Typography
+                      fontWeight="600"
+                      sx={{ fontSize: { xs: "0.95rem", md: "1rem" } }}
+                    >
+                      Online Payment
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: "0.75rem", md: "0.85rem" } }}
+                    >
                       Coming Soon
                     </Typography>
                   </Box>
@@ -345,22 +491,32 @@ const Checkout = () => {
           </Paper>
         </Grid>
 
-        {/* Right Column */}
+        {/* 📊 Right Column - Order Summary */}
         <Grid item xs={12} md={5}>
           <Paper
             elevation={0}
             sx={{
-              p: 3,
+              p: { xs: 2, sm: 2.5, md: 3 },
               bgcolor: "#fafafa",
-              borderRadius: 3,
-              position: "sticky",
-              top: 100,
+              borderRadius: { xs: 2, md: 3 },
+              // 📱 Sticky only on desktop
+              position: { xs: "relative", md: "sticky" },
+              top: { md: 100 },
             }}
           >
-            <Typography variant="h6" fontWeight="700" sx={{ mb: 3 }}>
+            <Typography
+              variant="h6"
+              fontWeight="700"
+              sx={{
+                mb: { xs: 2, md: 3 },
+                fontSize: { xs: "1.1rem", sm: "1.25rem" },
+              }}
+            >
               Order Summary
             </Typography>
-            <Stack spacing={2} sx={{ mb: 3 }}>
+
+            {/* Cart Items List */}
+            <Stack spacing={{ xs: 1.5, md: 2 }} sx={{ mb: { xs: 2, md: 3 } }}>
               {cartItems.map((item) => (
                 <Box
                   key={item.cartId}
@@ -368,78 +524,155 @@ const Checkout = () => {
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
+                    gap: { xs: 1, md: 2 },
                   }}
                 >
                   <Box
                     sx={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 2,
+                      gap: { xs: 1, md: 2 },
                       overflow: "hidden",
+                      flex: 1,
                     }}
                   >
+                    {/* Product Image */}
                     <Box
                       component="img"
                       src={item.image}
                       alt={item.name}
                       sx={{
-                        width: 50,
-                        height: 50,
-                        borderRadius: 2,
+                        // 📱 Responsive Image Size
+                        width: { xs: 40, sm: 50 },
+                        height: { xs: 40, sm: 50 },
+                        borderRadius: { xs: 1, md: 2 },
                         objectFit: "cover",
                         border: "1px solid #eee",
+                        flexShrink: 0,
                       }}
                     />
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="body2" fontWeight="600" noWrap>
+                    {/* Product Info */}
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography
+                        variant="body2"
+                        fontWeight="600"
+                        noWrap
+                        sx={{ fontSize: { xs: "0.85rem", md: "0.95rem" } }}
+                      >
                         {item.name}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        Qty: {item.quantity}{" "}
-                        {item.selectedVariant
-                          ? `• ${item.selectedVariant.size || ""} ${
-                              item.selectedVariant.color || ""
-                            }`
-                          : ""}
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{
+                          fontSize: { xs: "0.7rem", md: "0.8rem" },
+                          display: "block",
+                        }}
+                      >
+                        Qty: {item.quantity}
+                        {item.selectedVariant && (
+                          <>
+                            {" "}
+                            • {item.selectedVariant.size || ""}{" "}
+                            {item.selectedVariant.color || ""}
+                          </>
+                        )}
                       </Typography>
                     </Box>
                   </Box>
-                  <Typography variant="body2" fontWeight="600">
+                  {/* Price */}
+                  <Typography
+                    variant="body2"
+                    fontWeight="600"
+                    sx={{
+                      fontSize: { xs: "0.85rem", md: "0.95rem" },
+                      flexShrink: 0,
+                    }}
+                  >
                     ₹{(item.price * item.quantity).toFixed(2)}
                   </Typography>
                 </Box>
               ))}
             </Stack>
+
             <Divider sx={{ mb: 2 }} />
-            <Stack spacing={1.5}>
+
+            {/* Price Breakdown */}
+            <Stack spacing={{ xs: 1, md: 1.5 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography color="text.secondary">Subtotal</Typography>
-                <Typography fontWeight="600">₹{subtotal.toFixed(2)}</Typography>
+                <Typography
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}
+                >
+                  Subtotal
+                </Typography>
+                <Typography
+                  fontWeight="600"
+                  sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}
+                >
+                  ₹{subtotal.toFixed(2)}
+                </Typography>
               </Box>
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography color="text.secondary">Discount</Typography>
-                <Typography fontWeight="600" color="success.main">
+                <Typography
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}
+                >
+                  Discount
+                </Typography>
+                <Typography
+                  fontWeight="600"
+                  color="success.main"
+                  sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}
+                >
                   - ₹{discountAmount.toFixed(2)}
                 </Typography>
               </Box>
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography color="text.secondary">Shipping</Typography>
-                <Typography fontWeight="600" color="success.main">
+                <Typography
+                  color="text.secondary"
+                  sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}
+                >
+                  Shipping
+                </Typography>
+                <Typography
+                  fontWeight="600"
+                  color="success.main"
+                  sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}
+                >
                   Free
                 </Typography>
               </Box>
             </Stack>
+
             <Divider sx={{ my: 2 }} />
+
+            {/* Total */}
             <Box
-              sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                mb: { xs: 2, md: 3 },
+              }}
             >
-              <Typography variant="h6" fontWeight="800">
+              <Typography
+                variant="h6"
+                fontWeight="800"
+                sx={{ fontSize: { xs: "1.1rem", md: "1.25rem" } }}
+              >
                 Total
               </Typography>
-              <Typography variant="h6" fontWeight="800" color="primary">
+              <Typography
+                variant="h6"
+                fontWeight="800"
+                color="primary"
+                sx={{ fontSize: { xs: "1.1rem", md: "1.25rem" } }}
+              >
                 ₹{total.toFixed(2)}
               </Typography>
             </Box>
+
+            {/* Place Order Button */}
             <Button
               fullWidth
               variant="contained"
@@ -448,14 +681,21 @@ const Checkout = () => {
               disabled={loading}
               sx={{
                 borderRadius: 50,
-                py: 1.5,
-                fontSize: "1.1rem",
+                // 📱 Responsive Padding
+                py: { xs: 1.3, md: 1.5 },
+                // 📱 Responsive Font Size
+                fontSize: { xs: "1rem", md: "1.1rem" },
                 fontWeight: "700",
+                // 📱 Touch-friendly minimum height
+                minHeight: { xs: 48, md: 44 },
                 background: "linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)",
                 boxShadow: "0 8px 20px rgba(46,125,50,0.3)",
                 "&:hover": {
                   background:
                     "linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%)",
+                },
+                "&:disabled": {
+                  background: "rgba(0, 0, 0, 0.12)",
                 },
               }}
             >
