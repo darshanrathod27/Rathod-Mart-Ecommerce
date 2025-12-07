@@ -1,12 +1,10 @@
-// rathod-mart/src/components/home/DealGrids.jsx
+// src/components/home/DealGrids.jsx - PERFECT MOBILE RESPONSIVE
 import React, { useState, useEffect } from "react";
-import { Box, Container, Grid } from "@mui/material";
+import { Box, Container, Grid, useTheme, useMediaQuery } from "@mui/material";
 import OfferGridCard from "./OfferGridCard";
 import SponsorBanner from "./SponsorBanner";
-// --- NEW ---
 import { useSelector } from "react-redux";
 import api from "../../data/api";
-// --- END NEW ---
 
 // Helper function to get N random items from an array
 function getRandomItems(arr, n) {
@@ -15,10 +13,16 @@ function getRandomItems(arr, n) {
 }
 
 const DealGrids = () => {
-  // --- NEW: Get auth state ---
+  const theme = useTheme();
+
+  // 🎯 Responsive Breakpoints
+  const isMobile = useMediaQuery(theme.breakpoints.down("md")); // < 900px
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm")); // < 600px
+
+  // Auth state from Redux
   const { isAuthenticated, userInfo } = useSelector((state) => state.auth);
 
-  // --- NEW: State for dynamic deals ---
+  // State for dynamic deals
   const [dynamicDeals, setDynamicDeals] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,6 +30,7 @@ const DealGrids = () => {
     const fetchDynamicDeals = async () => {
       try {
         setLoading(true);
+
         // 1. Fetch categories (e.g., top 10 with most products)
         const categories = await api.fetchCategories({
           limit: 10,
@@ -50,61 +55,102 @@ const DealGrids = () => {
             };
           })
         );
+
         setDynamicDeals(deals);
       } catch (err) {
         console.error("Failed to fetch dynamic deals", err);
-        // Fallback to static data on error if you want
+        // Fallback to empty array on error
+        setDynamicDeals([]);
       } finally {
         setLoading(false);
       }
     };
+
     fetchDynamicDeals();
   }, []);
-  // --- END NEW ---
 
   return (
-    <Box sx={{ mt: -16, mb: 4, position: "relative", zIndex: 10 }}>
-      <Container maxWidth="xl">
-        <Grid container spacing={2.5}>
-          {/* Main Deal Cards */}
+    <Box
+      sx={{
+        mt: { xs: -14, sm: -15, md: -16 }, // Negative margin for overlay effect
+        mb: { xs: 3, sm: 4, md: 4 },
+        position: "relative",
+        zIndex: 10,
+      }}
+    >
+      <Container
+        maxWidth="xl"
+        sx={{
+          px: { xs: 2, sm: 3, md: 4 }, // Responsive padding
+        }}
+      >
+        <Grid container spacing={{ xs: 1.5, sm: 2, md: 2.5 }}>
+          {/* ========================================
+              MAIN DEAL CARDS SECTION (Left Side)
+              ======================================== */}
           <Grid item xs={12} md={9}>
-            <Grid container spacing={2.5}>
-              {/* --- NEW: Dynamic Deals --- */}
-              {loading
-                ? // You can put a shimmer/skeleton loader here
-                  [...Array(2)].map((_, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={index}>
-                      <OfferGridCard
-                        title="Loading Deals..."
-                        products={[]}
-                        linkText=""
-                      />
-                    </Grid>
-                  ))
-                : dynamicDeals.map((deal, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={index}>
-                      <OfferGridCard
-                        title={deal.title}
-                        products={deal.products}
-                        linkText={deal.linkText}
+            <Grid container spacing={{ xs: 1.5, sm: 2, md: 2.5 }}>
+              {/* Dynamic Deals - Show loading skeleton or actual deals */}
+              {loading ? (
+                // Loading State - Show 2 placeholder cards
+                <>
+                  {[1, 2].map((index) => (
+                    <Grid item xs={12} sm={6} md={4} key={`loading-${index}`}>
+                      <Box
+                        sx={{
+                          height: { xs: 280, sm: 300, md: 320 },
+                          bgcolor: "grey.100",
+                          borderRadius: { xs: 2, md: 2.5 },
+                          animation: "pulse 1.5s ease-in-out infinite",
+                          "@keyframes pulse": {
+                            "0%, 100%": { opacity: 1 },
+                            "50%": { opacity: 0.5 },
+                          },
+                        }}
                       />
                     </Grid>
                   ))}
-              {/* --- END NEW --- */}
+                </>
+              ) : (
+                // Actual Dynamic Deals
+                dynamicDeals.map((deal, index) => (
+                  <Grid item xs={12} sm={6} md={4} key={`deal-${index}`}>
+                    <OfferGridCard
+                      title={deal.title}
+                      products={deal.products}
+                      linkText={deal.linkText}
+                    />
+                  </Grid>
+                ))
+              )}
 
+              {/* ========================================
+                  SIGN IN / WELCOME CARD
+                  ======================================== */}
               <Grid item xs={12} sm={6} md={4}>
                 <OfferGridCard
                   isSignIn={true}
-                  // --- NEW: Pass auth state ---
                   isAuthenticated={isAuthenticated}
                   userInfo={userInfo}
-                  // --- END NEW ---
                 />
               </Grid>
             </Grid>
           </Grid>
-          {/* Sponsor Section (Unchanged) */}
-          <Grid item xs={12} md={3}>
+
+          {/* ========================================
+              SPONSOR BANNER SECTION (Right Side)
+              On mobile, this goes below the deal cards
+              ======================================== */}
+          <Grid
+            item
+            xs={12}
+            md={3}
+            sx={{
+              // On mobile (xs), this will stack below
+              // On desktop (md+), it stays on the right
+              order: { xs: 2, md: 1 },
+            }}
+          >
             <SponsorBanner />
           </Grid>
         </Grid>

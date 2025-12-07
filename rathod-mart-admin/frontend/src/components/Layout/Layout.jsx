@@ -198,7 +198,6 @@ const Layout = () => {
       ) : (
         <>
           {/* ========== MOBILE LAYOUT (FIXED) ========== */}
-
           {/* Mobile Header - Lower Z-Index */}
           <MobileHeader
             sidebarOpen={mobileSidebarOpen}
@@ -211,32 +210,43 @@ const Layout = () => {
             onClose={() => setMobileSidebarOpen(false)}
           />
 
-          {/* Mobile Main Content - SCROLLABLE */}
+          {/* Mobile Main Content - FIXED SCROLLING */}
           <Box
             component="main"
             sx={{
               flexGrow: 1,
               width: "100%",
-              height: "100vh",
+              minHeight: "100vh",
               background: "linear-gradient(135deg, #F1F8E9 0%, #E8F5E8 100%)",
               position: "relative",
-              overflow: "auto", // Enable scroll
               display: "flex",
               flexDirection: "column",
+              // ✅ CRITICAL FIX: Proper spacing
+              pt: "64px", // Header height
+              pb: "80px", // Bottom nav height + padding
             }}
           >
-            {/* Spacer for Fixed Header */}
-            <Box sx={{ height: 64, flexShrink: 0 }} />
-
             {/* Scrollable Content Area */}
             <Box
               sx={{
                 position: "relative",
                 zIndex: 1,
                 flex: 1,
-                pt: 2,
-                pb: "90px", // Bottom nav spacing
+                overflowY: "auto",
+                overflowX: "hidden",
                 px: 2,
+                py: 2,
+                // ✅ Custom scrollbar
+                "&::-webkit-scrollbar": {
+                  width: "4px",
+                },
+                "&::-webkit-scrollbar-track": {
+                  background: "rgba(76, 175, 80, 0.1)",
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  background: "rgba(76, 175, 80, 0.3)",
+                  borderRadius: "2px",
+                },
               }}
             >
               <BackgroundPattern />
@@ -248,10 +258,7 @@ const Layout = () => {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  transition={{
-                    duration: 0.4,
-                    ease: "easeInOut",
-                  }}
+                  transition={{ duration: 0.3 }}
                 >
                   <Outlet />
                 </motion.div>
