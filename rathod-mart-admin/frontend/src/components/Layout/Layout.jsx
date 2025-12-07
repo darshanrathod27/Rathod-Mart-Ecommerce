@@ -1,12 +1,14 @@
 // frontend/src/components/Layout/Layout.jsx
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { Box, useTheme, useMediaQuery } from "@mui/material";
-import { motion } from "framer-motion";
+import { Box, useTheme, useMediaQuery, Toolbar } from "@mui/material";
+import { motion, AnimatePresence } from "framer-motion";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import MobileBottomNav from "./MobileBottomNav";
+import MobileHeader from "./MobileHeader";
+import ResponsiveSidebar from "./ResponsiveSidebar";
+
 import {
   People,
   Category,
@@ -16,9 +18,16 @@ import {
   ViewInAr,
   Inventory2,
   LocalOffer,
+  Dashboard,
 } from "@mui/icons-material";
 
+// Page Configuration
 const pageConfig = {
+  "/": {
+    title: "Dashboard",
+    subtitle: "Overview of your e-commerce platform",
+    icon: Dashboard,
+  },
   "/users": {
     title: "Users Management",
     subtitle: "Manage all registered users and their permissions",
@@ -63,6 +72,7 @@ const pageConfig = {
 
 const Layout = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isTablet = useMediaQuery(theme.breakpoints.between("md", "lg"));
@@ -70,79 +80,189 @@ const Layout = () => {
 
   const drawerWidth = isMobile ? 0 : isTablet ? 240 : 280;
 
+  // Auto-close mobile sidebar when switching to desktop
+  useEffect(() => {
+    if (!isMobile) {
+      setMobileSidebarOpen(false);
+    }
+  }, [isMobile]);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location.pathname]);
+
+  // Prevent body scroll when sidebar is open on mobile
+  useEffect(() => {
+    if (isMobile && mobileSidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isMobile, mobileSidebarOpen]);
+
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const toggleMobileSidebar = () => {
+    setMobileSidebarOpen(!mobileSidebarOpen);
   };
 
   const currentPageConfig =
     pageConfig[location.pathname] || pageConfig["/users"];
 
-  return (
+  // Background pattern component
+  const BackgroundPattern = () => (
     <Box
       sx={{
-        display: "flex",
-        minHeight: "100vh",
-        maxHeight: isMobile ? "100vh" : "none", // ✅ FIX: Limit height on mobile
-        overflow: "hidden", // ✅ FIX: Prevent overflow on main container
-        bgcolor: "#f5f5f5",
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: `
+          radial-gradient(circle at 20% 50%, rgba(76, 175, 80, 0.04) 0%, transparent 50%),
+          radial-gradient(circle at 80% 20%, rgba(102, 187, 106, 0.04) 0%, transparent 50%),
+          radial-gradient(circle at 40% 80%, rgba(129, 199, 132, 0.04) 0%, transparent 50%),
+          linear-gradient(135deg, transparent 0%, rgba(76, 175, 80, 0.02) 50%, transparent 100%)
+        `,
+        pointerEvents: "none",
+        zIndex: 0,
       }}
-    >
-      {/* Sidebar - Only on Desktop/Tablet */}
-      {!isMobile && (
-        <Sidebar
-          mobileOpen={mobileOpen}
-          handleDrawerToggle={handleDrawerToggle}
-          drawerWidth={drawerWidth}
-        />
-      )}
+    />
+  );
 
-      {/* Main Content Area */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: { xs: "100%", md: `calc(100% - ${drawerWidth}px)` },
-          minHeight: "100vh",
-          maxHeight: isMobile ? "100vh" : "none", // ✅ FIX: Limit height on mobile
-          overflow: "auto", // ✅ FIX: Allow scrolling inside content
-          display: "flex",
-          flexDirection: "column",
-          bgcolor: "#f5f5f5",
-          position: "relative",
-        }}
-      >
-        {/* Header - Only on Desktop */}
-        {!isMobile && (
+  return (
+    <Box sx={{ display: "flex", minHeight: "100vh", overflow: "hidden" }}>
+      {/* ========== DESKTOP/TABLET LAYOUT ========== */}
+      {!isMobile ? (
+        <>
           <Header
-            pageTitle={currentPageConfig.title}
-            pageSubtitle={currentPageConfig.subtitle}
-            PageIcon={currentPageConfig.icon}
+            drawerWidth={drawerWidth}
+            handleDrawerToggle={handleDrawerToggle}
+            isMobile={false}
+            title={currentPageConfig.title}
+            subtitle={currentPageConfig.subtitle}
+            Icon={currentPageConfig.icon}
           />
-        )}
 
-        {/* Page Content with Animation */}
-        <Box
-          sx={{
-            flexGrow: 1,
-            p: { xs: 2, sm: 2.5, md: 3 },
-            pb: { xs: 10, md: 3 }, // ✅ FIX: Extra padding bottom on mobile for bottom nav
-            overflow: "auto", // ✅ FIX: Allow content scrolling
-            maxHeight: isMobile ? "calc(100vh - 56px)" : "none", // ✅ FIX: Account for mobile nav
-          }}
-        >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            style={{ height: "100%" }}
+          <Sidebar
+            drawerWidth={drawerWidth}
+            mobileOpen={mobileOpen}
+            handleDrawerToggle={handleDrawerToggle}
+            isMobile={false}
+            isTablet={isTablet}
+          />
+
+          <Box
+            component="main"
+            sx={{
+              flexGrow: 1,
+              width: { sm: `calc(100% - ${drawerWidth}px)` },
+              background: "linear-gradient(135deg, #F1F8E9 0%, #E8F5E8 100%)",
+              minHeight: "100vh",
+              position: "relative",
+              overflow: "auto",
+            }}
           >
-            <Outlet />
-          </motion.div>
-        </Box>
+            <Toolbar sx={{ minHeight: { xs: 64, sm: 70 } }} />
 
-        {/* Mobile Bottom Navigation */}
-        {isMobile && <MobileBottomNav />}
-      </Box>
+            <Box
+              sx={{
+                position: "relative",
+                zIndex: 1,
+                pt: 3,
+                pb: 2,
+                px: { xs: 2, sm: 3, lg: 4 },
+                minHeight: "calc(100vh - 70px)",
+              }}
+            >
+              <BackgroundPattern />
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                style={{ height: "100%" }}
+              >
+                <Outlet />
+              </motion.div>
+            </Box>
+          </Box>
+        </>
+      ) : (
+        <>
+          {/* ========== MOBILE LAYOUT (FIXED) ========== */}
+
+          {/* Mobile Header - Lower Z-Index */}
+          <MobileHeader
+            sidebarOpen={mobileSidebarOpen}
+            toggleSidebar={toggleMobileSidebar}
+          />
+
+          {/* Mobile Sidebar - Higher Z-Index */}
+          <ResponsiveSidebar
+            open={mobileSidebarOpen}
+            onClose={() => setMobileSidebarOpen(false)}
+          />
+
+          {/* Mobile Main Content - SCROLLABLE */}
+          <Box
+            component="main"
+            sx={{
+              flexGrow: 1,
+              width: "100%",
+              height: "100vh",
+              background: "linear-gradient(135deg, #F1F8E9 0%, #E8F5E8 100%)",
+              position: "relative",
+              overflow: "auto", // Enable scroll
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            {/* Spacer for Fixed Header */}
+            <Box sx={{ height: 64, flexShrink: 0 }} />
+
+            {/* Scrollable Content Area */}
+            <Box
+              sx={{
+                position: "relative",
+                zIndex: 1,
+                flex: 1,
+                pt: 2,
+                pb: "90px", // Bottom nav spacing
+                px: 2,
+              }}
+            >
+              <BackgroundPattern />
+
+              {/* Page Content with Animation */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={location.pathname}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{
+                    duration: 0.4,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <Outlet />
+                </motion.div>
+              </AnimatePresence>
+            </Box>
+          </Box>
+
+          {/* Mobile Bottom Navigation */}
+          <MobileBottomNav />
+        </>
+      )}
     </Box>
   );
 };

@@ -1,361 +1,373 @@
-// src/components/Layout/MobileHeader.jsx
+// frontend/src/components/Layout/MobileHeader.jsx
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
   Toolbar,
-  Typography,
   IconButton,
-  Box,
+  Typography,
   Avatar,
   Badge,
-  useTheme,
+  Box,
   Menu,
   MenuItem,
-  ListItemIcon,
-  ListItemText,
-  TextField,
-  InputAdornment,
-  Divider,
-  alpha,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
   Notifications,
   Search,
-  Close,
-  Dashboard,
-  People,
-  Inventory,
-  Category,
+  AccountCircle,
   Settings,
   Logout,
-  LocalOffer,
-  ViewInAr,
-  Palette,
-  AspectRatio,
-  Inventory2,
 } from "@mui/icons-material";
-import { motion, AnimatePresence } from "framer-motion";
-import { useDispatch, useSelector } from "react-redux";
-import { logout } from "../../store/authSlice";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { useDispatch } from "react-redux";
+import { logout as logoutAction } from "../../store/authSlice";
 import api from "../../services/api";
 import toast from "react-hot-toast";
 
-// Page Configuration
-const pageConfig = {
-  "/": { title: "Dashboard", icon: Dashboard },
-  "/users": { title: "Users", icon: People },
-  "/categories": { title: "Categories", icon: Category },
-  "/products": { title: "Products", icon: Inventory },
-  "/product-size-mapping": { title: "Size Mapping", icon: AspectRatio },
-  "/product-color-mapping": { title: "Color Mapping", icon: Palette },
-  "/variant-master": { title: "Variant Master", icon: ViewInAr },
-  "/inventory": { title: "Inventory", icon: Inventory2 },
-  "/promocodes": { title: "Promocodes", icon: LocalOffer },
+// Page titles mapping
+const pageTitles = {
+  "/": "Dashboard",
+  "/users": "Users",
+  "/categories": "Categories",
+  "/products": "Products",
+  "/product-size-mapping": "Size Mapping",
+  "/product-color-mapping": "Color Mapping",
+  "/variant-master": "Variants",
+  "/inventory": "Inventory",
+  "/promocodes": "Promocodes",
 };
 
-const MobileHeader = ({
-  toggleSidebar,
-  onSearchChange,
-  searchValue = "",
-  showSearch = false,
-}) => {
-  const theme = useTheme();
+const MobileHeader = ({ sidebarOpen, toggleSidebar }) => {
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [headerVisible, setHeaderVisible] = useState(true);
+
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { scrollY } = useScroll();
 
-  const { userInfo } = useSelector((state) => state.auth);
+  // Darker green background for better UI match
+  const headerBg = useTransform(
+    scrollY,
+    [0, 50],
+    ["rgba(46, 125, 50, 0.95)", "rgba(27, 94, 32, 0.98)"]
+  );
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [localSearch, setLocalSearch] = useState(searchValue);
+  const headerShadow = useTransform(
+    scrollY,
+    [0, 50],
+    ["0 2px 12px rgba(27, 94, 32, 0.3)", "0 4px 24px rgba(27, 94, 32, 0.4)"]
+  );
 
-  // Current page info
-  const currentPath = location.pathname;
-  const currentPage = pageConfig[currentPath] || {
-    title: "Rathod Mart",
-    icon: Dashboard,
-  };
-  const PageIcon = currentPage.icon;
-
-  // Sync search value
+  // Advanced scroll behavior with hide/show logic
   useEffect(() => {
-    setLocalSearch(searchValue);
-  }, [searchValue]);
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
 
-  const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
-  const handleMenuClose = () => setAnchorEl(null);
+      setIsScrolled(currentScrollY > 20);
 
-  const handleSearchToggle = () => {
-    setSearchOpen((prev) => !prev);
-    if (searchOpen) {
-      setLocalSearch("");
-      onSearchChange && onSearchChange("");
-    }
+      if (currentScrollY < 10) {
+        setHeaderVisible(true);
+      } else if (currentScrollY < lastScrollY) {
+        setHeaderVisible(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setHeaderVisible(false);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [lastScrollY]);
+
+  const currentTitle = pageTitles[location.pathname] || "Admin Panel";
+
+  const handleProfileClick = (event) => {
+    setAnchorEl(event.currentTarget);
   };
 
-  const handleSearchChange = (e) => {
-    const value = e.target.value;
-    setLocalSearch(value);
-    onSearchChange && onSearchChange(value);
+  const handleMenuClose = () => {
+    setAnchorEl(null);
   };
 
   const handleLogout = async () => {
     handleMenuClose();
     try {
       await api.post("/users/admin-logout");
-      dispatch(logout());
-      toast.success("Logged out successfully");
+      dispatch(logoutAction());
+      toast.success("Logged out successfully!");
       navigate("/login");
-    } catch (error) {
-      console.error("Logout failed", error);
+    } catch (err) {
+      console.error("Logout error:", err);
       toast.error("Logout failed");
     }
   };
 
+  const handleProfile = () => {
+    handleMenuClose();
+    toast.success("Profile page coming soon!");
+  };
+
+  const handleSettings = () => {
+    handleMenuClose();
+    toast.success("Settings page coming soon!");
+  };
+
   return (
-    <AppBar
-      position="sticky"
-      elevation={0}
-      sx={{
+    <motion.div
+      initial={{ y: -100, opacity: 0 }}
+      animate={{
+        y: headerVisible ? 0 : -100,
+        opacity: headerVisible ? 1 : 0,
+      }}
+      transition={{
+        type: "spring",
+        stiffness: 260,
+        damping: 30,
+        mass: 0.8,
+      }}
+      style={{
+        position: "fixed",
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 1200,
-        width: "100%",
-        bgcolor: alpha(theme.palette.primary.main, 0.98),
-        backdropFilter: "blur(20px)",
-        borderBottom: `1px solid ${alpha("#fff", 0.2)}`,
-        boxShadow: `0 2px 12px ${alpha(theme.palette.primary.dark, 0.2)}`,
+        zIndex: 1100, // Lower than sidebar (1300)
       }}
     >
-      <Toolbar
-        sx={{
-          minHeight: { xs: searchOpen ? 112 : 56, sm: 64 },
-          transition: "min-height 0.3s ease",
-          flexDirection: "column",
-          justifyContent: "center",
-          py: searchOpen ? 1.5 : 0,
-          px: { xs: 1.5, sm: 2 },
+      <motion.div
+        style={{
+          background: headerBg,
+          boxShadow: headerShadow,
         }}
       >
-        {/* Top Row */}
-        <Box
+        <AppBar
+          position="static"
+          elevation={0}
           sx={{
-            display: "flex",
-            width: "100%",
-            alignItems: "center",
-            justifyContent: "space-between",
-            minHeight: 56,
+            background: "linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)",
+            backdropFilter: "blur(20px) saturate(180%)",
+            borderBottom: isScrolled
+              ? "1px solid rgba(129, 199, 132, 0.3)"
+              : "1px solid rgba(129, 199, 132, 0.2)",
+            transition: "all 0.3s ease",
           }}
         >
-          {/* Left: Menu & Title */}
+          {/* Subtle Pattern Overlay */}
           <Box
             sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: { xs: 1, sm: 1.5 },
-              flex: 1,
-              overflow: "hidden",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: `
+                radial-gradient(circle at 15% 50%, rgba(129, 199, 132, 0.1) 0%, transparent 30%),
+                radial-gradient(circle at 85% 30%, rgba(165, 214, 167, 0.08) 0%, transparent 30%)
+              `,
+              pointerEvents: "none",
+              opacity: isScrolled ? 0.6 : 1,
+              transition: "opacity 0.3s ease",
+            }}
+          />
+
+          <Toolbar
+            sx={{
+              minHeight: 64,
+              px: 2,
+              position: "relative",
+              zIndex: 1,
             }}
           >
-            <IconButton
-              onClick={toggleSidebar}
-              sx={{
-                color: "white",
-                bgcolor: alpha("#fff", 0.15),
-                "&:hover": { bgcolor: alpha("#fff", 0.25) },
-                "&:active": { transform: "scale(0.95)" },
-              }}
-            >
-              <MenuIcon />
-            </IconButton>
+            {/* Menu Button */}
+            <motion.div whileTap={{ scale: 0.9 }}>
+              <IconButton
+                edge="start"
+                color="inherit"
+                aria-label="menu"
+                onClick={toggleSidebar}
+                sx={{
+                  mr: 2,
+                  color: "#FFFFFF",
+                  background: "rgba(255, 255, 255, 0.15)",
+                  backdropFilter: "blur(10px)",
+                  "&:hover": {
+                    background: "rgba(255, 255, 255, 0.25)",
+                  },
+                  transition: "all 0.3s ease",
+                }}
+              >
+                <MenuIcon />
+              </IconButton>
+            </motion.div>
 
-            {!searchOpen && (
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentPage.title}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 10 }}
-                  transition={{ duration: 0.2 }}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    overflow: "hidden",
+            {/* Dynamic Page Title */}
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4 }}
+              style={{ flexGrow: 1 }}
+            >
+              <Typography
+                variant="h6"
+                component="div"
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "1.2rem",
+                  color: "#FFFFFF",
+                  letterSpacing: "0.5px",
+                  textShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                }}
+              >
+                {currentTitle}
+              </Typography>
+            </motion.div>
+
+            {/* Action Buttons */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              {/* Search Button */}
+              <motion.div whileTap={{ scale: 0.9 }}>
+                <IconButton
+                  color="inherit"
+                  size="medium"
+                  sx={{
+                    color: "#FFFFFF",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    "&:hover": {
+                      background: "rgba(255, 255, 255, 0.2)",
+                    },
                   }}
                 >
-                  <PageIcon sx={{ fontSize: 22, color: "white" }} />
-                  <Typography
-                    variant="h6"
+                  <Search fontSize="small" />
+                </IconButton>
+              </motion.div>
+
+              {/* Notifications */}
+              <motion.div whileTap={{ scale: 0.9 }}>
+                <IconButton
+                  color="inherit"
+                  size="medium"
+                  sx={{
+                    color: "#FFFFFF",
+                    background: "rgba(255, 255, 255, 0.12)",
+                    "&:hover": {
+                      background: "rgba(255, 255, 255, 0.2)",
+                    },
+                  }}
+                >
+                  <Badge
+                    badgeContent={3}
+                    color="error"
                     sx={{
-                      fontWeight: 700,
-                      color: "white",
-                      fontSize: { xs: "1.05rem", sm: "1.15rem" },
-                      letterSpacing: "0.3px",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
+                      "& .MuiBadge-badge": {
+                        animation: "pulse 2s infinite",
+                        "@keyframes pulse": {
+                          "0%, 100%": { transform: "scale(1)" },
+                          "50%": { transform: "scale(1.1)" },
+                        },
+                      },
                     }}
                   >
-                    {currentPage.title}
-                  </Typography>
-                </motion.div>
-              </AnimatePresence>
-            )}
-          </Box>
+                    <Notifications fontSize="small" />
+                  </Badge>
+                </IconButton>
+              </motion.div>
 
-          {/* Right: Actions */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            {showSearch && (
-              <IconButton sx={{ color: "white" }} onClick={handleSearchToggle}>
-                {searchOpen ? <Close /> : <Search />}
-              </IconButton>
-            )}
+              {/* Profile Avatar */}
+              <motion.div whileTap={{ scale: 0.95 }}>
+                <IconButton
+                  onClick={handleProfileClick}
+                  size="medium"
+                  sx={{ ml: 0.5, p: 0.5 }}
+                >
+                  <Avatar
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      background:
+                        "linear-gradient(135deg, #A5D6A7 0%, #66BB6A 100%)",
+                      border: "2px solid rgba(255, 255, 255, 0.4)",
+                      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)",
+                    }}
+                  >
+                    <AccountCircle fontSize="small" sx={{ color: "#1B5E20" }} />
+                  </Avatar>
+                </IconButton>
+              </motion.div>
+            </Box>
 
-            <IconButton sx={{ color: "white" }}>
-              <Badge
-                badgeContent={3}
-                color="error"
-                sx={{
-                  "& .MuiBadge-badge": {
-                    animation: "pulse 2s infinite",
-                  },
-                  "@keyframes pulse": {
-                    "0%, 100%": { transform: "scale(1)", opacity: 1 },
-                    "50%": { transform: "scale(1.1)", opacity: 0.8 },
-                  },
-                }}
-              >
-                <Notifications />
-              </Badge>
-            </IconButton>
-
-            <IconButton onClick={handleMenuOpen} sx={{ p: 0, ml: 0.5 }}>
-              <Avatar
-                src={userInfo?.profileImage}
-                alt={userInfo?.name}
-                sx={{
-                  width: 36,
-                  height: 36,
-                  border: "2px solid white",
-                  boxShadow: theme.shadows[2],
-                }}
-              >
-                {userInfo?.name ? userInfo.name[0] : "A"}
-              </Avatar>
-            </IconButton>
-          </Box>
-        </Box>
-
-        {/* Search Bar (Expandable) */}
-        <AnimatePresence>
-          {searchOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
-              style={{ width: "100%", marginTop: "12px" }}
+            {/* Profile Menu */}
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleMenuClose}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "right",
+              }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "right",
+              }}
+              sx={{
+                zIndex: 1400, // Above everything
+                "& .MuiPaper-root": {
+                  borderRadius: 3,
+                  minWidth: 180,
+                  mt: 1.5,
+                  background: "rgba(255, 255, 255, 0.98)",
+                  backdropFilter: "blur(20px)",
+                  boxShadow: "0 8px 32px rgba(27, 94, 32, 0.3)",
+                  border: "1px solid rgba(76, 175, 80, 0.2)",
+                },
+              }}
             >
-              <TextField
-                fullWidth
-                autoFocus
-                placeholder={`Search ${currentPage.title.toLowerCase()}...`}
-                value={localSearch}
-                onChange={handleSearchChange}
-                variant="outlined"
-                size="small"
+              <MenuItem
+                onClick={handleProfile}
                 sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    bgcolor: "rgba(255, 255, 255, 0.98)",
-                    "& fieldset": { borderColor: "transparent" },
-                    "&:hover fieldset": {
-                      borderColor: alpha("#fff", 0.5),
-                    },
-                    "&.Mui-focused fieldset": {
-                      borderColor: "white",
-                      borderWidth: 2,
-                    },
+                  py: 1.5,
+                  "&:hover": {
+                    background: "rgba(76, 175, 80, 0.1)",
                   },
                 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search />
-                    </InputAdornment>
-                  ),
-                  endAdornment: localSearch && (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setLocalSearch("");
-                          onSearchChange && onSearchChange("");
-                        }}
-                      >
-                        <Close fontSize="small" />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
+              >
+                <AccountCircle sx={{ mr: 1.5, color: "primary.main" }} />
+                Profile
+              </MenuItem>
+              <MenuItem
+                onClick={handleSettings}
+                sx={{
+                  py: 1.5,
+                  "&:hover": {
+                    background: "rgba(76, 175, 80, 0.1)",
+                  },
                 }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </Toolbar>
-
-      {/* User Menu */}
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMenuClose}
-        transformOrigin={{ horizontal: "right", vertical: "top" }}
-        anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-        PaperProps={{
-          elevation: 8,
-          sx: {
-            mt: 1.5,
-            borderRadius: 2,
-            minWidth: 200,
-            boxShadow: theme.shadows[8],
-          },
-        }}
-      >
-        <Box sx={{ px: 2, py: 1.5 }}>
-          <Typography variant="subtitle2" fontWeight={700} noWrap>
-            {userInfo?.name || "Admin User"}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" noWrap>
-            {userInfo?.email || "admin@rathodmart.com"}
-          </Typography>
-        </Box>
-        <Divider />
-        <MenuItem
-          onClick={() => {
-            handleMenuClose();
-            navigate("/settings");
-          }}
-          sx={{ mt: 0.5 }}
-        >
-          <ListItemIcon>
-            <Settings fontSize="small" />
-          </ListItemIcon>
-          <ListItemText>Settings</ListItemText>
-        </MenuItem>
-        <Divider sx={{ my: 0.5 }} />
-        <MenuItem onClick={handleLogout} sx={{ color: "error.main", mb: 0.5 }}>
-          <ListItemIcon>
-            <Logout fontSize="small" color="error" />
-          </ListItemIcon>
-          <ListItemText>Logout</ListItemText>
-        </MenuItem>
-      </Menu>
-    </AppBar>
+              >
+                <Settings sx={{ mr: 1.5, color: "primary.main" }} />
+                Settings
+              </MenuItem>
+              <MenuItem
+                onClick={handleLogout}
+                sx={{
+                  py: 1.5,
+                  "&:hover": {
+                    background: "rgba(244, 67, 54, 0.1)",
+                  },
+                }}
+              >
+                <Logout sx={{ mr: 1.5, color: "error.main" }} />
+                Logout
+              </MenuItem>
+            </Menu>
+          </Toolbar>
+        </AppBar>
+      </motion.div>
+    </motion.div>
   );
 };
 

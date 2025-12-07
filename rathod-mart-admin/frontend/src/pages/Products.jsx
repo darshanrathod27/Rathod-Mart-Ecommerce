@@ -1,4 +1,5 @@
 // frontend/src/pages/Products.jsx
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
@@ -25,6 +26,12 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  useMediaQuery,
+  useTheme,
+  Paper,
+  Divider,
+  CircularProgress,
+  Grid,
 } from "@mui/material";
 import { Rating } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
@@ -39,7 +46,9 @@ import {
   Inventory,
   Clear,
   Warning,
+  FilterList,
 } from "@mui/icons-material";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import ProductForm from "../components/Forms/ProductForm";
 import FormModal from "../components/Modals/FormModal";
@@ -55,9 +64,20 @@ const API_BASE_URL =
 
 // --- Delete Confirmation Component ---
 const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
-  <Dialog open={open} onClose={onClose}>
+  <Dialog
+    open={open}
+    onClose={onClose}
+    PaperProps={{
+      sx: {
+        borderRadius: 3,
+        background: "rgba(255, 255, 255, 0.98)",
+        backdropFilter: "blur(20px)",
+      },
+    }}
+  >
     <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      <Warning color="error" /> Confirm Deletion
+      <Warning color="error" />
+      Confirm Deletion
     </DialogTitle>
     <DialogContent>
       <DialogContentText>
@@ -65,7 +85,7 @@ const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
         This action cannot be undone.
       </DialogContentText>
     </DialogContent>
-    <DialogActions sx={{ p: 2 }}>
+    <DialogActions sx={{ px: 3, pb: 2 }}>
       <Button onClick={onClose} variant="outlined" color="inherit">
         Cancel
       </Button>
@@ -76,10 +96,318 @@ const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
   </Dialog>
 );
 
+// --- Mobile Product Card Component ---
+const MobileProductCard = ({
+  product,
+  onView,
+  onEdit,
+  onDelete,
+  onImages,
+  onStock,
+}) => {
+  const [menuAnchor, setMenuAnchor] = useState(null);
+
+  const images = product.images || [];
+  const primary = images.find((i) => i.isPrimary) || images[0];
+  const src = primary ? primary.fullImageUrl : null;
+  const categoryLabel =
+    product.category?.name || product.category || "Uncategorized";
+
+  const statusColors = {
+    active: "success",
+    draft: "warning",
+    inactive: "default",
+    archived: "error",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card
+        sx={{
+          mb: 2,
+          borderRadius: 3,
+          background: "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(10px)",
+          border: "1px solid rgba(76, 175, 80, 0.1)",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+          transition: "all 0.3s ease",
+          "&:hover": {
+            boxShadow: "0 8px 24px rgba(76, 175, 80, 0.15)",
+            transform: "translateY(-2px)",
+          },
+        }}
+      >
+        <CardContent sx={{ p: 2 }}>
+          {/* Header Row */}
+          <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+            {/* Product Image */}
+            <Avatar
+              src={src}
+              variant="rounded"
+              sx={{
+                width: 80,
+                height: 80,
+                border: "2px solid rgba(76, 175, 80, 0.2)",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+              }}
+            >
+              <ImageIcon />
+            </Avatar>
+
+            {/* Product Info */}
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  mb: 0.5,
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    fontWeight: 700,
+                    color: "#2E7D32",
+                    fontSize: "1rem",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {product.name}
+                </Typography>
+                <IconButton
+                  size="small"
+                  onClick={(e) => setMenuAnchor(e.currentTarget)}
+                  sx={{
+                    ml: 1,
+                    background: "rgba(76, 175, 80, 0.08)",
+                    "&:hover": { background: "rgba(76, 175, 80, 0.15)" },
+                  }}
+                >
+                  <MoreVert fontSize="small" />
+                </IconButton>
+              </Box>
+
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mb: 0.5 }}
+              >
+                {categoryLabel}
+              </Typography>
+
+              {product.brand && (
+                <Chip
+                  label={product.brand}
+                  size="small"
+                  sx={{
+                    height: 20,
+                    fontSize: "0.7rem",
+                    background: "rgba(76, 175, 80, 0.1)",
+                    color: "#2E7D32",
+                  }}
+                />
+              )}
+            </Box>
+          </Box>
+
+          <Divider sx={{ my: 1.5 }} />
+
+          {/* Details Grid */}
+          <Grid container spacing={1.5}>
+            {/* Price */}
+            <Grid item xs={6}>
+              <Typography variant="caption" color="text.secondary">
+                Price
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ fontWeight: 600, color: "#2E7D32" }}
+              >
+                ₹{(product.basePrice || 0).toLocaleString("en-IN")}
+              </Typography>
+            </Grid>
+
+            {/* Stock */}
+            <Grid item xs={6}>
+              <Typography variant="caption" color="text.secondary">
+                Stock
+              </Typography>
+              <Chip
+                label={product.stock || 0}
+                size="small"
+                color={
+                  product.stock > 10
+                    ? "success"
+                    : product.stock > 0
+                    ? "warning"
+                    : "error"
+                }
+                onClick={() => onStock(product)}
+                sx={{
+                  cursor: "pointer",
+                  fontWeight: 600,
+                  height: 22,
+                  fontSize: "0.75rem",
+                }}
+              />
+            </Grid>
+
+            {/* Rating */}
+            <Grid item xs={6}>
+              <Typography variant="caption" color="text.secondary">
+                Rating
+              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                <Rating
+                  value={product.rating || 0}
+                  readOnly
+                  size="small"
+                  precision={0.5}
+                  sx={{ fontSize: "0.9rem" }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  ({product.numReviews || 0})
+                </Typography>
+              </Box>
+            </Grid>
+
+            {/* Status */}
+            <Grid item xs={6}>
+              <Typography variant="caption" color="text.secondary">
+                Status
+              </Typography>
+              <Box>
+                <Chip
+                  label={product.status || "draft"}
+                  size="small"
+                  color={statusColors[product.status] || "default"}
+                  sx={{
+                    height: 22,
+                    fontSize: "0.75rem",
+                    textTransform: "capitalize",
+                  }}
+                />
+              </Box>
+            </Grid>
+          </Grid>
+
+          {/* Description */}
+          {product.shortDescription && (
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                display: "block",
+                mt: 1.5,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+              }}
+            >
+              {product.shortDescription}
+            </Typography>
+          )}
+
+          {/* Created Date */}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mt: 1 }}
+          >
+            Created:{" "}
+            {product.createdAt
+              ? new Date(product.createdAt).toLocaleDateString("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
+              : "-"}
+          </Typography>
+        </CardContent>
+
+        {/* Action Menu */}
+        <Menu
+          anchorEl={menuAnchor}
+          open={Boolean(menuAnchor)}
+          onClose={() => setMenuAnchor(null)}
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+              minWidth: 160,
+            },
+          }}
+        >
+          <MItem
+            onClick={() => {
+              setMenuAnchor(null);
+              onView(product);
+            }}
+          >
+            <Visibility fontSize="small" sx={{ mr: 1 }} />
+            View
+          </MItem>
+          <MItem
+            onClick={() => {
+              setMenuAnchor(null);
+              onEdit(product);
+            }}
+          >
+            <Edit fontSize="small" sx={{ mr: 1 }} />
+            Edit
+          </MItem>
+          <MItem
+            onClick={() => {
+              setMenuAnchor(null);
+              onImages(product);
+            }}
+          >
+            <ImageIcon fontSize="small" sx={{ mr: 1 }} />
+            Images
+          </MItem>
+          <MItem
+            onClick={() => {
+              setMenuAnchor(null);
+              onStock(product);
+            }}
+          >
+            <Inventory fontSize="small" sx={{ mr: 1 }} />
+            Stock
+          </MItem>
+          <Divider />
+          <MItem
+            onClick={() => {
+              setMenuAnchor(null);
+              onDelete(product);
+            }}
+            sx={{ color: "error.main" }}
+          >
+            <Delete fontSize="small" sx={{ mr: 1 }} />
+            Delete
+          </MItem>
+        </Menu>
+      </Card>
+    </motion.div>
+  );
+};
+
+// --- Main Component ---
 export default function Products() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   // --- State Management ---
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]); // For dropdown
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalRows, setTotalRows] = useState(0);
 
@@ -97,6 +425,7 @@ export default function Products() {
   const debouncedSearch = useDebounce(searchTerm, 500);
   const [filterCategory, setFilterCategory] = useState(null);
   const [filterStatus, setFilterStatus] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Modals
   const [openForm, setOpenForm] = useState(false);
@@ -112,7 +441,7 @@ export default function Products() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState(null);
 
-  // Menus
+  // Desktop Menu
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [menuRow, setMenuRow] = useState(null);
 
@@ -127,14 +456,10 @@ export default function Products() {
   };
 
   // --- Data Fetching ---
-
-  // 1. Fetch Categories for Filter Dropdown
   useEffect(() => {
     const loadCats = async () => {
       try {
-        // Removing strict status filter to ensure all categories load for filtering
         const res = await categoryService.getCategories({ limit: 1000 });
-        // Ensure we extract the array correctly (handle different API response shapes)
         const list = Array.isArray(res?.data) ? res.data : res || [];
         setCategories(list);
       } catch (err) {
@@ -144,7 +469,6 @@ export default function Products() {
     loadCats();
   }, []);
 
-  // 2. Fetch Products Table Data
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
@@ -152,7 +476,6 @@ export default function Products() {
         page: paginationModel.page + 1,
         limit: paginationModel.pageSize,
         search: debouncedSearch,
-        // If filterCategory is an object (from Autocomplete), use _id
         category: filterCategory ? filterCategory._id || filterCategory.id : "",
         status: filterStatus,
         sortBy: sortModel[0]?.field || "createdAt",
@@ -160,7 +483,6 @@ export default function Products() {
       };
 
       const resp = await productService.getProducts(params);
-
       if (resp.success) {
         const rows = resp.data || [];
         const mapped = rows.map((r) => {
@@ -196,7 +518,6 @@ export default function Products() {
   }, [fetchProducts]);
 
   // --- Handlers ---
-
   const openMenu = (event, row) => {
     event.stopPropagation();
     setMenuAnchor(event.currentTarget);
@@ -276,7 +597,7 @@ export default function Products() {
     }
   };
 
-  // --- DataGrid Columns ---
+  // --- DataGrid Columns (Desktop Only) ---
   const columns = [
     {
       field: "images",
@@ -291,9 +612,9 @@ export default function Products() {
           <Avatar
             src={src}
             variant="rounded"
-            sx={{ width: 40, height: 40, bgcolor: "grey.200" }}
+            sx={{ width: 50, height: 50, border: "2px solid #E0E0E0" }}
           >
-            <ImageIcon sx={{ fontSize: 20, color: "grey.500" }} />
+            <ImageIcon />
           </Avatar>
         );
       },
@@ -308,23 +629,12 @@ export default function Products() {
           params.row.category?.name || params.row.category || "Uncategorized";
         return (
           <Box>
-            <Typography
-              variant="body2"
-              fontWeight={700}
-              noWrap
-              title={params.value}
-            >
+            <Typography variant="body2" fontWeight={600}>
               {params.value}
             </Typography>
-            {/* Removed duplicate Brand text from here */}
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Chip
-                label={categoryLabel}
-                size="small"
-                variant="outlined"
-                sx={{ height: 18, fontSize: "0.65rem" }}
-              />
-            </Stack>
+            <Typography variant="caption" color="text.secondary">
+              {categoryLabel}
+            </Typography>
           </Box>
         );
       },
@@ -343,17 +653,13 @@ export default function Products() {
       width: 220,
       sortable: false,
       renderCell: (params) => (
-        <Tooltip title={params.value || ""}>
+        <Tooltip title={params.value || ""} arrow>
           <Typography
-            variant="caption"
-            color="text.secondary"
+            variant="body2"
             sx={{
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
               overflow: "hidden",
-              whiteSpace: "normal",
-              lineHeight: "1.2em",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
             }}
           >
             {params.value || "—"}
@@ -366,7 +672,7 @@ export default function Products() {
       headerName: "Price",
       width: 100,
       renderCell: (p) => (
-        <Typography variant="body2" fontWeight={600}>
+        <Typography variant="body2" fontWeight={600} color="primary">
           ₹{(p.value || 0).toLocaleString("en-IN")}
         </Typography>
       ),
@@ -377,12 +683,17 @@ export default function Products() {
       width: 130,
       sortable: false,
       renderCell: (params) => (
-        <Rating
-          value={params.row.rating || 0}
-          readOnly
-          precision={0.5}
-          size="small"
-        />
+        <Box display="flex" alignItems="center" gap={0.5}>
+          <Rating
+            value={params.value || 0}
+            readOnly
+            size="small"
+            precision={0.5}
+          />
+          <Typography variant="caption" color="text.secondary">
+            ({params.row.numReviews || 0})
+          </Typography>
+        </Box>
       ),
     },
     {
@@ -391,7 +702,7 @@ export default function Products() {
       width: 90,
       renderCell: (p) => (
         <Chip
-          label={p.value}
+          label={p.value || 0}
           size="small"
           color={p.value > 10 ? "success" : p.value > 0 ? "warning" : "error"}
           onClick={(e) => {
@@ -416,9 +727,9 @@ export default function Products() {
         };
         return (
           <Chip
-            label={p.value}
-            color={colorMap[p.value] || "default"}
+            label={p.value || "draft"}
             size="small"
+            color={colorMap[p.value] || "default"}
             sx={{ textTransform: "capitalize" }}
           />
         );
@@ -429,7 +740,7 @@ export default function Products() {
       headerName: "Created",
       width: 110,
       renderCell: (params) => (
-        <Typography variant="caption">
+        <Typography variant="body2">
           {params.row.createdAt
             ? new Date(params.row.createdAt).toLocaleDateString("en-IN", {
                 day: "2-digit",
@@ -453,129 +764,273 @@ export default function Products() {
     },
   ];
 
+  // --- Render ---
   return (
-    <Box sx={{ p: 2 }}>
-      {/* --- Header Control --- */}
-      <Card sx={{ mb: 2 }}>
-        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              flexWrap: "wrap",
-            }}
-          >
-            {/* Search */}
-            <TextField
-              placeholder="Search product, brand..."
-              size="small"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search fontSize="small" />
-                  </InputAdornment>
-                ),
-                endAdornment: searchTerm && (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setSearchTerm("")}>
-                      <Clear fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ flexGrow: 1, minWidth: 200 }}
-            />
+    <Box>
+      <Card
+        sx={{
+          borderRadius: 3,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+          background: "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(10px)",
+          border: "1px solid rgba(76, 175, 80, 0.1)",
+        }}
+      >
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          {/* --- Header Controls --- */}
+          <Stack spacing={2}>
+            {/* Top Row - Search and Add Button */}
+            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+              {/* Search */}
+              <TextField
+                placeholder="Search products..."
+                size="small"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm && (
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => setSearchTerm("")}
+                      >
+                        <Clear />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ flexGrow: 1, minWidth: 200 }}
+              />
 
-            {/* Advanced Category Filter */}
-            <Autocomplete
-              size="small"
-              sx={{ minWidth: 220 }}
-              options={categories}
-              getOptionLabel={(option) => option.name || ""}
-              value={filterCategory}
-              onChange={(event, newValue) => setFilterCategory(newValue)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Filter Category"
-                  placeholder="Select category"
-                />
+              {/* Filter Toggle (Mobile Only) */}
+              {isMobile && (
+                <IconButton
+                  color={showFilters ? "primary" : "default"}
+                  onClick={() => setShowFilters(!showFilters)}
+                  sx={{
+                    border: "1px solid",
+                    borderColor: showFilters ? "primary.main" : "divider",
+                  }}
+                >
+                  <FilterList />
+                </IconButton>
               )}
-              isOptionEqualToValue={(option, value) => option._id === value._id}
-            />
 
-            {/* Status Filter */}
-            <FormControl size="small" sx={{ minWidth: 140 }}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filterStatus}
-                label="Status"
-                onChange={(e) => setFilterStatus(e.target.value)}
+              {/* Add Button */}
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => {
+                  setEditProduct(null);
+                  setOpenForm(true);
+                }}
+                sx={{ whiteSpace: "nowrap", height: 40 }}
               >
-                <MenuItem value="">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="draft">Draft</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-            </FormControl>
+                {isMobile ? "Add" : "Add Product"}
+              </Button>
+            </Box>
 
-            {/* Add Button */}
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => {
-                setEditProduct(null);
-                setOpenForm(true);
-              }}
-              sx={{ whiteSpace: "nowrap", height: 40 }}
-            >
-              Add Product
-            </Button>
+            {/* Filters Row */}
+            <AnimatePresence>
+              {(!isMobile || showFilters) && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                    {/* Category Filter */}
+                    <Autocomplete
+                      size="small"
+                      options={categories}
+                      getOptionLabel={(option) => option.name || ""}
+                      value={filterCategory}
+                      onChange={(event, newValue) =>
+                        setFilterCategory(newValue)
+                      }
+                      renderInput={(params) => (
+                        <TextField {...params} label="Filter by Category" />
+                      )}
+                      isOptionEqualToValue={(option, value) =>
+                        option._id === value._id
+                      }
+                      sx={{ flex: 1, minWidth: 200 }}
+                    />
+
+                    {/* Status Filter */}
+                    <FormControl size="small" sx={{ flex: 1, minWidth: 150 }}>
+                      <InputLabel>Status</InputLabel>
+                      <Select
+                        value={filterStatus}
+                        label="Status"
+                        onChange={(e) => setFilterStatus(e.target.value)}
+                      >
+                        <MenuItem value="">All Status</MenuItem>
+                        <MenuItem value="active">Active</MenuItem>
+                        <MenuItem value="draft">Draft</MenuItem>
+                        <MenuItem value="inactive">Inactive</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Stack>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Stack>
+
+          {/* --- Data Display --- */}
+          <Box sx={{ mt: 3 }}>
+            {/* Desktop Table */}
+            {!isMobile ? (
+              <Box sx={{ height: 600, width: "100%" }}>
+                <DataGrid
+                  rows={products}
+                  columns={columns}
+                  getRowId={(r) => r._id}
+                  rowCount={totalRows}
+                  paginationMode="server"
+                  paginationModel={paginationModel}
+                  onPaginationModelChange={setPaginationModel}
+                  pageSizeOptions={[10, 20, 50, 100]}
+                  sortingMode="server"
+                  sortModel={sortModel}
+                  onSortModelChange={setSortModel}
+                  loading={loading}
+                  disableRowSelectionOnClick
+                  rowHeight={70}
+                  sx={{
+                    border: "none",
+                    "& .MuiDataGrid-columnHeaders": {
+                      backgroundColor: "rgba(76, 175, 80, 0.05)",
+                    },
+                    "& .MuiDataGrid-cell": {
+                      display: "flex",
+                      alignItems: "center",
+                    },
+                  }}
+                />
+              </Box>
+            ) : (
+              /* Mobile Card View */
+              <Box>
+                {loading ? (
+                  <Box
+                    sx={{ display: "flex", justifyContent: "center", py: 4 }}
+                  >
+                    <CircularProgress />
+                  </Box>
+                ) : products.length === 0 ? (
+                  <Paper
+                    sx={{
+                      p: 4,
+                      textAlign: "center",
+                      background: "rgba(76, 175, 80, 0.05)",
+                      borderRadius: 3,
+                    }}
+                  >
+                    <Typography color="text.secondary">
+                      No products found
+                    </Typography>
+                  </Paper>
+                ) : (
+                  <>
+                    <AnimatePresence>
+                      {products.map((product) => (
+                        <MobileProductCard
+                          key={product._id}
+                          product={product}
+                          onView={handleView}
+                          onEdit={handleOpenEdit}
+                          onDelete={confirmDelete}
+                          onImages={(p) => {
+                            setImageModalProduct(p);
+                            setOpenImageModal(true);
+                          }}
+                          onStock={(p) => {
+                            setVariantProduct(p);
+                            setOpenVariantModal(true);
+                          }}
+                        />
+                      ))}
+                    </AnimatePresence>
+
+                    {/* Mobile Pagination */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        mt: 2,
+                      }}
+                    >
+                      <Typography variant="caption" color="text.secondary">
+                        Showing {products.length} of {totalRows}
+                      </Typography>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={paginationModel.page === 0}
+                          onClick={() =>
+                            setPaginationModel((prev) => ({
+                              ...prev,
+                              page: prev.page - 1,
+                            }))
+                          }
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          disabled={
+                            (paginationModel.page + 1) *
+                              paginationModel.pageSize >=
+                            totalRows
+                          }
+                          onClick={() =>
+                            setPaginationModel((prev) => ({
+                              ...prev,
+                              page: prev.page + 1,
+                            }))
+                          }
+                        >
+                          Next
+                        </Button>
+                      </Stack>
+                    </Box>
+                  </>
+                )}
+              </Box>
+            )}
           </Box>
         </CardContent>
       </Card>
 
-      {/* --- Data Table --- */}
-      <Card>
-        <DataGrid
-          rows={products}
-          columns={columns}
-          getRowId={(r) => r._id}
-          rowCount={totalRows}
-          paginationMode="server"
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[10, 20, 50, 100]}
-          sortingMode="server"
-          sortModel={sortModel}
-          onSortModelChange={setSortModel}
-          loading={loading}
-          disableRowSelectionOnClick
-          rowHeight={70}
-          sx={{
-            border: "none",
-            "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: "rgba(76, 175, 80, 0.05)",
-            },
-            "& .MuiDataGrid-cell": { display: "flex", alignItems: "center" },
-          }}
-        />
-      </Card>
-
-      {/* --- Menus & Modals --- */}
+      {/* --- Desktop Action Menu --- */}
       <Menu
         anchorEl={menuAnchor}
         open={Boolean(menuAnchor)}
         onClose={closeMenu}
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
+          },
+        }}
       >
         <MItem onClick={() => handleView(menuRow)}>
-          <Visibility sx={{ mr: 1, fontSize: 20 }} /> View
+          <Visibility fontSize="small" sx={{ mr: 1 }} />
+          View
         </MItem>
         <MItem onClick={() => handleOpenEdit(menuRow)}>
-          <Edit sx={{ mr: 1, fontSize: 20 }} /> Edit
+          <Edit fontSize="small" sx={{ mr: 1 }} />
+          Edit
         </MItem>
         <MItem
           onClick={() => {
@@ -584,7 +1039,8 @@ export default function Products() {
             closeMenu();
           }}
         >
-          <ImageIcon sx={{ mr: 1, fontSize: 20 }} /> Images
+          <ImageIcon fontSize="small" sx={{ mr: 1 }} />
+          Images
         </MItem>
         <MItem
           onClick={() => {
@@ -593,16 +1049,20 @@ export default function Products() {
             closeMenu();
           }}
         >
-          <Inventory sx={{ mr: 1, fontSize: 20 }} /> Stock
+          <Inventory fontSize="small" sx={{ mr: 1 }} />
+          Stock
         </MItem>
+        <Divider />
         <MItem
           onClick={() => confirmDelete(menuRow)}
           sx={{ color: "error.main" }}
         >
-          <Delete sx={{ mr: 1, fontSize: 20 }} /> Delete
+          <Delete fontSize="small" sx={{ mr: 1 }} />
+          Delete
         </MItem>
       </Menu>
 
+      {/* --- Modals --- */}
       <FormModal
         open={openForm}
         onClose={() => setOpenForm(false)}
@@ -610,12 +1070,12 @@ export default function Products() {
         maxWidth="lg"
       >
         <ProductForm
-          initialData={editProduct}
           onSubmit={handleCreateOrUpdate}
           onCancel={() => setOpenForm(false)}
           categories={categories}
           submitting={submitting}
           embedded={true}
+          initialData={editProduct}
         />
       </FormModal>
 
@@ -626,6 +1086,7 @@ export default function Products() {
           product={viewProduct}
         />
       )}
+
       {openImageModal && (
         <ImageUploadModal
           open={openImageModal}
@@ -634,6 +1095,7 @@ export default function Products() {
           onUploadSuccess={fetchProducts}
         />
       )}
+
       {variantProduct && (
         <VariantStockModal
           open={openVariantModal}

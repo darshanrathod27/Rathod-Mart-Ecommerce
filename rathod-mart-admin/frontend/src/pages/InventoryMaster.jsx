@@ -17,6 +17,10 @@ import {
   Tooltip,
   Grid,
   Paper,
+  useMediaQuery,
+  useTheme,
+  Avatar,
+  Collapse,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import {
@@ -28,7 +32,11 @@ import {
   Inventory2,
   Clear,
   History,
+  FilterList,
+  ExpandMore,
+  ExpandLess,
 } from "@mui/icons-material";
+import { motion, AnimatePresence } from "framer-motion";
 import FormModal from "../components/Modals/FormModal";
 import InventoryForm from "../components/Forms/InventoryForm";
 import toast from "react-hot-toast";
@@ -52,14 +60,324 @@ const fmtDate = (d) => {
   }
 };
 
+// Helper for mobile date
+const fmtMobileDate = (d) => {
+  if (!d) return "—";
+  try {
+    const date = new Date(d);
+    return {
+      date: date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "2-digit",
+      }),
+      time: date.toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+  } catch {
+    return { date: "—", time: "—" };
+  }
+};
+
+// --- Mobile Variant Card Component ---
+const MobileVariantCard = ({ variant, onAddStock, onReduceStock }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card
+        sx={{
+          mb: 2,
+          borderRadius: 3,
+          background: "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(10px)",
+          border: "1px solid rgba(76, 175, 80, 0.1)",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+        }}
+      >
+        <CardContent sx={{ p: 2 }}>
+          {/* Header */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+            <Box sx={{ flex: 1 }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontFamily: "monospace",
+                  color: "text.secondary",
+                  fontSize: "0.75rem",
+                  mb: 0.5,
+                }}
+              >
+                SKU: {variant.sku || "—"}
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                <Chip
+                  label={variant.size?.sizeName || "—"}
+                  size="small"
+                  sx={{
+                    height: 22,
+                    fontSize: "0.75rem",
+                    background: "rgba(76, 175, 80, 0.1)",
+                    color: "#2E7D32",
+                  }}
+                />
+                <Stack direction="row" alignItems="center" gap={0.5}>
+                  {variant.color?.value && (
+                    <Box
+                      sx={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: "50%",
+                        bgcolor: variant.color.value,
+                        border: "1px solid #ddd",
+                      }}
+                    />
+                  )}
+                  <Chip
+                    label={variant.color?.colorName || "—"}
+                    size="small"
+                    sx={{
+                      height: 22,
+                      fontSize: "0.75rem",
+                      background: "rgba(33, 150, 243, 0.1)",
+                      color: "#1976D2",
+                    }}
+                  />
+                </Stack>
+              </Box>
+            </Box>
+
+            {/* Stock Badge */}
+            <Box sx={{ textAlign: "center" }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block" }}
+              >
+                Stock
+              </Typography>
+              <Chip
+                label={variant.currentStock || 0}
+                color={
+                  variant.currentStock > 10
+                    ? "success"
+                    : variant.currentStock > 0
+                    ? "warning"
+                    : "error"
+                }
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "1rem",
+                  height: 32,
+                  minWidth: 60,
+                }}
+              />
+            </Box>
+          </Box>
+
+          <Divider sx={{ my: 1.5 }} />
+
+          {/* Action Buttons */}
+          <Stack direction="row" spacing={1} justifyContent="center">
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+              onClick={() => onAddStock(variant)}
+              sx={{
+                flex: 1,
+                borderRadius: 2,
+                fontWeight: 600,
+                textTransform: "none",
+              }}
+            >
+              Add Stock
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<Remove />}
+              onClick={() => onReduceStock(variant)}
+              sx={{
+                flex: 1,
+                borderRadius: 2,
+                fontWeight: 600,
+                textTransform: "none",
+              }}
+            >
+              Reduce
+            </Button>
+          </Stack>
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
+
+// --- Mobile Ledger Card Component ---
+const MobileLedgerCard = ({ ledger }) => {
+  const { date, time } = fmtMobileDate(ledger.createdAt);
+  const prodName = ledger.product?.name || "Unknown Product";
+  const variantStr = ledger.variant
+    ? `${ledger.variant.size?.sizeName || ""} • ${
+        ledger.variant.color?.colorName || ""
+      }`
+    : "Base Product";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card
+        sx={{
+          mb: 2,
+          borderRadius: 3,
+          background: "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(10px)",
+          border:
+            ledger.type === "IN"
+              ? "1px solid rgba(76, 175, 80, 0.3)"
+              : "1px solid rgba(244, 67, 54, 0.3)",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+        }}
+      >
+        <CardContent sx={{ p: 2 }}>
+          {/* Header Row */}
+          <Box
+            sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}
+          >
+            <Box>
+              <Chip
+                label={ledger.type}
+                size="small"
+                color={ledger.type === "IN" ? "success" : "error"}
+                icon={ledger.type === "IN" ? <TrendingUp /> : <TrendingDown />}
+                sx={{
+                  borderRadius: 1,
+                  fontWeight: 600,
+                  minWidth: 70,
+                }}
+              />
+            </Box>
+            <Box sx={{ textAlign: "right" }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block" }}
+              >
+                {date}
+              </Typography>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", fontSize: "0.7rem" }}
+              >
+                {time}
+              </Typography>
+            </Box>
+          </Box>
+
+          {/* Product Info */}
+          <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+            {prodName}
+          </Typography>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "block", mb: 1.5 }}
+          >
+            {variantStr}
+          </Typography>
+
+          <Divider sx={{ my: 1.5 }} />
+
+          {/* Stats Grid */}
+          <Grid container spacing={2}>
+            <Grid item xs={4}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block" }}
+              >
+                Quantity
+              </Typography>
+              <Typography
+                variant="body2"
+                fontWeight={700}
+                color={ledger.type === "IN" ? "success.main" : "error.main"}
+              >
+                {ledger.type === "IN" ? "+" : "-"}
+                {ledger.quantity}
+              </Typography>
+            </Grid>
+            <Grid item xs={4}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block" }}
+              >
+                Balance
+              </Typography>
+              <Typography variant="body2" fontWeight={600}>
+                {ledger.balanceStock}
+              </Typography>
+            </Grid>
+            <Grid item xs={4}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block" }}
+              >
+                Status
+              </Typography>
+              <Typography variant="body2" fontWeight={600} color="primary">
+                Updated
+              </Typography>
+            </Grid>
+          </Grid>
+
+          {/* Remarks */}
+          {ledger.remarks && (
+            <Box
+              sx={{
+                mt: 1.5,
+                p: 1,
+                bgcolor: "rgba(0, 0, 0, 0.02)",
+                borderRadius: 1,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                <strong>Remarks:</strong> {ledger.remarks}
+              </Typography>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
+
+// --- Main Component ---
 const InventoryMaster = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   // --- State ---
   const [products, setProducts] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState(null); // Object { _id, name ... }
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
-  // Ledger Search
+  // Filters
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 500);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Data
   const [variants, setVariants] = useState([]);
@@ -68,7 +386,7 @@ const InventoryMaster = () => {
   const [loadingLedger, setLoadingLedger] = useState(false);
   const [loadingVariants, setLoadingVariants] = useState(false);
 
-  // Summary Data
+  // Summary
   const [summary, setSummary] = useState({
     totalPurchase: 0,
     totalSale: 0,
@@ -83,10 +401,14 @@ const InventoryMaster = () => {
 
   // Modal State
   const [openForm, setOpenForm] = useState(false);
-  const [formMode, setFormMode] = useState("add"); // 'add' | 'reduce'
-  const [formInitialData, setFormInitialData] = useState(null); // { product, variant }
+  const [formMode, setFormMode] = useState("add");
+  const [formInitialData, setFormInitialData] = useState(null);
 
-  // --- 1. Load Products for Filter ---
+  // Mobile Sections
+  const [expandSummary, setExpandSummary] = useState(true);
+  const [expandVariants, setExpandVariants] = useState(true);
+
+  // --- 1. Load Products ---
   useEffect(() => {
     const loadProducts = async () => {
       try {
@@ -103,9 +425,7 @@ const InventoryMaster = () => {
     loadProducts();
   }, []);
 
-  // --- 2. Fetch Data (Auto-Apply) ---
-
-  // A. Fetch Stock Summary & Variants (When Product Changes)
+  // --- 2. Fetch Product Details ---
   useEffect(() => {
     const fetchProductDetails = async () => {
       if (!selectedProduct) {
@@ -137,7 +457,7 @@ const InventoryMaster = () => {
     fetchProductDetails();
   }, [selectedProduct]);
 
-  // B. Fetch Ledger (When Search, Product, or Page Changes)
+  // --- 3. Fetch Ledger ---
   const fetchLedger = useCallback(async () => {
     setLoadingLedger(true);
     try {
@@ -165,12 +485,10 @@ const InventoryMaster = () => {
   }, [fetchLedger]);
 
   // --- Handlers ---
-
   const handleOpenForm = (mode, product = null, variant = null) => {
     setFormMode(mode);
-    // If opened from row, pre-fill data. If from top button, use selectedProduct if available
     setFormInitialData({
-      product: product || selectedProduct, // Use row product OR filter product
+      product: product || selectedProduct,
       variant: variant,
     });
     setOpenForm(true);
@@ -183,11 +501,7 @@ const InventoryMaster = () => {
         ? "Stock Added Successfully"
         : "Stock Reduced Successfully"
     );
-    // Refresh data
     fetchLedger();
-    // Trigger re-fetch of variants by momentarily creating a new object reference or relying on the fact that we just updated
-    // A simple way is to just re-run the effect logic manually or toggle a dummy state,
-    // but since ledger updates, let's also re-fetch variants if product is selected.
     if (selectedProduct) {
       inventoryService
         .getProductVariants(selectedProduct._id)
@@ -198,8 +512,7 @@ const InventoryMaster = () => {
     }
   };
 
-  // --- Columns ---
-
+  // --- Desktop Columns ---
   const variantColumns = useMemo(
     () => [
       {
@@ -384,191 +697,613 @@ const InventoryMaster = () => {
     },
   ];
 
+  // --- Render ---
   return (
-    <Box sx={{ p: 2 }}>
-      {/* --- Header Controls --- */}
-      <Card sx={{ mb: 3, overflow: "visible" }}>
-        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
-            {/* 1. Product Filter (Autocomplete) */}
-            <Autocomplete
-              size="small"
-              sx={{ minWidth: 280, flex: { xs: 1, md: 0 } }}
-              options={products}
-              getOptionLabel={(option) => option.name || ""}
-              value={selectedProduct}
-              onChange={(event, newValue) => setSelectedProduct(newValue)}
-              renderInput={(params) => (
+    <Box sx={{ p: { xs: 0, sm: 2 } }}>
+      {/* --- DESKTOP VIEW --- */}
+      {!isMobile ? (
+        <>
+          {/* Header Controls */}
+          <Card sx={{ mb: 3, overflow: "visible" }}>
+            <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 2,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <Autocomplete
+                  size="small"
+                  sx={{ minWidth: 280, flex: { xs: 1, md: 0 } }}
+                  options={products}
+                  getOptionLabel={(option) => option.name || ""}
+                  value={selectedProduct}
+                  onChange={(event, newValue) => setSelectedProduct(newValue)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Product to Manage Stock"
+                      placeholder="Search product..."
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Inventory2 color="action" fontSize="small" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  )}
+                  isOptionEqualToValue={(option, value) =>
+                    option._id === value._id
+                  }
+                />
+
                 <TextField
-                  {...params}
-                  label="Select Product to Manage Stock"
-                  placeholder="Search product..."
+                  placeholder="Search ledger history..."
+                  size="small"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   InputProps={{
-                    ...params.InputProps,
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Inventory2 color="action" fontSize="small" />
+                        <Search fontSize="small" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchTerm && (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => setSearchTerm("")}
+                        >
+                          <Clear fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ flexGrow: 1, minWidth: 200 }}
+                />
+
+                <Button
+                  variant="contained"
+                  color="primary"
+                  startIcon={<Add />}
+                  onClick={() => handleOpenForm("add")}
+                  sx={{ whiteSpace: "nowrap", height: 40 }}
+                >
+                  Add Stock
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<Remove />}
+                  onClick={() => handleOpenForm("reduce")}
+                  sx={{ whiteSpace: "nowrap", height: 40 }}
+                >
+                  Reduce Stock
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+
+          {/* Product Summary & Variants */}
+          {selectedProduct && (
+            <Grid container spacing={3} sx={{ mb: 3 }}>
+              <Grid item xs={12} md={4}>
+                <Stack spacing={2}>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      bgcolor: "#e8f5e9",
+                      border: "1px solid #c8e6c9",
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="success.dark">
+                      Total Stock In
+                    </Typography>
+                    <Typography
+                      variant="h4"
+                      fontWeight={700}
+                      color="success.main"
+                    >
+                      +{summary.totalPurchase}
+                    </Typography>
+                  </Paper>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      bgcolor: "#ffebee",
+                      border: "1px solid #ffcdd2",
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="error.dark">
+                      Total Stock Out
+                    </Typography>
+                    <Typography
+                      variant="h4"
+                      fontWeight={700}
+                      color="error.main"
+                    >
+                      -{summary.totalSale}
+                    </Typography>
+                  </Paper>
+                  <Paper
+                    sx={{
+                      p: 2,
+                      bgcolor: "#e3f2fd",
+                      border: "1px solid #bbdefb",
+                    }}
+                  >
+                    <Typography variant="subtitle2" color="primary.dark">
+                      Current Available
+                    </Typography>
+                    <Typography
+                      variant="h4"
+                      fontWeight={700}
+                      color="primary.main"
+                    >
+                      {summary.currentStock}
+                    </Typography>
+                  </Paper>
+                </Stack>
+              </Grid>
+
+              <Grid item xs={12} md={8}>
+                <Card sx={{ height: "100%" }}>
+                  <Box sx={{ p: 2, borderBottom: "1px solid #eee" }}>
+                    <Typography variant="h6" fontWeight={600}>
+                      Variants & Stock Levels
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Click <Add fontSize="inherit" /> or{" "}
+                      <Remove fontSize="inherit" /> to adjust stock instantly.
+                    </Typography>
+                  </Box>
+                  <DataGrid
+                    rows={variants}
+                    columns={variantColumns}
+                    getRowId={(row) => row._id}
+                    loading={loadingVariants}
+                    hideFooter
+                    autoHeight
+                    disableRowSelectionOnClick
+                    sx={{ border: "none" }}
+                  />
+                </Card>
+              </Grid>
+            </Grid>
+          )}
+
+          {/* Ledger Table */}
+          <Card>
+            <Box
+              sx={{
+                p: 2,
+                borderBottom: "1px solid #eee",
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <History color="action" />
+              <Typography variant="h6" fontWeight={600}>
+                Inventory History
+              </Typography>
+            </Box>
+            <DataGrid
+              rows={ledgerRows}
+              columns={ledgerColumns}
+              getRowId={(row) => row._id}
+              loading={loadingLedger}
+              rowCount={ledgerCount}
+              paginationMode="server"
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              pageSizeOptions={[10, 20, 50]}
+              disableRowSelectionOnClick
+              autoHeight
+              sx={{
+                border: "none",
+                "& .MuiDataGrid-columnHeaders": { bgcolor: "#fafafa" },
+              }}
+            />
+          </Card>
+        </>
+      ) : (
+        /* --- MOBILE VIEW --- */
+        <>
+          {/* Mobile Header Controls */}
+          <Card
+            sx={{
+              mb: 2,
+              borderRadius: 3,
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+            }}
+          >
+            <CardContent sx={{ p: 2 }}>
+              <Stack spacing={2}>
+                {/* Search */}
+                <TextField
+                  placeholder="Search ledger..."
+                  size="small"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search fontSize="small" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchTerm && (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => setSearchTerm("")}
+                        >
+                          <Clear fontSize="small" />
+                        </IconButton>
                       </InputAdornment>
                     ),
                   }}
                 />
-              )}
-              isOptionEqualToValue={(option, value) => option._id === value._id}
-            />
 
-            {/* 2. Search Ledger */}
-            <TextField
-              placeholder="Search ledger history..."
-              size="small"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search fontSize="small" />
-                  </InputAdornment>
-                ),
-                endAdornment: searchTerm && (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setSearchTerm("")}>
-                      <Clear fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ),
+                {/* Product Filter */}
+                <Autocomplete
+                  size="small"
+                  options={products}
+                  getOptionLabel={(option) => option.name || ""}
+                  value={selectedProduct}
+                  onChange={(event, newValue) => setSelectedProduct(newValue)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Select Product"
+                      placeholder="Choose product..."
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Inventory2 color="action" fontSize="small" />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  )}
+                  isOptionEqualToValue={(option, value) =>
+                    option._id === value._id
+                  }
+                />
+
+                {/* Action Buttons */}
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={() => handleOpenForm("add")}
+                    fullWidth
+                    sx={{ borderRadius: 2, fontWeight: 600 }}
+                  >
+                    Add Stock
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<Remove />}
+                    onClick={() => handleOpenForm("reduce")}
+                    fullWidth
+                    sx={{ borderRadius: 2, fontWeight: 600 }}
+                  >
+                    Reduce
+                  </Button>
+                </Stack>
+              </Stack>
+            </CardContent>
+          </Card>
+
+          {/* Mobile Product Summary */}
+          {selectedProduct && (
+            <Card
+              sx={{
+                mb: 2,
+                borderRadius: 3,
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
               }}
-              sx={{ flexGrow: 1, minWidth: 200 }}
-            />
-
-            {/* 3. Global Action Buttons */}
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Add />}
-              onClick={() => handleOpenForm("add")}
-              sx={{ whiteSpace: "nowrap", height: 40 }}
             >
-              Add Stock
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<Remove />}
-              onClick={() => handleOpenForm("reduce")}
-              sx={{ whiteSpace: "nowrap", height: 40 }}
-            >
-              Reduce Stock
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* --- Product Specific View (Only if Product Selected) --- */}
-      {selectedProduct && (
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          {/* Left: Summary Cards */}
-          <Grid item xs={12} md={4}>
-            <Stack spacing={2}>
-              <Paper
-                sx={{ p: 2, bgcolor: "#e8f5e9", border: "1px solid #c8e6c9" }}
+              <Box
+                sx={{
+                  p: 2,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  cursor: "pointer",
+                }}
+                onClick={() => setExpandSummary(!expandSummary)}
               >
-                <Typography variant="subtitle2" color="success.dark">
-                  Total Stock In
-                </Typography>
-                <Typography variant="h4" fontWeight={700} color="success.main">
-                  +{summary.totalPurchase}
-                </Typography>
-              </Paper>
-              <Paper
-                sx={{ p: 2, bgcolor: "#ffebee", border: "1px solid #ffcdd2" }}
-              >
-                <Typography variant="subtitle2" color="error.dark">
-                  Total Stock Out
-                </Typography>
-                <Typography variant="h4" fontWeight={700} color="error.main">
-                  -{summary.totalSale}
-                </Typography>
-              </Paper>
-              <Paper
-                sx={{ p: 2, bgcolor: "#e3f2fd", border: "1px solid #bbdefb" }}
-              >
-                <Typography variant="subtitle2" color="primary.dark">
-                  Current Available
-                </Typography>
-                <Typography variant="h4" fontWeight={700} color="primary.main">
-                  {summary.currentStock}
-                </Typography>
-              </Paper>
-            </Stack>
-          </Grid>
-
-          {/* Right: Variants Table */}
-          <Grid item xs={12} md={8}>
-            <Card sx={{ height: "100%" }}>
-              <Box sx={{ p: 2, borderBottom: "1px solid #eee" }}>
                 <Typography variant="h6" fontWeight={600}>
-                  Variants & Stock Levels
+                  Stock Summary
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Click <Add fontSize="inherit" /> or{" "}
-                  <Remove fontSize="inherit" /> to adjust stock instantly.
-                </Typography>
+                <IconButton size="small">
+                  {expandSummary ? <ExpandLess /> : <ExpandMore />}
+                </IconButton>
               </Box>
-              <DataGrid
-                rows={variants}
-                columns={variantColumns}
-                getRowId={(row) => row._id}
-                loading={loadingVariants}
-                hideFooter
-                autoHeight
-                disableRowSelectionOnClick
-                sx={{ border: "none" }}
-              />
-            </Card>
-          </Grid>
-        </Grid>
-      )}
+              <Collapse in={expandSummary}>
+                <CardContent sx={{ pt: 0 }}>
+                  <Stack spacing={1.5}>
+                    <Paper
+                      sx={{
+                        p: 1.5,
+                        bgcolor: "#e8f5e9",
+                        border: "1px solid #c8e6c9",
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                      >
+                        <Box>
+                          <Typography variant="caption" color="success.dark">
+                            Total Stock In
+                          </Typography>
+                          <Typography
+                            variant="h5"
+                            fontWeight={700}
+                            color="success.main"
+                          >
+                            +{summary.totalPurchase}
+                          </Typography>
+                        </Box>
+                        <TrendingUp
+                          sx={{
+                            fontSize: 40,
+                            color: "success.main",
+                            opacity: 0.3,
+                          }}
+                        />
+                      </Stack>
+                    </Paper>
 
-      {/* --- Inventory Ledger Table --- */}
-      <Card>
-        <Box
-          sx={{
-            p: 2,
-            borderBottom: "1px solid #eee",
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-          }}
-        >
-          <History color="action" />
-          <Typography variant="h6" fontWeight={600}>
-            Inventory History
-          </Typography>
-        </Box>
-        <DataGrid
-          rows={ledgerRows}
-          columns={ledgerColumns}
-          getRowId={(row) => row._id}
-          loading={loadingLedger}
-          rowCount={ledgerCount}
-          paginationMode="server"
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          pageSizeOptions={[10, 20, 50]}
-          disableRowSelectionOnClick
-          autoHeight
-          sx={{
-            border: "none",
-            "& .MuiDataGrid-columnHeaders": { bgcolor: "#fafafa" },
-          }}
-        />
-      </Card>
+                    <Paper
+                      sx={{
+                        p: 1.5,
+                        bgcolor: "#ffebee",
+                        border: "1px solid #ffcdd2",
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                      >
+                        <Box>
+                          <Typography variant="caption" color="error.dark">
+                            Total Stock Out
+                          </Typography>
+                          <Typography
+                            variant="h5"
+                            fontWeight={700}
+                            color="error.main"
+                          >
+                            -{summary.totalSale}
+                          </Typography>
+                        </Box>
+                        <TrendingDown
+                          sx={{
+                            fontSize: 40,
+                            color: "error.main",
+                            opacity: 0.3,
+                          }}
+                        />
+                      </Stack>
+                    </Paper>
+
+                    <Paper
+                      sx={{
+                        p: 1.5,
+                        bgcolor: "#e3f2fd",
+                        border: "1px solid #bbdefb",
+                        borderRadius: 2,
+                      }}
+                    >
+                      <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                      >
+                        <Box>
+                          <Typography variant="caption" color="primary.dark">
+                            Current Available
+                          </Typography>
+                          <Typography
+                            variant="h5"
+                            fontWeight={700}
+                            color="primary.main"
+                          >
+                            {summary.currentStock}
+                          </Typography>
+                        </Box>
+                        <Inventory2
+                          sx={{
+                            fontSize: 40,
+                            color: "primary.main",
+                            opacity: 0.3,
+                          }}
+                        />
+                      </Stack>
+                    </Paper>
+                  </Stack>
+                </CardContent>
+              </Collapse>
+            </Card>
+          )}
+
+          {/* Mobile Variants Section */}
+          {selectedProduct && variants.length > 0 && (
+            <Card
+              sx={{
+                mb: 2,
+                borderRadius: 3,
+                boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+              }}
+            >
+              <Box
+                sx={{
+                  p: 2,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  cursor: "pointer",
+                }}
+                onClick={() => setExpandVariants(!expandVariants)}
+              >
+                <Box>
+                  <Typography variant="h6" fontWeight={600}>
+                    Product Variants
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {variants.length} variant{variants.length !== 1 ? "s" : ""}{" "}
+                    available
+                  </Typography>
+                </Box>
+                <IconButton size="small">
+                  {expandVariants ? <ExpandLess /> : <ExpandMore />}
+                </IconButton>
+              </Box>
+              <Collapse in={expandVariants}>
+                <CardContent sx={{ pt: 0 }}>
+                  {loadingVariants ? (
+                    <Box
+                      sx={{ display: "flex", justifyContent: "center", py: 3 }}
+                    >
+                      <CircularProgress size={30} />
+                    </Box>
+                  ) : (
+                    <AnimatePresence>
+                      {variants.map((variant) => (
+                        <MobileVariantCard
+                          key={variant._id}
+                          variant={variant}
+                          onAddStock={(v) =>
+                            handleOpenForm("add", selectedProduct, v)
+                          }
+                          onReduceStock={(v) =>
+                            handleOpenForm("reduce", selectedProduct, v)
+                          }
+                        />
+                      ))}
+                    </AnimatePresence>
+                  )}
+                </CardContent>
+              </Collapse>
+            </Card>
+          )}
+
+          {/* Mobile Ledger History */}
+          <Card
+            sx={{
+              borderRadius: 3,
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.08)",
+            }}
+          >
+            <Box sx={{ p: 2, borderBottom: "1px solid #eee" }}>
+              <Stack direction="row" alignItems="center" gap={1}>
+                <History color="action" />
+                <Box>
+                  <Typography variant="h6" fontWeight={600}>
+                    Inventory History
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {ledgerCount} total entries
+                  </Typography>
+                </Box>
+              </Stack>
+            </Box>
+
+            <CardContent sx={{ p: 2 }}>
+              {loadingLedger ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                  <CircularProgress />
+                </Box>
+              ) : ledgerRows.length === 0 ? (
+                <Paper
+                  sx={{
+                    p: 4,
+                    textAlign: "center",
+                    background: "rgba(76, 175, 80, 0.05)",
+                    borderRadius: 3,
+                  }}
+                >
+                  <History
+                    sx={{ fontSize: 48, color: "text.disabled", mb: 1 }}
+                  />
+                  <Typography color="text.secondary">
+                    No inventory history found
+                  </Typography>
+                </Paper>
+              ) : (
+                <>
+                  <AnimatePresence>
+                    {ledgerRows.map((ledger) => (
+                      <MobileLedgerCard key={ledger._id} ledger={ledger} />
+                    ))}
+                  </AnimatePresence>
+
+                  {/* Mobile Pagination */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mt: 2,
+                    }}
+                  >
+                    <Typography variant="caption" color="text.secondary">
+                      Page {paginationModel.page + 1} of{" "}
+                      {Math.ceil(ledgerCount / paginationModel.pageSize)}
+                    </Typography>
+                    <Stack direction="row" spacing={1}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={paginationModel.page === 0}
+                        onClick={() =>
+                          setPaginationModel((prev) => ({
+                            ...prev,
+                            page: prev.page - 1,
+                          }))
+                        }
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        disabled={
+                          (paginationModel.page + 1) *
+                            paginationModel.pageSize >=
+                          ledgerCount
+                        }
+                        onClick={() =>
+                          setPaginationModel((prev) => ({
+                            ...prev,
+                            page: prev.page + 1,
+                          }))
+                        }
+                      >
+                        Next
+                      </Button>
+                    </Stack>
+                  </Box>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* --- Modal Form --- */}
       <FormModal
@@ -579,7 +1314,7 @@ const InventoryMaster = () => {
       >
         <InventoryForm
           mode={formMode}
-          initialData={formInitialData} // Pass pre-selected product/variant
+          initialData={formInitialData}
           onClose={() => setOpenForm(false)}
           onSuccess={handleSuccess}
         />
