@@ -28,9 +28,16 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// --- UPDATED CORS CONFIGURATION FOR RENDER DEPLOYMENT ---
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3000"],
+    origin: [
+      "http://localhost:5173", // Local User Frontend
+      "http://localhost:3000", // Local Admin Frontend
+      // These will be empty initially, but will work once you add them in Render settings
+      process.env.FRONTEND_URL,
+      process.env.ADMIN_URL,
+    ],
     credentials: true,
   })
 );
