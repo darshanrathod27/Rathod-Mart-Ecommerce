@@ -34,11 +34,11 @@ app.use(
     origin: [
       "http://localhost:5173", // Local User Frontend
       "http://localhost:3000", // Local Admin Frontend
-      // These will be empty initially, but will work once you add them in Render settings
       process.env.FRONTEND_URL,
       process.env.ADMIN_URL,
     ],
     credentials: true,
+    exposedHeaders: ["set-cookie"], // Allow frontend to read cookies
   })
 );
 
