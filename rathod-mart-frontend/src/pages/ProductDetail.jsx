@@ -1,4 +1,4 @@
-// src/pages/ProductDetail.jsx
+// src/pages/ProductDetail.jsx - MOBILE RESPONSIVE VERSION
 import React, {
   useEffect,
   useRef,
@@ -28,6 +28,8 @@ import {
   ListItemAvatar,
   Avatar,
   ListItemText,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import {
   AddShoppingCart,
@@ -53,7 +55,6 @@ import ProductCard from "../components/home/ProductCard";
 import api from "../data/api";
 import "./ProductDetail.css";
 
-/* PriceBlock unchanged */
 const PriceBlock = ({
   basePrice,
   discountPrice,
@@ -88,12 +89,16 @@ const PriceBlock = ({
   );
 };
 
-const ZOOM_SCALE = 2.8; // how much bigger the zoom image is
-const ZOOM_SIZE = 600; // px square viewport
+const ZOOM_SCALE = 2.8;
+const ZOOM_SIZE = 600;
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
   const { addToCart } = useCart();
   const { toggleWishlist, isItemInWishlist } = useWishlist();
 
@@ -109,30 +114,24 @@ const ProductDetail = () => {
   const [currentPrice, setCurrentPrice] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
 
-  // Zoom / modal state
   const [zoomModalOpen, setZoomModalOpen] = useState(false);
   const [modalIndex, setModalIndex] = useState(0);
 
-  // refs for mapping mouse -> image
-  const containerRef = useRef(null); // wrapper of the visible image area
-  const imgRef = useRef(null); // the <img> element
+  const containerRef = useRef(null);
+  const imgRef = useRef(null);
 
-  // lens position (pixels) so it renders exactly under cursor
   const [lensLeftPx, setLensLeftPx] = useState(0);
   const [lensTopPx, setLensTopPx] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
-
-  // zoomed image positioning computed in mouse handler
   const [zoomImgStyle, setZoomImgStyle] = useState(null);
 
-  // reviews & rating
   const [userRating, setUserRating] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
   const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
 
-  // Fetch product, variants, related, reviews
+  // Fetch product data
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -149,7 +148,6 @@ const ProductDetail = () => {
         setCurrentStock(data.totalStock ?? data.stock ?? 0);
         setCurrentPrice(data.price ?? data.basePrice ?? null);
 
-        // variants (attempt to merge with inventory/price API)
         try {
           const invVariants = await api.fetchProductVariants(id);
           let merged = [];
@@ -184,7 +182,6 @@ const ProductDetail = () => {
           console.warn("Variant fetch failed:", err);
         }
 
-        // related
         const catId = data?.category?._id || data?.category || null;
         if (catId) {
           try {
@@ -201,7 +198,6 @@ const ProductDetail = () => {
       }
     })();
 
-    // reviews
     (async () => {
       setReviewsLoading(true);
       try {
@@ -217,7 +213,6 @@ const ProductDetail = () => {
     return () => {
       mounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const gallery = useMemo(() => {
@@ -271,62 +266,56 @@ const ProductDetail = () => {
     if (Array.isArray(variant.images) && variant.images.length > 0)
       setCurrentImages(variant.images);
     else setCurrentImages(prod?.generalImages || [prod?.image]);
-    // reset selected image index to 0 for new variant images
     setSelectedImage(0);
   };
 
-  // precise mouse handler: compute normalized coords and pixel coords for lens,
-  // and compute zoom image offsets in pixels (using image natural size)
-  // NOTE: we intentionally don't keep a "mouseNorm" state — we compute and use values directly.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const handleMouseMove = useCallback((e) => {
-    const imgEl = imgRef.current;
-    const containerEl = containerRef.current;
-    if (!imgEl || !containerEl) return;
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (isMobile) return; // Disable zoom on mobile
 
-    const imgRect = imgEl.getBoundingClientRect();
+      const imgEl = imgRef.current;
+      const containerEl = containerRef.current;
+      if (!imgEl || !containerEl) return;
 
-    // normalized coords within displayed image (0..1)
-    const nx = (e.clientX - imgRect.left) / imgRect.width;
-    const ny = (e.clientY - imgRect.top) / imgRect.height;
-    const cx = Math.max(0, Math.min(1, nx));
-    const cy = Math.max(0, Math.min(1, ny));
+      const imgRect = imgEl.getBoundingClientRect();
+      const nx = (e.clientX - imgRect.left) / imgRect.width;
+      const ny = (e.clientY - imgRect.top) / imgRect.height;
+      const cx = Math.max(0, Math.min(1, nx));
+      const cy = Math.max(0, Math.min(1, ny));
 
-    // lens pixel position relative to container
-    const containerRect = containerEl.getBoundingClientRect();
-    const pxInContainerX = e.clientX - containerRect.left;
-    const pxInContainerY = e.clientY - containerRect.top;
-    setLensLeftPx(Math.round(pxInContainerX));
-    setLensTopPx(Math.round(pxInContainerY));
+      const containerRect = containerEl.getBoundingClientRect();
+      const pxInContainerX = e.clientX - containerRect.left;
+      const pxInContainerY = e.clientY - containerRect.top;
+      setLensLeftPx(Math.round(pxInContainerX));
+      setLensTopPx(Math.round(pxInContainerY));
 
-    // For zoom: use natural image size (not CSS-scaled size)
-    const natW = imgEl.naturalWidth || imgRect.width;
-    const natH = imgEl.naturalHeight || imgRect.height;
+      const natW = imgEl.naturalWidth || imgRect.width;
+      const natH = imgEl.naturalHeight || imgRect.height;
+      const pxImage = cx * natW;
+      const pyImage = cy * natH;
+      const imgWzoom = Math.round(natW * ZOOM_SCALE);
+      const imgHzoom = Math.round(natH * ZOOM_SCALE);
+      const offsetX = Math.round(pxImage * ZOOM_SCALE - ZOOM_SIZE / 2);
+      const offsetY = Math.round(pyImage * ZOOM_SCALE - ZOOM_SIZE / 2);
+      const maxOffsetX = Math.max(0, imgWzoom - ZOOM_SIZE);
+      const maxOffsetY = Math.max(0, imgHzoom - ZOOM_SIZE);
+      const clampedX = Math.max(0, Math.min(maxOffsetX, offsetX));
+      const clampedY = Math.max(0, Math.min(maxOffsetY, offsetY));
 
-    const pxImage = cx * natW;
-    const pyImage = cy * natH;
+      setZoomImgStyle({
+        width: `${imgWzoom}px`,
+        height: `${imgHzoom}px`,
+        left: `${-clampedX}px`,
+        top: `${-clampedY}px`,
+      });
+    },
+    [isMobile]
+  );
 
-    const imgWzoom = Math.round(natW * ZOOM_SCALE);
-    const imgHzoom = Math.round(natH * ZOOM_SCALE);
+  const handleMouseEnter = () => {
+    if (!isMobile) setIsHovering(true);
+  };
 
-    const offsetX = Math.round(pxImage * ZOOM_SCALE - ZOOM_SIZE / 2);
-    const offsetY = Math.round(pyImage * ZOOM_SCALE - ZOOM_SIZE / 2);
-
-    const maxOffsetX = Math.max(0, imgWzoom - ZOOM_SIZE);
-    const maxOffsetY = Math.max(0, imgHzoom - ZOOM_SIZE);
-    const clampedX = Math.max(0, Math.min(maxOffsetX, offsetX));
-    const clampedY = Math.max(0, Math.min(maxOffsetY, offsetY));
-
-    // left/top for absolute-positioned zoom image (negative to shift image)
-    setZoomImgStyle({
-      width: `${imgWzoom}px`,
-      height: `${imgHzoom}px`,
-      left: `${-clampedX}px`,
-      top: `${-clampedY}px`,
-    });
-  }, []);
-
-  const handleMouseEnter = () => setIsHovering(true);
   const handleMouseLeave = () => setIsHovering(false);
 
   const handleSubmitRating = async () => {
@@ -351,11 +340,11 @@ const ProductDetail = () => {
     }
   };
 
-  // modal viewer handlers
   const openZoomModalAt = (index) => {
     setModalIndex(index);
     setZoomModalOpen(true);
   };
+
   const closeZoomModal = () => setZoomModalOpen(false);
   const nextModalImage = () =>
     setModalIndex((i) => (i + 1) % Math.max(1, gallery.length));
@@ -380,42 +369,54 @@ const ProductDetail = () => {
   return (
     <Box className="product-detail-page">
       <Container maxWidth="xl">
-        <Breadcrumbs
-          separator={<NavigateNext fontSize="small" />}
-          className="breadcrumbs"
-        >
-          <Link component="button" onClick={() => navigate("/")}>
-            <Home sx={{ mr: 0.5, fontSize: "1.2rem" }} /> Home
-          </Link>
-          {product.category?.name && (
-            <Link
-              component="button"
-              onClick={() =>
-                navigate(
-                  `/products?category=${
-                    product.category._id || product.category
-                  }`
-                )
-              }
-            >
-              {product.category.name}
+        {/* Breadcrumbs - Hide on small mobile */}
+        {!isSmallMobile && (
+          <Breadcrumbs
+            separator={<NavigateNext fontSize="small" />}
+            className="breadcrumbs"
+            sx={{ mb: 2, fontSize: { xs: "0.75rem", sm: "0.95rem" } }}
+          >
+            <Link component="button" onClick={() => navigate("/")}>
+              <Home sx={{ mr: 0.5, fontSize: { xs: "1rem", sm: "1.2rem" } }} />
+              {!isSmallMobile && "Home"}
             </Link>
-          )}
-          <Typography className="breadcrumb-active">{product.name}</Typography>
-        </Breadcrumbs>
+            {product.category?.name && !isSmallMobile && (
+              <Link
+                component="button"
+                onClick={() =>
+                  navigate(
+                    `/products?category=${
+                      product.category._id || product.category
+                    }`
+                  )
+                }
+              >
+                {product.category.name}
+              </Link>
+            )}
+            <Typography className="breadcrumb-active" noWrap>
+              {isSmallMobile ? product.name.slice(0, 20) + "..." : product.name}
+            </Typography>
+          </Breadcrumbs>
+        )}
 
         <Paper
           component={motion.div}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="product-main-section"
+          sx={{ borderRadius: { xs: 2, md: 3 } }}
         >
           <Grid container>
-            {/* Left gallery */}
+            {/* Image Gallery - Full width on mobile */}
             <Grid item xs={12} md={6}>
-              <Box className="product-gallery">
+              <Box className="product-gallery" sx={{ p: { xs: 1.5, md: 2 } }}>
                 {product.badge && (
-                  <Chip label={product.badge} className="product-badge" />
+                  <Chip
+                    label={product.badge}
+                    className="product-badge"
+                    size={isSmallMobile ? "small" : "medium"}
+                  />
                 )}
 
                 <Box
@@ -425,6 +426,10 @@ const ProductDetail = () => {
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                   onClick={() => openZoomModalAt(selectedImage)}
+                  sx={{
+                    height: { xs: 300, sm: 400, md: 500 },
+                    cursor: isMobile ? "pointer" : "crosshair",
+                  }}
                 >
                   {currentImage ? (
                     <img
@@ -438,8 +443,8 @@ const ProductDetail = () => {
                     <Typography>No Image</Typography>
                   )}
 
-                  {/* Lens: use pixel positioning for perfect match */}
-                  {isHovering && (
+                  {/* Lens - Only on desktop */}
+                  {!isMobile && isHovering && (
                     <div
                       className="zoom-lens"
                       style={{
@@ -451,12 +456,9 @@ const ProductDetail = () => {
                   )}
                 </Box>
 
-                {/* Side zoom display (desktop only) */}
-                {isHovering && currentImage && zoomImgStyle && (
-                  <Box
-                    className="side-zoom-display"
-                    sx={{ display: { xs: "none", md: "block" } }}
-                  >
+                {/* Side zoom - Desktop only */}
+                {!isMobile && isHovering && currentImage && zoomImgStyle && (
+                  <Box className="side-zoom-display">
                     <div
                       style={{
                         position: "relative",
@@ -480,7 +482,14 @@ const ProductDetail = () => {
                   </Box>
                 )}
 
-                <Box className="thumbnail-gallery">
+                {/* Thumbnails - Horizontal scroll on mobile */}
+                <Box
+                  className="thumbnail-gallery"
+                  sx={{
+                    gap: { xs: "6px", md: "10px" },
+                    py: { xs: "6px", md: "10px" },
+                  }}
+                >
                   {gallery.map((img, i) => (
                     <Box
                       key={i}
@@ -489,6 +498,10 @@ const ProductDetail = () => {
                       }`}
                       onClick={() => setSelectedImage(i)}
                       tabIndex={0}
+                      sx={{
+                        width: { xs: 60, sm: 70, md: 80 },
+                        height: { xs: 60, sm: 70, md: 80 },
+                      }}
                     >
                       <img src={img} alt={`Thumb ${i + 1}`} />
                     </Box>
@@ -497,38 +510,62 @@ const ProductDetail = () => {
               </Box>
             </Grid>
 
-            {/* Right info */}
+            {/* Product Info - Full width on mobile, stacked below image */}
             <Grid item xs={12} md={6}>
-              <Box className="product-info">
+              <Box className="product-info" sx={{ p: { xs: 2, md: 2 } }}>
                 {product.brand && (
-                  <Typography className="product-brand">
+                  <Typography
+                    className="product-brand"
+                    sx={{ fontSize: { xs: "0.8rem", md: "0.95rem" } }}
+                  >
                     {product.brand}
                   </Typography>
                 )}
-                <Typography variant="h4" className="product-title">
+
+                <Typography
+                  variant="h4"
+                  className="product-title"
+                  sx={{
+                    fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2.2rem" },
+                    mb: { xs: 1, md: 1 },
+                  }}
+                >
                   {product.name}
                 </Typography>
 
-                <Box className="rating-section">
+                {/* Rating Section - Wrap on mobile */}
+                <Box
+                  className="rating-section"
+                  sx={{
+                    flexWrap: "wrap",
+                    gap: { xs: "0.5rem", md: "1rem" },
+                    mb: { xs: 1.5, md: 1.5 },
+                  }}
+                >
                   <Rating
                     value={product.rating || 0}
                     precision={0.5}
                     readOnly
+                    size={isSmallMobile ? "small" : "medium"}
                   />
-                  <Typography className="rating-text">
+                  <Typography
+                    className="rating-text"
+                    sx={{ fontSize: { xs: "0.85rem", md: "0.95rem" } }}
+                  >
                     {(product.rating || 0).toFixed(1)} ({product.reviews || 0}{" "}
                     reviews)
                   </Typography>
                   <Chip
                     label={
                       currentStock > 0
-                        ? `In Stock (${currentStock} available)`
+                        ? `In Stock (${currentStock})`
                         : "Out of Stock"
                     }
                     icon={<Verified />}
                     className={`stock-chip ${
                       currentStock > 0 ? "in-stock" : "out-of-stock"
                     }`}
+                    size={isSmallMobile ? "small" : "medium"}
                   />
                 </Box>
 
@@ -540,16 +577,29 @@ const ProductDetail = () => {
                 />
 
                 {product.shortDescription && (
-                  <Typography className="product-description">
+                  <Typography
+                    className="product-description"
+                    sx={{
+                      fontSize: { xs: "0.9rem", md: "1rem" },
+                      lineHeight: { xs: 1.5, md: 1.7 },
+                    }}
+                  >
                     {product.shortDescription}
                   </Typography>
                 )}
 
-                <Divider sx={{ my: 3 }} />
+                <Divider sx={{ my: { xs: 2, md: 3 } }} />
 
+                {/* Variants - Stack on mobile */}
                 {variants.length > 0 && (
                   <Box sx={{ mb: 2 }}>
-                    <Typography sx={{ fontWeight: 700, mb: 1 }}>
+                    <Typography
+                      sx={{
+                        fontWeight: 700,
+                        mb: 1,
+                        fontSize: { xs: "0.9rem", md: "1rem" },
+                      }}
+                    >
                       Choose variant
                     </Typography>
                     <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -567,7 +617,9 @@ const ProductDetail = () => {
                           sx={{
                             borderRadius: 2,
                             textTransform: "none",
-                            minWidth: 110,
+                            minWidth: { xs: 90, md: 110 },
+                            fontSize: { xs: "0.75rem", md: "0.875rem" },
+                            py: { xs: 0.5, md: 0.75 },
                           }}
                         >
                           {v.color?.name || ""}{" "}
@@ -579,7 +631,14 @@ const ProductDetail = () => {
                   </Box>
                 )}
 
-                <Box className="action-buttons">
+                {/* Action Buttons - Stack on mobile */}
+                <Box
+                  className="action-buttons"
+                  sx={{
+                    flexDirection: { xs: "column", sm: "row" },
+                    gap: { xs: 1, md: 1 },
+                  }}
+                >
                   <Button
                     variant="contained"
                     size="large"
@@ -587,9 +646,15 @@ const ProductDetail = () => {
                     onClick={handleAddToCart}
                     disabled={currentStock <= 0}
                     className="add-to-cart-btn"
+                    fullWidth={isMobile}
+                    sx={{
+                      py: { xs: 1.2, md: 1 },
+                      fontSize: { xs: "0.95rem", md: "1.1rem" },
+                    }}
                   >
                     Add to Cart
                   </Button>
+
                   <Button
                     variant="contained"
                     size="large"
@@ -597,31 +662,65 @@ const ProductDetail = () => {
                     onClick={handleBuyNow}
                     disabled={currentStock <= 0}
                     className="buy-now-btn"
+                    fullWidth={isMobile}
+                    sx={{
+                      py: { xs: 1.2, md: 1 },
+                      fontSize: { xs: "0.95rem", md: "1.1rem" },
+                    }}
                   >
                     Buy Now
                   </Button>
-                  <IconButton
-                    onClick={handleFavoriteToggle}
-                    className="wishlist-icon-btn"
+
+                  {/* Icons row on mobile */}
+                  <Box
+                    sx={{ display: "flex", gap: 1, justifyContent: "center" }}
                   >
-                    {isFavorite ? (
-                      <Favorite sx={{ color: "#E91E63" }} />
-                    ) : (
-                      <FavoriteBorder />
-                    )}
-                  </IconButton>
-                  <IconButton className="share-icon-btn">
-                    <Share />
-                  </IconButton>
+                    <IconButton
+                      onClick={handleFavoriteToggle}
+                      className="wishlist-icon-btn"
+                      sx={{
+                        border: "2px solid",
+                        borderColor: isFavorite ? "#E91E63" : "#e0e0e0",
+                      }}
+                    >
+                      {isFavorite ? (
+                        <Favorite sx={{ color: "#E91E63" }} />
+                      ) : (
+                        <FavoriteBorder />
+                      )}
+                    </IconButton>
+                    <IconButton
+                      className="share-icon-btn"
+                      sx={{ border: "2px solid #e0e0e0" }}
+                    >
+                      <Share />
+                    </IconButton>
+                  </Box>
                 </Box>
 
-                <Paper className="delivery-info">
-                  <LocalShipping className="delivery-icon" />
+                {/* Delivery Info */}
+                <Paper
+                  className="delivery-info"
+                  sx={{
+                    p: { xs: 1, md: 1 },
+                    gap: { xs: 0.75, md: 1 },
+                  }}
+                >
+                  <LocalShipping
+                    className="delivery-icon"
+                    sx={{ fontSize: { xs: "1.5rem", md: "2rem" } }}
+                  />
                   <Box>
-                    <Typography className="delivery-title">
+                    <Typography
+                      className="delivery-title"
+                      sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}
+                    >
                       Free Delivery
                     </Typography>
-                    <Typography className="delivery-text">
+                    <Typography
+                      className="delivery-text"
+                      sx={{ fontSize: { xs: "0.8rem", md: "0.875rem" } }}
+                    >
                       Delivered in 2–3 business days
                     </Typography>
                   </Box>
@@ -631,13 +730,24 @@ const ProductDetail = () => {
           </Grid>
         </Paper>
 
-        {/* Long description */}
+        {/* Description Section */}
         {product.description && (
           <Paper
             className="product-description-section"
-            sx={{ p: { xs: 2, md: 4 }, mt: 4 }}
+            sx={{
+              p: { xs: 2, md: 4 },
+              mt: { xs: 2, md: 4 },
+              borderRadius: { xs: 2, md: 3 },
+            }}
           >
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                fontWeight: 700,
+                mb: 2,
+                fontSize: { xs: "1.25rem", md: "1.5rem" },
+              }}
+            >
               Product Details
             </Typography>
             <Typography
@@ -646,6 +756,7 @@ const ProductDetail = () => {
                 color: "text.secondary",
                 lineHeight: 1.8,
                 whiteSpace: "pre-wrap",
+                fontSize: { xs: "0.9rem", md: "1rem" },
               }}
             >
               {product.description}
@@ -653,24 +764,43 @@ const ProductDetail = () => {
           </Paper>
         )}
 
-        {/* Reviews */}
+        {/* Reviews Section */}
         <Paper
           className="user-rating-section"
-          sx={{ p: { xs: 2, md: 4 }, mt: 4 }}
+          sx={{
+            p: { xs: 2, md: 4 },
+            mt: { xs: 2, md: 4 },
+            borderRadius: { xs: 2, md: 3 },
+          }}
         >
-          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
+          <Typography
+            variant="h5"
+            sx={{
+              fontWeight: 700,
+              mb: 2,
+              fontSize: { xs: "1.25rem", md: "1.5rem" },
+            }}
+          >
             Ratings & Reviews
           </Typography>
 
+          {/* Leave Review */}
           <Box mb={4}>
-            <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                mb: 1,
+                fontWeight: 600,
+                fontSize: { xs: "1.1rem", md: "1.25rem" },
+              }}
+            >
               Leave a review
             </Typography>
             <Rating
               value={userRating}
               precision={0.5}
               onChange={(e, val) => setUserRating(val)}
-              size="large"
+              size={isSmallMobile ? "medium" : "large"}
               icon={<Star fontSize="inherit" />}
               disabled={submitLoading}
             />
@@ -678,7 +808,7 @@ const ProductDetail = () => {
               fullWidth
               placeholder="Write a short review..."
               multiline
-              rows={3}
+              rows={isSmallMobile ? 2 : 3}
               value={ratingComment}
               onChange={(e) => setRatingComment(e.target.value)}
               sx={{ mt: 2 }}
@@ -689,15 +819,26 @@ const ProductDetail = () => {
               sx={{ mt: 2 }}
               onClick={handleSubmitRating}
               disabled={submitLoading}
+              size={isSmallMobile ? "medium" : "large"}
+              fullWidth={isSmallMobile}
             >
               {submitLoading ? "Submitting..." : "Submit Review"}
             </Button>
           </Box>
 
           <Divider sx={{ mb: 4 }} />
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 600,
+              mb: 2,
+              fontSize: { xs: "1.1rem", md: "1.25rem" },
+            }}
+          >
             Customer Reviews ({product.reviews || 0})
           </Typography>
+
           {reviewsLoading ? (
             <Typography>Loading reviews...</Typography>
           ) : reviews.length === 0 ? (
@@ -708,9 +849,17 @@ const ProductDetail = () => {
             <List sx={{ width: "100%", bgcolor: "background.paper" }}>
               {reviews.map((review, index) => (
                 <React.Fragment key={review._id || index}>
-                  <ListItem alignItems="flex-start">
+                  <ListItem
+                    alignItems="flex-start"
+                    sx={{ px: { xs: 0, md: 2 } }}
+                  >
                     <ListItemAvatar>
-                      <Avatar>
+                      <Avatar
+                        sx={{
+                          width: { xs: 32, md: 40 },
+                          height: { xs: 32, md: 40 },
+                        }}
+                      >
                         {review.userName ? review.userName[0] : "G"}
                       </Avatar>
                     </ListItemAvatar>
@@ -721,18 +870,33 @@ const ProductDetail = () => {
                             display: "flex",
                             justifyContent: "space-between",
                             alignItems: "center",
+                            flexWrap: "wrap",
+                            gap: 1,
                           }}
                         >
-                          <Typography sx={{ fontWeight: 600 }}>
+                          <Typography
+                            sx={{
+                              fontWeight: 600,
+                              fontSize: { xs: "0.9rem", md: "1rem" },
+                            }}
+                          >
                             {review.userName}
                           </Typography>
-                          <Rating value={review.rating} readOnly size="small" />
+                          <Rating
+                            value={review.rating}
+                            readOnly
+                            size={isSmallMobile ? "small" : "small"}
+                          />
                         </Box>
                       }
                       secondary={
                         <>
                           <Typography
-                            sx={{ display: "block", mt: 1 }}
+                            sx={{
+                              display: "block",
+                              mt: 1,
+                              fontSize: { xs: "0.85rem", md: "0.875rem" },
+                            }}
                             component="span"
                             variant="body2"
                             color="text.primary"
@@ -743,7 +907,11 @@ const ProductDetail = () => {
                             component="span"
                             variant="caption"
                             color="text.secondary"
-                            sx={{ mt: 1, display: "block" }}
+                            sx={{
+                              mt: 1,
+                              display: "block",
+                              fontSize: { xs: "0.7rem", md: "0.75rem" },
+                            }}
                           >
                             {review.createdAt
                               ? new Date(review.createdAt).toLocaleDateString()
@@ -762,15 +930,25 @@ const ProductDetail = () => {
           )}
         </Paper>
 
-        {/* Related */}
+        {/* Related Products */}
         {related.length > 0 && (
-          <Box className="related-products-section">
-            <Typography variant="h5" className="related-title">
+          <Box
+            className="related-products-section"
+            sx={{ mt: { xs: 2, md: 4 } }}
+          >
+            <Typography
+              variant="h5"
+              className="related-title"
+              sx={{
+                mb: { xs: 2, md: 3 },
+                fontSize: { xs: "1.25rem", md: "1.5rem" },
+              }}
+            >
               Related Products
             </Typography>
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, md: 3 }}>
               {related.map((p) => (
-                <Grid item xs={12} sm={6} md={3} key={p.id || p._id}>
+                <Grid item xs={6} sm={6} md={3} key={p.id || p._id}>
                   <ProductCard product={p} />
                 </Grid>
               ))}
@@ -778,7 +956,7 @@ const ProductDetail = () => {
           </Box>
         )}
 
-        {/* ZOOM / VIEW MODAL */}
+        {/* Zoom Modal */}
         <Modal
           open={zoomModalOpen}
           onClose={closeZoomModal}
@@ -786,8 +964,23 @@ const ProductDetail = () => {
           BackdropComponent={Backdrop}
           BackdropProps={{ timeout: 400 }}
         >
-          <Box className="zoom-modal" role="dialog" aria-modal="true">
-            <IconButton className="zoom-modal-close" onClick={closeZoomModal}>
+          <Box
+            className="zoom-modal"
+            role="dialog"
+            aria-modal="true"
+            sx={{
+              width: { xs: "95vw", md: "auto" },
+              maxWidth: { xs: "95vw", md: "95vw" },
+            }}
+          >
+            <IconButton
+              className="zoom-modal-close"
+              onClick={closeZoomModal}
+              sx={{
+                width: { xs: 36, md: 44 },
+                height: { xs: 36, md: 44 },
+              }}
+            >
               <Close />
             </IconButton>
 
@@ -799,37 +992,60 @@ const ProductDetail = () => {
                 position: "relative",
               }}
             >
-              <IconButton
-                onClick={prevModalImage}
-                sx={{
-                  position: "absolute",
-                  left: 8,
-                  zIndex: 20,
-                  bgcolor: "rgba(255,255,255,0.85)",
-                }}
-              >
-                <ArrowBackIosNew />
-              </IconButton>
+              {!isSmallMobile && (
+                <IconButton
+                  onClick={prevModalImage}
+                  sx={{
+                    position: "absolute",
+                    left: { xs: 2, md: 8 },
+                    zIndex: 20,
+                    bgcolor: "rgba(255,255,255,0.85)",
+                    width: { xs: 36, md: 44 },
+                    height: { xs: 36, md: 44 },
+                  }}
+                >
+                  <ArrowBackIosNew fontSize="small" />
+                </IconButton>
+              )}
+
               <img
                 src={gallery[modalIndex]}
                 alt={`Zoom ${modalIndex + 1}`}
                 className="zoom-modal-image"
                 draggable={false}
-              />
-              <IconButton
-                onClick={nextModalImage}
-                sx={{
-                  position: "absolute",
-                  right: 8,
-                  zIndex: 20,
-                  bgcolor: "rgba(255,255,255,0.85)",
+                style={{
+                  maxWidth: isSmallMobile ? "90vw" : "1200px",
+                  maxHeight: isSmallMobile ? "60vh" : "78vh",
                 }}
-              >
-                <ArrowForwardIos />
-              </IconButton>
+              />
+
+              {!isSmallMobile && (
+                <IconButton
+                  onClick={nextModalImage}
+                  sx={{
+                    position: "absolute",
+                    right: { xs: 2, md: 8 },
+                    zIndex: 20,
+                    bgcolor: "rgba(255,255,255,0.85)",
+                    width: { xs: 36, md: 44 },
+                    height: { xs: 36, md: 44 },
+                  }}
+                >
+                  <ArrowForwardIos fontSize="small" />
+                </IconButton>
+              )}
             </Box>
 
-            <Box className="zoom-modal-thumbnails" sx={{ mt: 1 }}>
+            {/* Thumbnails in modal */}
+            <Box
+              className="zoom-modal-thumbnails"
+              sx={{
+                mt: 1,
+                gap: { xs: "8px", md: "12px" },
+                maxWidth: { xs: "90vw", md: "none" },
+                overflowX: "auto",
+              }}
+            >
               {gallery.map((img, i) => (
                 <Box
                   key={i}
@@ -838,6 +1054,10 @@ const ProductDetail = () => {
                   }`}
                   onClick={() => setModalIndex(i)}
                   tabIndex={0}
+                  sx={{
+                    width: { xs: 60, md: 80 },
+                    height: { xs: 60, md: 80 },
+                  }}
                 >
                   <img src={img} alt={`Thumb ${i + 1}`} />
                 </Box>
