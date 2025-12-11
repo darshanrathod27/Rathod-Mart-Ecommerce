@@ -41,6 +41,7 @@ const Checkout = () => {
 
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [saveAddress, setSaveAddress] = useState(false);
 
@@ -88,9 +89,8 @@ const Checkout = () => {
             const addr = data.address;
             setAddress((prev) => ({
               ...prev,
-              street: `${addr.house_number || ""} ${addr.road || ""} ${
-                addr.suburb || ""
-              }`.trim(),
+              street: `${addr.house_number || ""} ${addr.road || ""} ${addr.suburb || ""
+                }`.trim(),
               city: addr.city || addr.town || addr.village || "",
               state: addr.state || "",
               zip: addr.postcode || "",
@@ -113,6 +113,69 @@ const Checkout = () => {
         setLocating(false);
       }
     );
+  };
+
+  // Razorpay Payment Handler
+  const handleRazorpayPayment = async (orderId, orderTotal) => {
+    try {
+      setPaymentLoading(true);
+
+      // 1. Create Razorpay Order
+      const { data: paymentOrder } = await api.post("/payments/create-order", {
+        amount: orderTotal,
+        orderId: orderId,
+      });
+
+      // 2. Configure Razorpay Options
+      const options = {
+        key: paymentOrder.keyId,
+        amount: paymentOrder.amount,
+        currency: paymentOrder.currency,
+        name: "Rathod Mart",
+        description: "Order Payment",
+        order_id: paymentOrder.orderId,
+        handler: async (response) => {
+          try {
+            // 3. Verify Payment
+            await api.post("/payments/verify", {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderId: orderId,
+            });
+
+            toast.success("Payment successful! Order placed.");
+            clearCart();
+            navigate("/");
+          } catch (verifyErr) {
+            console.error("Payment verification failed:", verifyErr);
+            toast.error("Payment verification failed. Please contact support.");
+          }
+        },
+        prefill: {
+          name: userInfo?.name || "",
+          email: userInfo?.email || "",
+          contact: userInfo?.phone || "",
+        },
+        theme: {
+          color: "#2E7D32",
+        },
+        modal: {
+          ondismiss: () => {
+            setPaymentLoading(false);
+            toast.error("Payment cancelled");
+          },
+        },
+      };
+
+      // 4. Open Razorpay Checkout
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (err) {
+      console.error("Razorpay error:", err);
+      toast.error("Failed to initiate payment. Please try again.");
+      setPaymentLoading(false);
+    }
   };
 
   const handlePlaceOrder = async () => {
@@ -169,13 +232,23 @@ const Checkout = () => {
         totalPrice: total,
       };
 
-      // 3. Call Backend API
+      // 3. Call Backend API to create order
       const res = await api.post("/orders", orderData);
 
       if (res.status === 201 || res.data) {
-        toast.success("Order placed successfully!");
-        clearCart();
-        navigate("/");
+        const createdOrder = res.data;
+
+        // 4. Handle payment based on method
+        if (paymentMethod === "online") {
+          // Initiate Razorpay payment
+          setLoading(false);
+          await handleRazorpayPayment(createdOrder._id, total);
+        } else {
+          // COD - Order complete
+          toast.success("Order placed successfully!");
+          clearCart();
+          navigate("/");
+        }
       }
     } catch (err) {
       console.error("Order placement failed:", err);
@@ -468,21 +541,21 @@ const Checkout = () => {
                     }}
                   />
                 }
-                disabled
+                disabled={loading || paymentLoading}
                 label={
-                  <Box sx={{ opacity: 0.6 }}>
+                  <Box>
                     <Typography
                       fontWeight="600"
                       sx={{ fontSize: { xs: "0.95rem", md: "1rem" } }}
                     >
-                      Online Payment
+                      Online Payment (Razorpay)
                     </Typography>
                     <Typography
                       variant="caption"
                       color="text.secondary"
                       sx={{ fontSize: { xs: "0.75rem", md: "0.85rem" } }}
                     >
-                      Coming Soon
+                      Pay with UPI, Card, Net Banking
                     </Typography>
                   </Box>
                 }

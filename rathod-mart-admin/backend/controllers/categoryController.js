@@ -2,7 +2,7 @@
 
 import Category from "../models/Category.js";
 import Product from "../models/Product.js";
-import asyncHandler from "../utils/asyncHandler.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 import {
   getCategoryIcon as getAutoIcon,
   getCategoryColor as getAutoColor,
