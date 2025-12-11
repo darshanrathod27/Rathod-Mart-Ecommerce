@@ -65,15 +65,28 @@ router.post("/logout", logoutUser);
 router.post("/admin-logout", logoutAdmin);
 
 // -------------------- GOOGLE OAUTH ROUTES --------------------
+// Middleware to check if Google OAuth is configured
+const checkGoogleAuth = (req, res, next) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(503).json({
+      success: false,
+      message: "Google login is not configured. Please use email/password login.",
+    });
+  }
+  next();
+};
+
 // Initiate Google OAuth
 router.get(
   "/google",
+  checkGoogleAuth,
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
 // Google OAuth Callback
 router.get(
   "/google/callback",
+  checkGoogleAuth,
   passport.authenticate("google", {
     session: false,
     failureRedirect: `${process.env.FRONTEND_URL || "http://localhost:3000"}/login?error=google_auth_failed`,
