@@ -19,7 +19,7 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
+// DataGrid removed - using DynamicResponsiveTable instead
 import {
   Add,
   Search,

@@ -25,11 +25,8 @@ import {
 import {
   Menu as MenuIcon,
   AccountCircle,
-  Notifications,
   Settings,
   Logout,
-  Search,
-  Brightness6,
   Warning,
 } from "@mui/icons-material";
 import { motion, useScroll, useTransform } from "framer-motion";

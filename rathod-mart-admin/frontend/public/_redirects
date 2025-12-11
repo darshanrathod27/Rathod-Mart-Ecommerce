@@ -1,5 +1,1 @@
-/*
-  Redirects for SPA (Single Page Application) on Render Static Site
-  This ensures all routes are handled by index.html for client-side routing
-*/
 /* /index.html 200
