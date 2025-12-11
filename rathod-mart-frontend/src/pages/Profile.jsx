@@ -10,6 +10,8 @@ import {
   Avatar,
   Divider,
   Stack,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   CameraAlt,
@@ -35,6 +37,12 @@ const API_BASE =
 const Profile = () => {
   const dispatch = useDispatch();
   const { userInfo } = useSelector((state) => state.auth);
+
+  // 🎯 Responsive Breakpoints
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md")); // < 900px
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm")); // < 600px
+
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false); // ✅ Upload state
 
@@ -173,24 +181,34 @@ const Profile = () => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ pt: 12, pb: 6 }}>
+    <Container
+      maxWidth="md"
+      sx={{
+        // 📱 Responsive Padding
+        pt: { xs: 10, sm: 11, md: 12 },
+        pb: { xs: 4, md: 6 },
+        px: { xs: 2, sm: 3 },
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <Paper sx={{ p: { xs: 2, md: 4 }, borderRadius: 4 }}>
+        <Paper sx={{ p: { xs: 2, sm: 3, md: 4 }, borderRadius: { xs: 2, md: 4 } }}>
           <Typography
             variant="h4"
             sx={{
               fontWeight: 700,
-              mb: 3,
+              mb: { xs: 2, md: 3 },
               display: "flex",
               alignItems: "center",
               gap: 1,
               color: "primary.dark",
+              // 📱 Responsive Font Size
+              fontSize: { xs: "1.5rem", sm: "1.75rem", md: "2.125rem" },
             }}
           >
-            <Person sx={{ fontSize: "2.5rem" }} /> My Profile
+            <Person sx={{ fontSize: { xs: "1.8rem", sm: "2rem", md: "2.5rem" } }} /> My Profile
           </Typography>
 
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -252,16 +270,21 @@ const Profile = () => {
               </Box>
             </Box>
 
-            <Divider sx={{ my: 3 }} />
+            <Divider sx={{ my: { xs: 2, md: 3 } }} />
 
             {/* Personal Details */}
             <Typography
               variant="h6"
-              sx={{ fontWeight: 600, mb: 2, color: "primary.main" }}
+              sx={{
+                fontWeight: 600,
+                mb: { xs: 1.5, md: 2 },
+                color: "primary.main",
+                fontSize: { xs: "1rem", md: "1.25rem" },
+              }}
             >
               Personal Details
             </Typography>
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, md: 3 }}>
               <Grid item xs={12} md={6}>
                 <TextField
                   label="Full Name"
@@ -382,8 +405,8 @@ const Profile = () => {
                 {uploading
                   ? "Uploading Image..."
                   : loading
-                  ? "Saving..."
-                  : "Save Changes"}
+                    ? "Saving..."
+                    : "Save Changes"}
               </Button>
             </Grid>
           </form>

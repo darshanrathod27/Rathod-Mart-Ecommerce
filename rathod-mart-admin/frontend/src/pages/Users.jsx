@@ -319,10 +319,10 @@ const Users = () => {
         <Typography variant="caption" color="text.secondary">
           {params.row.createdAt
             ? new Date(params.row.createdAt).toLocaleDateString("en-IN", {
-                day: "2-digit",
-                month: "short",
-                year: "2-digit",
-              })
+              day: "2-digit",
+              month: "short",
+              year: "2-digit",
+            })
             : "—"}
         </Typography>
       ),
@@ -400,64 +400,48 @@ const Users = () => {
             />
           ) : (
             /* Desktop Header/Filters */
-            <Card
-              elevation={0}
-              sx={{
-                mb: 2,
-                border: `1px solid ${theme.palette.divider}`,
-                borderRadius: 2,
-              }}
-            >
+            <Card sx={{ mb: 3 }}>
               <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  alignItems="center"
-                  flexWrap="wrap"
-                  useFlexGap
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 2,
+                    flexWrap: "wrap",
+                    alignItems: "center",
+                  }}
                 >
                   {/* Search */}
                   <TextField
                     placeholder="Search users..."
-                    size="small"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <Search fontSize="small" color="action" />
+                          <Search fontSize="small" />
                         </InputAdornment>
                       ),
                       endAdornment: searchTerm && (
                         <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => setSearchTerm("")}
-                          >
+                          <IconButton size="small" onClick={() => setSearchTerm("")}>
                             <Clear fontSize="small" />
                           </IconButton>
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      flexGrow: 1,
-                      minWidth: 250,
-                      "& .MuiOutlinedInput-root": {
-                        borderRadius: 2,
-                      },
-                    }}
+                    sx={{ flexGrow: 1, minWidth: 240 }}
+                    size="small"
                   />
 
                   {/* Role Filter */}
-                  <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <FormControl size="small" sx={{ minWidth: 150 }}>
                     <InputLabel>Role</InputLabel>
                     <Select
                       value={filterRole}
-                      label="Role"
                       onChange={(e) => setFilterRole(e.target.value)}
-                      sx={{ borderRadius: 2 }}
+                      label="Role"
                     >
-                      <MenuItem value="">All Roles</MenuItem>
+                      <MenuItem value="">All</MenuItem>
                       <MenuItem value="admin">Admin</MenuItem>
                       <MenuItem value="manager">Manager</MenuItem>
                       <MenuItem value="staff">Staff</MenuItem>
@@ -466,49 +450,30 @@ const Users = () => {
                   </FormControl>
 
                   {/* Status Filter */}
-                  <FormControl size="small" sx={{ minWidth: 140 }}>
+                  <FormControl size="small" sx={{ minWidth: 150 }}>
                     <InputLabel>Status</InputLabel>
                     <Select
                       value={filterStatus}
-                      label="Status"
                       onChange={(e) => setFilterStatus(e.target.value)}
-                      sx={{ borderRadius: 2 }}
+                      label="Status"
                     >
-                      <MenuItem value="">All Status</MenuItem>
+                      <MenuItem value="">All</MenuItem>
                       <MenuItem value="active">Active</MenuItem>
                       <MenuItem value="inactive">Inactive</MenuItem>
                       <MenuItem value="blocked">Blocked</MenuItem>
                     </Select>
                   </FormControl>
 
-                  {/* Refresh */}
-                  <Tooltip title="Refresh">
-                    <IconButton
-                      onClick={handleRefresh}
-                      sx={{
-                        border: `1px solid ${theme.palette.divider}`,
-                        borderRadius: 2,
-                      }}
-                    >
-                      <Refresh />
-                    </IconButton>
-                  </Tooltip>
-
-                  {/* Add User */}
+                  {/* Add Button */}
                   <Button
                     variant="contained"
                     startIcon={<PersonAdd />}
                     onClick={handleAdd}
-                    sx={{
-                      whiteSpace: "nowrap",
-                      borderRadius: 2,
-                      px: 3,
-                      boxShadow: theme.shadows[2],
-                    }}
+                    sx={{ whiteSpace: "nowrap", height: 40 }}
                   >
                     Add User
                   </Button>
-                </Stack>
+                </Box>
               </CardContent>
             </Card>
           )}

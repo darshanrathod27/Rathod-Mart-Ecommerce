@@ -1,5 +1,5 @@
 // src/components/home/BestOffers.jsx
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useMemo } from "react";
 import { Box, Container, Typography } from "@mui/material";
 import { motion, useInView } from "framer-motion";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -9,8 +9,6 @@ import "swiper/css/navigation";
 import ProductCard from "./ProductCard";
 import "./BestOffers.css";
 import api from "../../data/api";
-
-// const MIN_DISCOUNT = 40; // <-- REMOVED
 
 const BestOffers = () => {
   const ref = useRef(null);
@@ -26,15 +24,13 @@ const BestOffers = () => {
       setLoading(true);
       setError(null);
       try {
-        // --- MODIFICATION: Fetching by isBestOffer=true ---
         const offers = await api.fetchProducts({
-          isBestOffer: "true", // Fetch based on the new backend field
+          isBestOffer: "true",
           limit: 24,
           sortBy: "createdAt",
           sortOrder: "desc",
         });
         if (mounted) setProducts(offers);
-        // --- END MODIFICATION ---
       } catch (err) {
         console.error("BestOffers error:", err);
         if (mounted) setError("Failed to load offers");
@@ -46,6 +42,31 @@ const BestOffers = () => {
     load();
     return () => (mounted = false);
   }, []);
+
+  // Duplicate products for seamless infinite scroll when there are few items
+  const displayProducts = useMemo(() => {
+    if (!products || products.length === 0) return [];
+
+    // If less than 8 products, duplicate them for seamless infinite scroll
+    if (products.length < 8) {
+      // Duplicate until we have at least 16 slides for smooth looping
+      const duplicated = [];
+      let i = 0;
+      while (duplicated.length < 16) {
+        duplicated.push({
+          ...products[i % products.length],
+          _uniqueKey: `${products[i % products.length].id}-${Math.floor(i / products.length)}-${i}`,
+        });
+        i++;
+      }
+      return duplicated;
+    }
+
+    return products.map((p, idx) => ({
+      ...p,
+      _uniqueKey: `${p.id}-0-${idx}`,
+    }));
+  }, [products]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -126,6 +147,7 @@ const BestOffers = () => {
                 spaceBetween={20}
                 slidesPerView="auto"
                 loop={true}
+                loopAdditionalSlides={4}
                 autoplay={{
                   delay: 3000,
                   disableOnInteraction: false,
@@ -148,8 +170,8 @@ const BestOffers = () => {
                   1400: { slidesPerView: 6, spaceBetween: 20 },
                 }}
               >
-                {products.map((product) => (
-                  <SwiperSlide key={product.id} className="best-offer-slide">
+                {displayProducts.map((product) => (
+                  <SwiperSlide key={product._uniqueKey} className="best-offer-slide">
                     <motion.div
                       variants={itemVariants}
                       whileHover={{
@@ -187,3 +209,4 @@ const BestOffers = () => {
 };
 
 export default BestOffers;
+

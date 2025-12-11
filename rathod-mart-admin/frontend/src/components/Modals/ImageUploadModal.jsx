@@ -32,6 +32,7 @@ import {
 } from "@mui/icons-material";
 import { productService } from "../../services/productService";
 import { inventoryService } from "../../services/inventoryService";
+import { uploadToCloudinary } from "../../utils/uploadCloudinary"; // Cloudinary direct upload
 import toast from "react-hot-toast";
 import ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -260,18 +261,37 @@ export default function ImageUploadModal({
     setShowCrop(false);
     setUploading(true);
     try {
+      // 1. Create File from blob for Cloudinary upload
       const file = new File(
         [blob],
         pendingFile?.name || `img-${Date.now()}.jpg`,
-        {
-          type: "image/jpeg",
-        }
+        { type: "image/jpeg" }
       );
-      const fd = new FormData();
-      fd.append("images", file);
-      if (selectedVariant) fd.append("variantId", selectedVariant);
 
-      await productService.uploadMultipleProductImages(product._id, fd);
+      // 2. Upload to Cloudinary FIRST
+      const cloudinaryResult = await uploadToCloudinary(file);
+
+      // 3. Now get existing product images
+      const existingImages = images.map((img) => ({
+        url: img.url || img.fullUrl,
+        filename: img.filename || img._id,
+        alt: img.alt,
+        variant: img.variant?._id || img.variant || null,
+      }));
+
+      // 4. Add new uploaded image to the list
+      const newImage = {
+        url: cloudinaryResult.url,
+        filename: cloudinaryResult.publicId,
+        alt: product?.name || "Product Image",
+        variant: selectedVariant || null,
+      };
+
+      const updatedImages = [...existingImages, newImage];
+
+      // 5. Send JSON to backend (not FormData)
+      await productService.updateProduct(product._id, { images: updatedImages });
+
       toast.success("Image uploaded");
       setPendingSrc(null);
       setPendingFile(null);
@@ -279,7 +299,7 @@ export default function ImageUploadModal({
       onUploadSuccess?.();
     } catch (e) {
       console.error("Upload error:", e);
-      toast.error("Upload failed");
+      toast.error(e.message || "Upload failed");
     } finally {
       setUploading(false);
     }
@@ -327,31 +347,46 @@ export default function ImageUploadModal({
     setReCrop(null);
     setUploading(true);
     try {
+      // 1. Create File from blob
       const file = new File([blob], `recrop-${Date.now()}.jpg`, {
         type: "image/jpeg",
       });
-      const fd = new FormData();
-      fd.append("images", file);
-      if (selectedVariant) fd.append("variantId", selectedVariant);
 
-      await productService.uploadMultipleProductImages(product._id, fd);
+      // 2. Upload to Cloudinary FIRST
+      const cloudinaryResult = await uploadToCloudinary(file);
 
-      // delete original image (best-effort)
-      try {
-        await productService.deleteProductImage(
-          product._id,
-          localReCrop.img.filename || localReCrop.img._id
-        );
-      } catch (err) {
-        // ignore delete errors
-      }
+      // 3. Prepare updated images: replace old image with new one
+      const oldFilename = localReCrop.img.filename || localReCrop.img._id;
+      const updatedImages = images
+        .filter((img) => (img.filename || img._id) !== oldFilename) // Remove old image
+        .map((img) => ({
+          url: img.url || img.fullUrl,
+          filename: img.filename || img._id,
+          alt: img.alt,
+          variant: img.variant?._id || img.variant || null,
+        }));
+
+      // 4. Add new cropped image
+      const newImage = {
+        url: cloudinaryResult.url,
+        filename: cloudinaryResult.publicId,
+        alt: product?.name || "Product Image",
+        variant: localReCrop.img.variant?._id || localReCrop.img.variant || selectedVariant || null,
+      };
+      updatedImages.push(newImage);
+
+      // 5. Send JSON to backend and delete old from Cloudinary
+      await productService.updateProduct(product._id, {
+        images: updatedImages,
+        deleteFilenames: [oldFilename], // Tell backend to delete from Cloudinary
+      });
 
       toast.success("Image updated");
       await fetchImagesAndVariants();
       onUploadSuccess?.();
     } catch (e) {
       console.error("Re-crop error:", e);
-      toast.error("Update failed");
+      toast.error(e.message || "Update failed");
     } finally {
       setUploading(false);
     }

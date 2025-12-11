@@ -4,8 +4,10 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
+import passport from "passport";
 import connectDB from "./config/database.js";
 import cloudinary from "./utils/cloudinary.js";
+import configurePassport from "./config/passport.js";
 
 // routes imports
 import userRoutes from "./routes/userRoutes.js";
@@ -45,6 +47,10 @@ app.use(
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 app.use(cookieParser());
+
+// Initialize Passport for Google OAuth
+configurePassport();
+app.use(passport.initialize());
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 

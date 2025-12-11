@@ -76,8 +76,8 @@ const MobileSearchBar = ({
             showRole && showStatus
               ? "1fr 1fr auto"
               : showRole || showStatus
-              ? "1fr auto"
-              : "auto",
+                ? "1fr auto"
+                : "auto",
           gap: 1,
           alignItems: "stretch",
         }}
@@ -106,37 +106,37 @@ const MobileSearchBar = ({
               </MenuItem>
               {roleOptions.length > 0
                 ? roleOptions.map((option) => (
-                    <MenuItem
-                      key={option.value}
-                      value={option.value}
-                      sx={{ fontSize: "0.85rem" }}
-                    >
-                      {option.label}
-                    </MenuItem>
-                  ))
+                  <MenuItem
+                    key={option.value}
+                    value={option.value}
+                    sx={{ fontSize: "0.85rem" }}
+                  >
+                    {option.label}
+                  </MenuItem>
+                ))
                 : [
-                    <MenuItem
-                      key="admin"
-                      value="admin"
-                      sx={{ fontSize: "0.85rem" }}
-                    >
-                      Admin
-                    </MenuItem>,
-                    <MenuItem
-                      key="manager"
-                      value="manager"
-                      sx={{ fontSize: "0.85rem" }}
-                    >
-                      Manager
-                    </MenuItem>,
-                    <MenuItem
-                      key="customer"
-                      value="customer"
-                      sx={{ fontSize: "0.85rem" }}
-                    >
-                      Customer
-                    </MenuItem>,
-                  ]}
+                  <MenuItem
+                    key="admin"
+                    value="admin"
+                    sx={{ fontSize: "0.85rem" }}
+                  >
+                    Admin
+                  </MenuItem>,
+                  <MenuItem
+                    key="manager"
+                    value="manager"
+                    sx={{ fontSize: "0.85rem" }}
+                  >
+                    Manager
+                  </MenuItem>,
+                  <MenuItem
+                    key="customer"
+                    value="customer"
+                    sx={{ fontSize: "0.85rem" }}
+                  >
+                    Customer
+                  </MenuItem>,
+                ]}
             </Select>
           </FormControl>
         )}
@@ -165,30 +165,30 @@ const MobileSearchBar = ({
               </MenuItem>
               {statusOptions.length > 0
                 ? statusOptions.map((option) => (
-                    <MenuItem
-                      key={option.value}
-                      value={option.value}
-                      sx={{ fontSize: "0.85rem" }}
-                    >
-                      {option.label}
-                    </MenuItem>
-                  ))
+                  <MenuItem
+                    key={option.value}
+                    value={option.value}
+                    sx={{ fontSize: "0.85rem" }}
+                  >
+                    {option.label}
+                  </MenuItem>
+                ))
                 : [
-                    <MenuItem
-                      key="active"
-                      value="active"
-                      sx={{ fontSize: "0.85rem" }}
-                    >
-                      Active
-                    </MenuItem>,
-                    <MenuItem
-                      key="inactive"
-                      value="inactive"
-                      sx={{ fontSize: "0.85rem" }}
-                    >
-                      Inactive
-                    </MenuItem>,
-                  ]}
+                  <MenuItem
+                    key="active"
+                    value="active"
+                    sx={{ fontSize: "0.85rem" }}
+                  >
+                    Active
+                  </MenuItem>,
+                  <MenuItem
+                    key="inactive"
+                    value="inactive"
+                    sx={{ fontSize: "0.85rem" }}
+                  >
+                    Inactive
+                  </MenuItem>,
+                ]}
             </Select>
           </FormControl>
         )}

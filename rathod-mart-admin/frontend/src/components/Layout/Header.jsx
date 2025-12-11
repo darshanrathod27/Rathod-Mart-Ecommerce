@@ -14,6 +14,13 @@ import {
   Tooltip,
   useTheme,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
+  Divider,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -23,6 +30,7 @@ import {
   Logout,
   Search,
   Brightness6,
+  Warning,
 } from "@mui/icons-material";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useDispatch } from "react-redux";
@@ -41,6 +49,7 @@ const Header = ({
   const [anchorEl, setAnchorEl] = useState(null);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -89,12 +98,18 @@ const Header = ({
     setAnchorEl(null);
   };
 
-  // Updated logout: call backend, dispatch redux action, toast, navigate
-  const handleLogout = async () => {
+  // Open logout confirmation dialog
+  const handleLogoutClick = () => {
     handleClose();
+    setLogoutDialogOpen(true);
+  };
+
+  // Confirm logout: call backend, dispatch redux action, toast, navigate
+  const handleLogoutConfirm = async () => {
+    setLogoutDialogOpen(false);
     try {
-      await api.post("/users/admin-logout"); // Call the new admin-logout route
-      dispatch(logoutAction()); // update redux auth state
+      await api.post("/users/admin-logout");
+      dispatch(logoutAction());
       toast.success("Logged out successfully!");
       navigate("/login");
     } catch (err) {
@@ -305,93 +320,6 @@ const Header = ({
               transition={{ duration: 0.6, delay: 0.2, type: "spring" }}
               style={{ display: "flex", alignItems: "center", gap: 4 }}
             >
-              {/* Theme Toggle */}
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                <Tooltip title="Toggle Theme">
-                  <IconButton
-                    color="inherit"
-                    sx={{
-                      background: "rgba(76, 175, 80, 0.1)",
-                      "&:hover": {
-                        background: "rgba(76, 175, 80, 0.2)",
-                        transform: "translateY(-2px)",
-                      },
-                      transition: "all 0.3s ease",
-                    }}
-                  >
-                    <Brightness6 />
-                  </IconButton>
-                </Tooltip>
-              </motion.div>
-
-              {/* Notifications with Pulse Animation */}
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                <Tooltip title="Notifications">
-                  <IconButton
-                    color="inherit"
-                    sx={{
-                      background: "rgba(76, 175, 80, 0.1)",
-                      "&:hover": {
-                        background: "rgba(76, 175, 80, 0.2)",
-                        transform: "translateY(-2px)",
-                      },
-                      transition: "all 0.3s ease",
-                    }}
-                  >
-                    <Badge
-                      badgeContent={4}
-                      color="error"
-                      sx={{
-                        "& .MuiBadge-badge": {
-                          animation: "pulse 2s infinite",
-                          "@keyframes pulse": {
-                            "0%": {
-                              transform: "scale(1)",
-                            },
-                            "50%": {
-                              transform: "scale(1.2)",
-                            },
-                            "100%": {
-                              transform: "scale(1)",
-                            },
-                          },
-                        },
-                      }}
-                    >
-                      <Notifications />
-                    </Badge>
-                  </IconButton>
-                </Tooltip>
-              </motion.div>
-
-              {/* Settings */}
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-                <Tooltip title="Settings">
-                  <IconButton
-                    color="inherit"
-                    sx={{
-                      background: "rgba(76, 175, 80, 0.1)",
-                      "&:hover": {
-                        background: "rgba(76, 175, 80, 0.2)",
-                        transform: "translateY(-2px)",
-                      },
-                      transition: "all 0.3s ease",
-                    }}
-                  >
-                    <motion.div
-                      animate={{ rotate: [0, 180, 360] }}
-                      transition={{
-                        duration: 8,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                    >
-                      <Settings />
-                    </motion.div>
-                  </IconButton>
-                </Tooltip>
-              </motion.div>
-
               {/* Profile Avatar */}
               <motion.div
                 whileHover={{ scale: 1.05 }}
@@ -405,7 +333,6 @@ const Header = ({
                     aria-haspopup="true"
                     onClick={handleMenu}
                     color="inherit"
-                    sx={{ ml: 1 }}
                   >
                     <Avatar
                       sx={{
@@ -484,7 +411,7 @@ const Header = ({
                   Settings
                 </MenuItem>
                 <MenuItem
-                  onClick={handleLogout}
+                  onClick={handleLogoutClick}
                   sx={{
                     "&:hover": {
                       background: "rgba(244, 67, 54, 0.1)",
@@ -501,6 +428,58 @@ const Header = ({
           </Toolbar>
         </Paper>
       </motion.div>
+
+      {/* Logout Confirmation Dialog */}
+      <Dialog
+        open={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            minWidth: { xs: "90%", sm: 400 },
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            pb: 1,
+          }}
+        >
+          <Warning color="warning" />
+          <Typography variant="h6" fontWeight={700}>
+            Confirm Logout
+          </Typography>
+        </DialogTitle>
+        <Divider />
+        <DialogContent sx={{ pt: 2 }}>
+          <DialogContentText>
+            Are you sure you want to logout from the admin panel? You will need to login again to access the dashboard.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            onClick={() => setLogoutDialogOpen(false)}
+            variant="outlined"
+            color="inherit"
+            sx={{ borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleLogoutConfirm}
+            variant="contained"
+            color="error"
+            startIcon={<Logout />}
+            sx={{ borderRadius: 2 }}
+          >
+            Logout
+          </Button>
+        </DialogActions>
+      </Dialog>
     </motion.div>
   );
 };

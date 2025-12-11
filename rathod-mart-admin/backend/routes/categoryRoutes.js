@@ -3,7 +3,7 @@ import express from "express";
 import { body, param, validationResult } from "express-validator";
 
 // Auth middlewares for protected/admin routes
-import { protect, admin } from "../middleware/authMiddleware.js";
+import { protectAdmin, admin } from "../middleware/authMiddleware.js";
 
 // Controller functions (including recountAllCategories and fixCategoryIcons)
 import {
@@ -57,13 +57,13 @@ router.get("/", getCategories);
 // Admin-only: recount all category product counts (repair/fix route)
 router.get(
   "/admin/recount-all",
-  protect, // user must be authenticated
+  protectAdmin, // admin must be authenticated via admin_jwt cookie
   admin, // user must be admin
   recountAllCategories
 );
 
 // Admin-only: fix all category icons/colors
-router.get("/admin/fix-icons", protect, admin, fixCategoryIcons);
+router.get("/admin/fix-icons", protectAdmin, admin, fixCategoryIcons);
 
 // Create
 router.post("/", createRules, validate, createCategory);

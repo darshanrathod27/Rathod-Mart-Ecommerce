@@ -6,6 +6,7 @@ import Footer from "./Footer";
 import CartDrawer from "../cart/CartDrawer";
 import WishlistDrawer from "../wishlist/WishlistDrawer";
 import ScrollRestoration from "./ScrollRestoration";
+import MobileBottomNav from "./MobileBottomNav";
 
 /**
  * MainLayout Component
@@ -30,9 +31,9 @@ const MainLayout = () => {
       sx={{
         display: "flex",
         flexDirection: "column",
-        minHeight: "100vh",
+        height: "100vh",
         width: "100%",
-        overflowX: "hidden", // Prevent horizontal scroll
+        overflow: "hidden",
         position: "relative",
       }}
     >
@@ -42,7 +43,7 @@ const MainLayout = () => {
       {/* Navbar - Hidden on checkout page */}
       {!isCheckoutPage && <Navbar />}
 
-      {/* Main Content Area */}
+      {/* Main Content Area - This is where scrolling happens */}
       <Box
         component="main"
         sx={{
@@ -52,21 +53,27 @@ const MainLayout = () => {
           mt: isCheckoutPage
             ? 0
             : {
-                xs: "56px", // Mobile navbar height
-                md: "74px", // Desktop navbar height
-              },
-          // Ensure no horizontal overflow
-          maxWidth: "100vw",
+              xs: "56px", // Mobile navbar height
+              md: "74px", // Desktop navbar height
+            },
+          // 📱 Bottom padding for mobile bottom nav
+          pb: !isCheckoutPage && isMobile ? "80px" : 0,
+          // Enable scrolling ONLY in this container
+          overflowY: "auto",
           overflowX: "hidden",
-          position: "relative",
+          // Smooth scrolling
+          scrollBehavior: "smooth",
         }}
       >
         {/* This is where page content renders (Home, ProductDetails, etc.) */}
         <Outlet />
+
+        {/* Footer - Now inside scrollable content so it scrolls with page */}
+        {!isCheckoutPage && <Footer />}
       </Box>
 
-      {/* Footer - Hidden on checkout page */}
-      {!isCheckoutPage && <Footer />}
+      {/* 📱 Mobile Bottom Navigation */}
+      {!isCheckoutPage && <MobileBottomNav />}
 
       {/* Cart and Wishlist Drawers - Always mounted but controlled by context */}
       <CartDrawer />
@@ -76,3 +83,4 @@ const MainLayout = () => {
 };
 
 export default MainLayout;
+

@@ -1,8 +1,9 @@
 // backend/routes/userRoutes.js
 import express from "express";
+import passport from "passport";
 import { body, param, validationResult } from "express-validator";
-// import { uploadProfile } from "../middleware/imageUpload.js"; // REMOVED: Direct Upload Used
 import { protect, protectAdmin, admin } from "../middleware/authMiddleware.js";
+import generateToken from "../utils/generateToken.js";
 
 import {
   createUser,
@@ -63,11 +64,35 @@ router.post("/register", registerUser);
 router.post("/logout", logoutUser);
 router.post("/admin-logout", logoutAdmin);
 
+// -------------------- GOOGLE OAUTH ROUTES --------------------
+// Initiate Google OAuth
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+// Google OAuth Callback
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: `${process.env.FRONTEND_URL || "http://localhost:3000"}/login?error=google_auth_failed`,
+  }),
+  (req, res) => {
+    // Generate JWT token for the user
+    generateToken(res, req.user._id, "jwt");
+
+    // Redirect to frontend with success
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    res.redirect(`${frontendUrl}/?google_auth=success`);
+  }
+);
+
 // -------------------- CUSTOMER PROFILE ROUTES (Protected) --------------------
 router
   .route("/profile")
   .get(protect, getUserProfile)
-  .put(protect, updateUserProfile); // Removed uploadProfile middleware
+  .put(protect, updateUserProfile);
 
 // -------------------- ADMIN PROFILE ROUTE ------------------
 router.route("/admin-profile").get(protectAdmin, getUserProfile);
@@ -76,7 +101,7 @@ router.route("/admin-profile").get(protectAdmin, getUserProfile);
 router.route("/").get(protectAdmin, admin, getUsers).post(
   protectAdmin,
   admin,
-  createUserRules, // Removed uploadProfile middleware
+  createUserRules,
   validate,
   createUser
 );
@@ -87,10 +112,11 @@ router
   .put(
     protectAdmin,
     admin,
-    updateUserRules, // Removed uploadProfile middleware
+    updateUserRules,
     validate,
     updateUser
   )
   .delete(protectAdmin, admin, idParamRule, validate, deleteUser);
 
 export default router;
+

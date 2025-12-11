@@ -62,7 +62,7 @@ const CategoryProducts = () => {
     }
   };
 
-  // Fetch Data
+  // Fetch Data - Now sends all filters to API
   useEffect(() => {
     let mounted = true;
     const fetchData = async () => {
@@ -70,30 +70,44 @@ const CategoryProducts = () => {
       setErr(null);
       try {
         const { sortBy, sortOrder } = sortMapping(filters.sortBy);
-        const params = { limit: 120, sortBy, sortOrder };
+        const params = { limit: 200, sortBy, sortOrder };
 
         if (isTrendingPage) {
           params.trending = "true";
           setCategoryName("Trending Products");
         } else if (categoryId) {
           params.category = categoryId;
-          // We'll fetch category name via side effect or rely on product data
         } else {
           setCategoryName("All Products");
         }
 
-        // Apply filters to API call
-        if (filters.brands?.length) params.brands = filters.brands;
-        if (Array.isArray(filters.priceRange)) {
+        // ✅ Send ALL filter params to API
+        if (filters.brands?.length) {
+          params.brand = filters.brands.join(",");
+        }
+        if (Array.isArray(filters.priceRange) &&
+          (filters.priceRange[0] > 0 || filters.priceRange[1] < 100000)) {
           params.minPrice = filters.priceRange[0];
           params.maxPrice = filters.priceRange[1];
+        }
+        if (filters.ratings?.length) {
+          params.minRating = Math.min(...filters.ratings);
+        }
+        if (filters.inStock) {
+          params.inStock = "true";
         }
 
         const data = await api.fetchProducts(params);
 
         if (mounted) {
-          setAllProducts(data);
-          // If filtering by category ID, grab name from first product
+          // Client-side discount filtering (API doesn't support it yet)
+          let filtered = data;
+          if (filters.discounts?.length) {
+            const minDiscount = Math.min(...filters.discounts);
+            filtered = data.filter((p) => (p.discountPercent || 0) >= minDiscount);
+          }
+          setAllProducts(filtered);
+
           if (categoryId && data.length > 0 && !isTrendingPage) {
             setCategoryName(data[0].category?.name || "Category");
           }
@@ -115,28 +129,15 @@ const CategoryProducts = () => {
     filters.sortBy,
     filters.brands,
     filters.priceRange,
+    filters.ratings,
+    filters.discounts,
+    filters.inStock,
   ]);
 
-  // Client-side filtering (for things API might not cover yet perfectly)
+  // Filtered products - most filtering is now done by API
   const filteredProducts = useMemo(() => {
-    let list = Array.isArray(allProducts) ? [...allProducts] : [];
-
-    if (filters.ratings?.length) {
-      const minRating = Math.min(...filters.ratings);
-      list = list.filter((p) => (p.rating || 0) >= minRating);
-    }
-
-    if (filters.discounts?.length) {
-      const minDiscount = Math.min(...filters.discounts);
-      list = list.filter((p) => (p.discountPercent || 0) >= minDiscount);
-    }
-
-    if (filters.inStock) {
-      list = list.filter((p) => (p.totalStock || p.stock || 0) > 0);
-    }
-
-    return list;
-  }, [allProducts, filters]);
+    return Array.isArray(allProducts) ? allProducts : [];
+  }, [allProducts]);
 
   const handleApplyFilters = (newFilters) => setFilters(newFilters);
 
@@ -254,7 +255,7 @@ const CategoryProducts = () => {
         )}
       </Container>
 
-      {/* Filter FAB */}
+      {/* Filter FAB - Hidden on mobile (MobileBottomNav provides filter for mobile) */}
       <Fab
         color="primary"
         onClick={() => setIsFilterOpen(true)}
@@ -264,6 +265,8 @@ const CategoryProducts = () => {
           left: 30,
           background: "linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)",
           zIndex: 1000,
+          // Hide on mobile - MobileBottomNav has its own filter button
+          display: { xs: "none", md: "flex" },
         }}
       >
         <FilterList />

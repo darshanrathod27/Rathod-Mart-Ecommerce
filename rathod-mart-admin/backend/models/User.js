@@ -47,8 +47,16 @@ const userSchema = new mongoose.Schema(
       default: "active",
       index: true,
     },
-    password: { type: String, required: true, select: false },
-    profileImage: { type: String, default: "" }, // e.g. /uploads/profile/xxx.jpg
+    password: { type: String, select: false }, // Not required for Google OAuth users
+    profileImage: { type: String, default: "" },
+
+    // --- Google OAuth Fields ---
+    googleId: { type: String, unique: true, sparse: true, index: true },
+    authProvider: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
   },
   { timestamps: true }
 );
@@ -68,12 +76,13 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
-// hash on save
+// hash on save (skip for Google OAuth users without password)
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+  if (!this.isModified("password") || !this.password) return next();
   const salt = await bcrypt.genSalt(12);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
 export default mongoose.model("User", userSchema);
+

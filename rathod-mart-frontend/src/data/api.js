@@ -80,16 +80,22 @@ const normalizeProduct = (raw = {}) => {
     ? primaryImg.fullUrl
     : getImageUrl(p.image) || "/images/placeholder.webp";
 
-  // 3. Separate General Images (Images NOT linked to any variant)
+  // 3. Create imagesUrls array with ALL image URLs (for gallery display)
+  p.imagesUrls = allImages.map((img) => img.fullUrl).filter(Boolean);
+
+  // 4. Separate General Images (Images NOT linked to any variant)
   // These are shown by default or if a variant has no specific images
-  p.generalImages = allImages
+  const generalOnlyImages = allImages
     .filter((img) => !img.variantId)
     .map((img) => img.fullUrl);
 
-  // Fallback: if no general images, use the main image
-  if (p.generalImages.length === 0 && p.image) {
-    p.generalImages = [p.image];
-  }
+  // CRITICAL FIX: If no general images, use ALL images as fallback
+  // This ensures multiple images show even if they're all linked to variants
+  p.generalImages = generalOnlyImages.length > 0
+    ? generalOnlyImages
+    : p.imagesUrls.length > 0
+      ? p.imagesUrls
+      : [p.image].filter(Boolean);
 
   // Normalize Stock
   p.stock = p.totalStock ?? p.stock ?? 0;
@@ -128,18 +134,18 @@ const normalizeProduct = (raw = {}) => {
     const colorObj = v.color
       ? typeof v.color === "object"
         ? {
-            name: v.color.name || v.color.colorName || "",
-            value: v.color.value || "",
-          }
+          name: v.color.name || v.color.colorName || "",
+          value: v.color.value || "",
+        }
         : { name: v.color, value: "" }
       : null;
 
     const sizeObj = v.size
       ? typeof v.size === "object"
         ? {
-            name: v.size.name || v.size.sizeName || "",
-            value: v.size.value || "",
-          }
+          name: v.size.name || v.size.sizeName || "",
+          value: v.size.value || "",
+        }
         : { name: v.size, value: "" }
       : null;
 
@@ -200,17 +206,17 @@ export const fetchProductVariants = async (productId) => {
       const color =
         v.color && typeof v.color === "object"
           ? {
-              name: v.color.colorName || v.color.name || "",
-              value: v.color.value || "",
-            }
+            name: v.color.colorName || v.color.name || "",
+            value: v.color.value || "",
+          }
           : { name: "N/A", value: "" };
 
       const size =
         v.size && typeof v.size === "object"
           ? {
-              name: v.size.sizeName || v.size.name || "",
-              value: v.size.value || "",
-            }
+            name: v.size.sizeName || v.size.name || "",
+            value: v.size.value || "",
+          }
           : { name: "N/A", value: "" };
 
       return {

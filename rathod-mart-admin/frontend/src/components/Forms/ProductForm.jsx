@@ -148,13 +148,13 @@ export default function ProductForm({
       basePrice: initialData?.basePrice ?? 0,
       discountPercentage:
         initialData &&
-        initialData.basePrice &&
-        initialData.discountPrice != null
+          initialData.basePrice &&
+          initialData.discountPrice != null
           ? Math.round(
-              ((initialData.basePrice - initialData.discountPrice) /
-                initialData.basePrice) *
-                100
-            )
+            ((initialData.basePrice - initialData.discountPrice) /
+              initialData.basePrice) *
+            100
+          )
           : "",
       discountPrice: initialData?.discountPrice ?? initialData?.basePrice ?? 0,
       status: initialData?.status || "draft",
@@ -217,13 +217,13 @@ export default function ProductForm({
         basePrice: initialData?.basePrice ?? 0,
         discountPercentage:
           initialData &&
-          initialData.basePrice &&
-          initialData.discountPrice != null
+            initialData.basePrice &&
+            initialData.discountPrice != null
             ? Math.round(
-                ((initialData.basePrice - initialData.discountPrice) /
-                  initialData.basePrice) *
-                  100
-              )
+              ((initialData.basePrice - initialData.discountPrice) /
+                initialData.basePrice) *
+              100
+            )
             : "",
         discountPrice:
           initialData?.discountPrice ?? initialData?.basePrice ?? 0,
@@ -266,7 +266,7 @@ export default function ProductForm({
   const [showCrop, setShowCrop] = useState(false);
   const [cropSrc, setCropSrc] = useState(null); // current image URL for cropping
   const [pendingFile, setPendingFile] = useState(null); // current File object to crop
-  const [crop, setCrop] = useState({ unit: "%", width: 50, aspect: 1 });
+  const [crop, setCrop] = useState({ unit: "%", width: 80, height: 80, x: 10, y: 10 }); // No fixed aspect - free resizing
   const [completedCrop, setCompletedCrop] = useState(null);
   const imgRef = useRef(null);
 
@@ -305,7 +305,7 @@ export default function ProductForm({
       setCropSrc(URL.createObjectURL(next));
       setShowCrop(true);
       // set default crop
-      setCrop({ unit: "%", width: 80, aspect: 1 });
+      setCrop({ unit: "%", width: 80, height: 80, x: 10, y: 10 }); // Free crop, no fixed aspect
       // don't remove from queue yet; removal happens after apply/cancel
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -352,7 +352,7 @@ export default function ProductForm({
       // cleanup and move to next queued file
       try {
         URL.revokeObjectURL(cropSrc);
-      } catch (e) {}
+      } catch (e) { }
       setShowCrop(false);
       setPendingFile(null);
       setCropSrc(null);
@@ -374,7 +374,7 @@ export default function ProductForm({
     // user cancelled cropping this image — skip it
     try {
       URL.revokeObjectURL(cropSrc);
-    } catch (e) {}
+    } catch (e) { }
     setShowCrop(false);
     setPendingFile(null);
     setCropSrc(null);
@@ -893,18 +893,18 @@ export default function ProductForm({
               name="status"
               control={control}
               render={({ field }) => (
-                <TextField
-                  {...field}
-                  select
-                  label="Status"
-                  fullWidth
-                  size="small"
-                  sx={textFieldStyles}
-                >
-                  <MenuItem value="draft">Draft</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                </TextField>
+                <FormControl fullWidth size="small" sx={textFieldStyles}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    {...field}
+                    label="Status"
+                    MenuProps={{ disablePortal: false }}
+                  >
+                    <MenuItem value="draft">Draft</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </FormControl>
               )}
             />
 
@@ -972,12 +972,12 @@ export default function ProductForm({
         {isUploading
           ? "Uploading..."
           : submitting
-          ? isEdit
-            ? "Updating..."
-            : "Saving..."
-          : isEdit
-          ? "Update Product"
-          : "Create Product"}
+            ? isEdit
+              ? "Updating..."
+              : "Saving..."
+            : isEdit
+              ? "Update Product"
+              : "Create Product"}
       </Button>
     </DialogActions>
   );
@@ -1007,19 +1007,23 @@ export default function ProductForm({
               }}
             >
               <ReactCrop
-                src={cropSrc}
                 crop={crop}
-                onImageLoaded={(img) => {
-                  imgRef.current = img;
-                }}
                 onChange={(newCrop) => setCrop(newCrop)}
                 onComplete={(c) => setCompletedCrop(c)}
                 keepSelection
-              />
+              >
+                <img
+                  ref={imgRef}
+                  src={cropSrc}
+                  alt="Crop"
+                  style={{ maxWidth: "100%", maxHeight: "60vh" }}
+                  crossOrigin="anonymous"
+                />
+              </ReactCrop>
             </Box>
 
             <Typography variant="caption" display="block" sx={{ mb: 1 }}>
-              Tip: drag handles to adjust crop. Aspect is set to 1:1 by default.
+              Tip: drag handles to adjust crop. You can resize freely (no fixed aspect).
             </Typography>
           </Box>
         ) : (
@@ -1103,7 +1107,7 @@ ProductForm.propTypes = {
 
 ProductForm.defaultProps = {
   initialData: null,
-  onCancel: () => {},
+  onCancel: () => { },
   categories: [],
   submitting: false,
   open: true,

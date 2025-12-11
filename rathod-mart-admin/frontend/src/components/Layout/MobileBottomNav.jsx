@@ -74,8 +74,8 @@ const MobileBottomNav = () => {
     {
       category: "Product Configuration",
       items: [
-        { label: "Size Mapping", value: "/size-mapping", icon: Straighten },
-        { label: "Color Mapping", value: "/color-mapping", icon: Palette },
+        { label: "Size Mapping", value: "/product-size-mapping", icon: Straighten },
+        { label: "Color Mapping", value: "/product-color-mapping", icon: Palette },
         { label: "Variant Master", value: "/variant-master", icon: Tune },
       ],
     },

@@ -106,6 +106,9 @@ export const getProducts = asyncHandler(async (req, res) => {
     featured,
     trending,
     isBestOffer,
+    brand,        // NEW: brand filter (comma-separated)
+    minRating,    // NEW: minimum rating filter
+    inStock,      // NEW: in stock only filter
   } = req.query;
 
   const q = { isDeleted: { $ne: true } };
@@ -117,6 +120,24 @@ export const getProducts = asyncHandler(async (req, res) => {
   if (featured !== undefined) q.featured = String(featured) === "true";
   if (trending !== undefined) q.trending = String(trending) === "true";
   if (isBestOffer !== undefined) q.isBestOffer = String(isBestOffer) === "true";
+
+  // NEW: Brand filter (supports multiple brands comma-separated)
+  if (brand) {
+    const brands = brand.split(",").map(b => b.trim()).filter(Boolean);
+    if (brands.length > 0) {
+      q.brand = { $in: brands };
+    }
+  }
+
+  // NEW: Rating filter (minimum rating)
+  if (minRating) {
+    q.rating = { $gte: Number(minRating) };
+  }
+
+  // NEW: In stock filter
+  if (inStock === "true") {
+    q.totalStock = { $gt: 0 };
+  }
 
   if (minPrice || maxPrice) {
     q.basePrice = {};

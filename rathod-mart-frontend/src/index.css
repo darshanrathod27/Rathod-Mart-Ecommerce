@@ -6,14 +6,21 @@
   box-sizing: border-box;
 }
 
-html {
+html,
+body {
   scroll-behavior: smooth;
+  font-family: "Poppins", sans-serif;
+  background: #f1f8e9;
+  /* Prevent scrolling on root elements - scrolling happens in main content area */
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
 }
 
-body {
-  font-family: "Poppins", sans-serif;
-  overflow-x: hidden;
-  background: #f1f8e9;
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
 }
 
 /* Custom Scrollbar */
@@ -87,6 +94,7 @@ body {
   0% {
     background-position: -1000px 0;
   }
+
   100% {
     background-position: 1000px 0;
   }
@@ -108,6 +116,7 @@ body {
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

@@ -305,7 +305,6 @@ const MobileProductCard = ({
               variant="caption"
               color="text.secondary"
               sx={{
-                display: "block",
                 mt: 1.5,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -445,6 +444,7 @@ export default function Products() {
   // Desktop Menu
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [menuRow, setMenuRow] = useState(null);
+
 
   // --- Helpers ---
   const getImageUrl = (img) => {
@@ -808,94 +808,87 @@ export default function Products() {
         />
       ) : (
         /* --- Desktop Header --- */
-        <Card
-          sx={{
-            mb: 3,
-            borderRadius: 3,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-            background: "rgba(255, 255, 255, 0.9)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(76, 175, 80, 0.1)",
-          }}
-        >
-          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            <Stack spacing={2}>
-              {/* Top Row - Search and Add Button */}
-              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                {/* Search */}
-                <TextField
-                  placeholder="Search products..."
-                  size="small"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search />
-                      </InputAdornment>
-                    ),
-                    endAdornment: searchTerm && (
-                      <InputAdornment position="end">
-                        <IconButton
-                          size="small"
-                          onClick={() => setSearchTerm("")}
-                        >
-                          <Clear />
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ flexGrow: 1, minWidth: 200 }}
-                />
+        <Card sx={{ mb: 3 }}>
+          <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              {/* Search */}
+              <TextField
+                placeholder="Search products..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm && (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearchTerm("")}>
+                        <Clear fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ flexGrow: 1, minWidth: 240 }}
+                size="small"
+              />
 
-                {/* Add Button */}
-                <Button
-                  variant="contained"
-                  startIcon={<Add />}
-                  onClick={() => {
-                    setEditProduct(null);
-                    setOpenForm(true);
-                  }}
-                  sx={{ whiteSpace: "nowrap", height: 40 }}
+              {/* Category Filter */}
+              <Autocomplete
+                size="small"
+                sx={{ minWidth: 220 }}
+                options={categories}
+                getOptionLabel={(option) => option.name || ""}
+                value={filterCategory}
+                onChange={(event, newValue) => setFilterCategory(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Filter by Category"
+                    placeholder="Select category"
+                  />
+                )}
+                isOptionEqualToValue={(option, value) =>
+                  option._id === value._id
+                }
+              />
+
+              {/* Status Filter */}
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  label="Status"
                 >
-                  Add Product
-                </Button>
-              </Box>
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="active">Active</MenuItem>
+                  <MenuItem value="draft">Draft</MenuItem>
+                  <MenuItem value="inactive">Inactive</MenuItem>
+                </Select>
+              </FormControl>
 
-              {/* Filters Row */}
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                {/* Category Filter */}
-                <Autocomplete
-                  size="small"
-                  options={categories}
-                  getOptionLabel={(option) => option.name || ""}
-                  value={filterCategory}
-                  onChange={(event, newValue) => setFilterCategory(newValue)}
-                  renderInput={(params) => (
-                    <TextField {...params} label="Filter by Category" />
-                  )}
-                  isOptionEqualToValue={(option, value) =>
-                    option._id === value._id
-                  }
-                  sx={{ flex: 1, minWidth: 200 }}
-                />
-
-                {/* Status Filter */}
-                <FormControl size="small" sx={{ flex: 1, minWidth: 150 }}>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={filterStatus}
-                    label="Status"
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                  >
-                    <MenuItem value="">All Status</MenuItem>
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="draft">Draft</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
-                  </Select>
-                </FormControl>
-              </Stack>
-            </Stack>
+              {/* Add Button */}
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={() => {
+                  setEditProduct(null);
+                  setOpenForm(true);
+                }}
+                sx={{ whiteSpace: "nowrap", height: 40 }}
+              >
+                Add Product
+              </Button>
+            </Box>
           </CardContent>
         </Card>
       )}

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { categoryService } from "../services/categoryService";
 import MobileSearchBar from "../components/Common/MobileSearchBar";
-import MobileTable from "../components/Common/MobileTable";
+import DynamicResponsiveTable from "../components/Shared/DynamicResponsiveTable";
 import {
   Box,
   Button,
@@ -27,7 +27,6 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { DataGrid } from "@mui/x-data-grid";
 import {
   Add,
   Search,
@@ -44,7 +43,16 @@ import toast from "react-hot-toast";
 import { useDebounce } from "../hooks/useDebounce";
 
 const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
-  <Dialog open={open} onClose={onClose}>
+  <Dialog
+    open={open}
+    onClose={onClose}
+    PaperProps={{
+      sx: {
+        borderRadius: 3,
+        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
+      },
+    }}
+  >
     <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
       <Warning color="error" /> Confirm Deletion
     </DialogTitle>
@@ -54,11 +62,11 @@ const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
         This action cannot be undone.
       </DialogContentText>
     </DialogContent>
-    <DialogActions sx={{ p: 2 }}>
-      <Button onClick={onClose} variant="outlined" color="inherit">
+    <DialogActions sx={{ p: 2, gap: 1 }}>
+      <Button onClick={onClose} variant="outlined" color="inherit" sx={{ borderRadius: 2 }}>
         Cancel
       </Button>
-      <Button onClick={onConfirm} variant="contained" color="error">
+      <Button onClick={onConfirm} variant="contained" color="error" sx={{ borderRadius: 2 }}>
         Delete
       </Button>
     </DialogActions>
@@ -181,6 +189,7 @@ const Categories = () => {
     }
   };
 
+  // Column definitions (used by both desktop DataGrid and mobile cards)
   const columns = [
     {
       field: "icon",
@@ -190,10 +199,11 @@ const Categories = () => {
       renderCell: (params) => (
         <Avatar
           sx={{
-            bgcolor: params.row.color || "#1976d2",
-            width: 32,
-            height: 32,
-            fontSize: "1rem",
+            bgcolor: params.row.color || "#4CAF50",
+            width: 36,
+            height: 36,
+            fontSize: "1.1rem",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
           }}
         >
           {params.row.icon || "✨"}
@@ -228,7 +238,16 @@ const Categories = () => {
       align: "center",
       headerAlign: "center",
       renderCell: (p) => (
-        <Chip label={p.value || 0} size="small" variant="outlined" />
+        <Chip
+          label={p.value || 0}
+          size="small"
+          variant="outlined"
+          sx={{
+            fontWeight: 600,
+            borderColor: "primary.light",
+            color: "primary.main",
+          }}
+        />
       ),
     },
     {
@@ -242,7 +261,10 @@ const Categories = () => {
             String(p.value).toLowerCase() === "active" ? "success" : "default"
           }
           size="small"
-          sx={{ textTransform: "capitalize" }}
+          sx={{
+            textTransform: "capitalize",
+            fontWeight: 600,
+          }}
         />
       ),
     },
@@ -254,10 +276,10 @@ const Categories = () => {
         <Typography variant="caption">
           {p.value
             ? new Date(p.value).toLocaleDateString("en-IN", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
             : "-"}
         </Typography>
       ),
@@ -278,158 +300,134 @@ const Categories = () => {
     },
   ];
 
-  /* ---------- Mobile helpers ---------- */
-  const mobileColumns = [
-    { field: "icon", label: "Icon" },
-    { field: "name", label: "Name", primary: true },
-    { field: "description", label: "Description" },
-    { field: "productsCount", label: "Products" },
-    { field: "status", label: "Status" },
-    { field: "createdAt", label: "Created" },
-  ];
-
-  const handleMobileEdit = (row) => {
-    handleEdit(row);
-  };
-
-  const handleMobileDelete = (row) => {
-    confirmDelete(row);
-  };
-
-  const handleMobileRowClick = (row) => {
-    // Open edit modal on row click for categories (change as you prefer)
-    setEditItem(row);
-    setOpenModal(true);
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <Box sx={{ p: 3 }}>
-        {isMobile ? (
-          <>
-            <MobileSearchBar
-              searchValue={searchTerm}
-              onSearchChange={(e) => setSearchTerm(e.target.value)}
-              roleValue={""}
-              onRoleChange={() => {}}
-              statusValue={filterStatus}
-              onStatusChange={(e) => setFilterStatus(e.target.value)}
-              onAddClick={handleAdd}
-              addButtonText="Add Category"
-              searchPlaceholder="Search categories..."
-              rolePlaceholder="Category"
-              statusPlaceholder="Status"
-              showRole={false} // no role filter for categories
-            />
-
-            <MobileTable
-              data={rows}
-              columns={mobileColumns}
-              onEdit={handleMobileEdit}
-              onDelete={handleMobileDelete}
-              onRowClick={handleMobileRowClick}
-            />
-          </>
-        ) : (
-          <>
-            <Card sx={{ mb: 3 }}>
-              <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    gap: 2,
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <TextField
-                    placeholder="Search categories..."
-                    size="small"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Search fontSize="small" />
-                        </InputAdornment>
-                      ),
-                      endAdornment: searchTerm && (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => setSearchTerm("")}
-                          >
-                            <Clear fontSize="small" />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                    sx={{ flexGrow: 1, minWidth: 220 }}
-                  />
-
-                  <FormControl size="small" sx={{ minWidth: 150 }}>
-                    <InputLabel>Status</InputLabel>
-                    <Select
-                      value={filterStatus}
-                      label="Status"
-                      onChange={(e) => setFilterStatus(e.target.value)}
-                    >
-                      <MenuItem value="">All</MenuItem>
-                      <MenuItem value="active">Active</MenuItem>
-                      <MenuItem value="inactive">Inactive</MenuItem>
-                    </Select>
-                  </FormControl>
-
-                  <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={handleAdd}
-                    sx={{ whiteSpace: "nowrap", height: 40 }}
-                  >
-                    Add Category
-                  </Button>
-                </Box>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <DataGrid
-                rows={rows}
-                columns={columns}
-                getRowId={(row) => row._id}
-                rowCount={rowCount}
-                loading={loading}
-                paginationMode="server"
-                paginationModel={paginationModel}
-                onPaginationModelChange={setPaginationModel}
-                pageSizeOptions={[10, 20, 50]}
-                sortingMode="server"
-                sortModel={sortModel}
-                onSortModelChange={setSortModel}
-                disableRowSelectionOnClick
-                autoHeight
-                sx={{
-                  border: "none",
-                  "& .MuiDataGrid-columnHeaders": {
-                    backgroundColor: "rgba(76, 175, 80, 0.05)",
-                  },
-                }}
-              />
-            </Card>
-          </>
+      <Box sx={{ p: { xs: 0, md: 3 } }}>
+        {/* Mobile Search Bar */}
+        {isMobile && (
+          <MobileSearchBar
+            searchValue={searchTerm}
+            onSearchChange={(e) => setSearchTerm(e.target.value)}
+            roleValue={""}
+            onRoleChange={() => { }}
+            statusValue={filterStatus}
+            onStatusChange={(e) => setFilterStatus(e.target.value)}
+            onAddClick={handleAdd}
+            addButtonText="Add"
+            searchPlaceholder="Search categories..."
+            rolePlaceholder="Category"
+            statusPlaceholder="Status"
+            showRole={false}
+            statusOptions={[
+              { value: "active", label: "Active" },
+              { value: "inactive", label: "Inactive" },
+            ]}
+          />
         )}
 
+        {/* Desktop Search/Filter Bar */}
+        {!isMobile && (
+          <Card sx={{ mb: 3 }}>
+            <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 2,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                {/* Search */}
+                <TextField
+                  placeholder="Search categories..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search fontSize="small" />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchTerm && (
+                      <InputAdornment position="end">
+                        <IconButton size="small" onClick={() => setSearchTerm("")}>
+                          <Clear fontSize="small" />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{ flexGrow: 1, minWidth: 240 }}
+                  size="small"
+                />
+
+                {/* Status Filter */}
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    label="Status"
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {/* Add Button */}
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={handleAdd}
+                  sx={{ whiteSpace: "nowrap", height: 40 }}
+                >
+                  Add Category
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Responsive Table - Shows tiles on mobile, DataGrid on desktop */}
+        <DynamicResponsiveTable
+          rows={rows}
+          columns={columns}
+          loading={loading}
+          rowCount={rowCount}
+          paginationModel={paginationModel}
+          onPaginationModelChange={setPaginationModel}
+          pageSizeOptions={[10, 20, 50]}
+          sortModel={sortModel}
+          onSortModelChange={setSortModel}
+          onEdit={handleEdit}
+          onDelete={confirmDelete}
+          // Mobile card configuration
+          imageField="icon"
+          titleField="name"
+          subtitleField="description"
+          statusField="status"
+          searchTerm={debouncedSearch}
+          showToolbar={false}
+        />
+
+        {/* Action Menu (Desktop) */}
         <Menu
           anchorEl={anchorEl}
           open={Boolean(anchorEl)}
           onClose={handleMenuClose}
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+            },
+          }}
         >
           <MenuItem onClick={() => handleEdit(selectedRow)}>
-            <Edit sx={{ mr: 1, fontSize: 20 }} /> Edit
+            <Edit sx={{ mr: 1, fontSize: 20, color: "primary.main" }} /> Edit
           </MenuItem>
           <MenuItem
             onClick={() => confirmDelete(selectedRow)}
@@ -439,6 +437,7 @@ const Categories = () => {
           </MenuItem>
         </Menu>
 
+        {/* Form Modal */}
         <FormModal
           open={openModal}
           onClose={() => setOpenModal(false)}
@@ -451,6 +450,7 @@ const Categories = () => {
           />
         </FormModal>
 
+        {/* Delete Confirmation */}
         <DeleteConfirmDialog
           open={deleteDialogOpen}
           onClose={() => setDeleteDialogOpen(false)}

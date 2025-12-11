@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Drawer,
   Box,
@@ -30,20 +30,19 @@ import {
   InventoryOutlined,
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
-import { categories, products } from "../../data/products";
+import api from "../../data/api";
 
-// Extract unique values from products
-const allBrands = [
-  ...new Set(products.map((p) => p.brand).filter(Boolean)),
-].sort();
+// Rating options are static
 const allRatings = [5, 4, 3, 2, 1];
-const minPrice = Math.min(...products.map((p) => p.price || 0));
-const maxPrice = Math.max(...products.map((p) => p.price || 100000));
+
+// Default price range (will be updated from API if needed)
+const defaultMinPrice = 0;
+const defaultMaxPrice = 100000;
 
 const defaultFilters = {
   categories: [],
   brands: [],
-  priceRange: [minPrice, maxPrice],
+  priceRange: [defaultMinPrice, defaultMaxPrice],
   ratings: [],
   discounts: [],
   inStock: false,
@@ -53,6 +52,40 @@ const defaultFilters = {
 const AdvancedFilterDrawer = ({ open, onClose, filters, setFilters }) => {
   const [tempFilters, setTempFilters] = useState(filters || defaultFilters);
   const [expanded, setExpanded] = useState(["categories", "price"]);
+
+  // Dynamic data from API
+  const [categories, setCategories] = useState([]);
+  const [allBrands, setAllBrands] = useState([]);
+
+  // Fetch categories and brands from API
+  useEffect(() => {
+    let mounted = true;
+
+    // Fetch categories
+    api.fetchCategories({ limit: 50 })
+      .then((data) => {
+        if (mounted) {
+          setCategories(data.map(cat => ({
+            id: cat.id || cat._id,
+            name: cat.name,
+            icon: cat.icon || "📦"
+          })));
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch categories for filter", err));
+
+    // Fetch some products to extract unique brands
+    api.fetchProducts({ limit: 100 })
+      .then((data) => {
+        if (mounted) {
+          const brands = [...new Set(data.map(p => p.brand).filter(Boolean))].sort();
+          setAllBrands(brands);
+        }
+      })
+      .catch((err) => console.warn("Failed to fetch brands for filter", err));
+
+    return () => { mounted = false; };
+  }, []);
 
   // Toggle handlers
   const toggleCategory = (id) => {
@@ -128,8 +161,8 @@ const AdvancedFilterDrawer = ({ open, onClose, filters, setFilters }) => {
     if (tempFilters.discounts.length > 0) count += tempFilters.discounts.length;
     if (tempFilters.inStock) count += 1;
     if (
-      tempFilters.priceRange[0] !== minPrice ||
-      tempFilters.priceRange[1] !== maxPrice
+      tempFilters.priceRange[0] !== defaultMinPrice ||
+      tempFilters.priceRange[1] !== defaultMaxPrice
     )
       count += 1;
     return count;
@@ -317,46 +350,135 @@ const AdvancedFilterDrawer = ({ open, onClose, filters, setFilters }) => {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <MonetizationOnOutlined sx={{ color: "#2E7D32", fontSize: 22 }} />
               <Typography sx={{ fontWeight: 700 }}>Price Range</Typography>
+              {(tempFilters.priceRange[0] > 0 || tempFilters.priceRange[1] < defaultMaxPrice) && (
+                <Chip
+                  size="small"
+                  label={`₹${tempFilters.priceRange[0].toLocaleString()} - ₹${tempFilters.priceRange[1].toLocaleString()}`}
+                  color="success"
+                  sx={{ ml: 1, fontWeight: 600 }}
+                />
+              )}
             </Box>
           </AccordionSummary>
           <AccordionDetails>
             <Box sx={{ px: 1 }}>
+              {/* Price Display */}
+              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">
+                  ₹{tempFilters.priceRange[0].toLocaleString()}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  ₹{tempFilters.priceRange[1].toLocaleString()}
+                </Typography>
+              </Box>
+
+              {/* Improved Slider */}
               <Slider
                 value={tempFilters.priceRange}
                 onChange={handlePriceChange}
                 valueLabelDisplay="auto"
-                min={minPrice}
-                max={maxPrice}
+                valueLabelFormat={(v) => `₹${v.toLocaleString()}`}
+                min={defaultMinPrice}
+                max={defaultMaxPrice}
+                step={500}
                 sx={{
                   color: "#2E7D32",
+                  height: 8,
                   "& .MuiSlider-thumb": {
-                    width: 20,
-                    height: 20,
-                    boxShadow: "0 2px 8px rgba(46,125,50,0.3)",
+                    width: 24,
+                    height: 24,
+                    backgroundColor: "#fff",
+                    border: "3px solid #2E7D32",
+                    boxShadow: "0 2px 10px rgba(46,125,50,0.3)",
+                    "&:hover, &.Mui-focusVisible": {
+                      boxShadow: "0 4px 15px rgba(46,125,50,0.4)",
+                    },
+                  },
+                  "& .MuiSlider-track": {
+                    background: "linear-gradient(90deg, #2E7D32, #4CAF50)",
+                    border: "none",
+                  },
+                  "& .MuiSlider-rail": {
+                    backgroundColor: "#e0e0e0",
+                  },
+                  "& .MuiSlider-valueLabel": {
+                    backgroundColor: "#2E7D32",
+                    borderRadius: 2,
                   },
                 }}
               />
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  mt: 2,
-                }}
-              >
+
+              {/* Editable Min/Max Inputs */}
+              <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2, gap: 2 }}>
                 <TextField
                   size="small"
-                  label="Min"
+                  label="Min Price"
+                  type="number"
                   value={tempFilters.priceRange[0]}
-                  InputProps={{ readOnly: true }}
-                  sx={{ width: "48%" }}
+                  onChange={(e) => {
+                    const val = Math.max(0, Math.min(Number(e.target.value) || 0, tempFilters.priceRange[1] - 100));
+                    setTempFilters({ ...tempFilters, priceRange: [val, tempFilters.priceRange[1]] });
+                  }}
+                  InputProps={{
+                    startAdornment: <Typography sx={{ mr: 0.5, color: "text.secondary" }}>₹</Typography>,
+                    inputProps: { min: 0, max: tempFilters.priceRange[1] }
+                  }}
+                  sx={{
+                    flex: 1,
+                    "& .MuiOutlinedInput-root": {
+                      "&.Mui-focused fieldset": { borderColor: "#2E7D32" },
+                    },
+                  }}
                 />
                 <TextField
                   size="small"
-                  label="Max"
+                  label="Max Price"
+                  type="number"
                   value={tempFilters.priceRange[1]}
-                  InputProps={{ readOnly: true }}
-                  sx={{ width: "48%" }}
+                  onChange={(e) => {
+                    const val = Math.max(tempFilters.priceRange[0] + 100, Math.min(Number(e.target.value) || 0, defaultMaxPrice));
+                    setTempFilters({ ...tempFilters, priceRange: [tempFilters.priceRange[0], val] });
+                  }}
+                  InputProps={{
+                    startAdornment: <Typography sx={{ mr: 0.5, color: "text.secondary" }}>₹</Typography>,
+                    inputProps: { min: tempFilters.priceRange[0], max: defaultMaxPrice }
+                  }}
+                  sx={{
+                    flex: 1,
+                    "& .MuiOutlinedInput-root": {
+                      "&.Mui-focused fieldset": { borderColor: "#2E7D32" },
+                    },
+                  }}
                 />
+              </Box>
+
+              {/* Quick Price Presets */}
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 2 }}>
+                {[
+                  { label: "Under ₹500", range: [0, 500] },
+                  { label: "₹500 - ₹2000", range: [500, 2000] },
+                  { label: "₹2000 - ₹5000", range: [2000, 5000] },
+                  { label: "₹5000+", range: [5000, 100000] },
+                ].map(({ label, range }) => (
+                  <Chip
+                    key={label}
+                    label={label}
+                    size="small"
+                    clickable
+                    onClick={() => setTempFilters({ ...tempFilters, priceRange: range })}
+                    color={
+                      tempFilters.priceRange[0] === range[0] && tempFilters.priceRange[1] === range[1]
+                        ? "success"
+                        : "default"
+                    }
+                    variant={
+                      tempFilters.priceRange[0] === range[0] && tempFilters.priceRange[1] === range[1]
+                        ? "filled"
+                        : "outlined"
+                    }
+                    sx={{ fontWeight: 600, fontSize: "0.75rem" }}
+                  />
+                ))}
               </Box>
             </Box>
           </AccordionDetails>

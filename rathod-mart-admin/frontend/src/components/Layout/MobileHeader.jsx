@@ -230,53 +230,6 @@ const MobileHeader = ({ sidebarOpen, toggleSidebar }) => {
 
             {/* Action Buttons */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-              {/* Search Button */}
-              <motion.div whileTap={{ scale: 0.9 }}>
-                <IconButton
-                  color="inherit"
-                  size="medium"
-                  sx={{
-                    color: "#FFFFFF",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    "&:hover": {
-                      background: "rgba(255, 255, 255, 0.2)",
-                    },
-                  }}
-                >
-                  <Search fontSize="small" />
-                </IconButton>
-              </motion.div>
-
-              {/* Notifications */}
-              <motion.div whileTap={{ scale: 0.9 }}>
-                <IconButton
-                  color="inherit"
-                  size="medium"
-                  sx={{
-                    color: "#FFFFFF",
-                    background: "rgba(255, 255, 255, 0.12)",
-                    "&:hover": {
-                      background: "rgba(255, 255, 255, 0.2)",
-                    },
-                  }}
-                >
-                  <Badge
-                    badgeContent={3}
-                    color="error"
-                    sx={{
-                      "& .MuiBadge-badge": {
-                        animation: "pulse 2s infinite",
-                        "@keyframes pulse": {
-                          "0%, 100%": { transform: "scale(1)" },
-                          "50%": { transform: "scale(1.1)" },
-                        },
-                      },
-                    }}
-                  >
-                    <Notifications fontSize="small" />
-                  </Badge>
-                </IconButton>
-              </motion.div>
 
               {/* Profile Avatar */}
               <motion.div whileTap={{ scale: 0.95 }}>

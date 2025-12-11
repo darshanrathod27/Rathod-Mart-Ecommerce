@@ -20,6 +20,11 @@ import {
   ListItem,
   Container,
   Avatar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import {
   ShoppingCart,
@@ -34,6 +39,7 @@ import {
   Home as HomeIcon,
   Logout as LogoutIcon,
   Settings,
+  Warning,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
@@ -73,6 +79,7 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeLink, setActiveLink] = useState(location.pathname);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   // Filter State
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -131,8 +138,15 @@ const Navbar = () => {
     navigate("/", { state: { filters: newFilters, applyFilters: true } });
   };
 
-  const handleLogout = async () => {
+  // Open logout confirmation dialog
+  const handleLogoutClick = () => {
     setUserMenuAnchor(null);
+    setLogoutDialogOpen(true);
+  };
+
+  // Confirm logout
+  const handleLogoutConfirm = async () => {
+    setLogoutDialogOpen(false);
     try {
       await api.post("/users/logout");
       dispatch(logoutAction());
@@ -151,6 +165,12 @@ const Navbar = () => {
       action: () => navigate("/"),
     },
     {
+      name: "Shop",
+      path: "/products",
+      icon: <Store />,
+      action: () => navigate("/products"),
+    },
+    {
       name: "Categories",
       icon: <Category />,
       action: (e) => setCategoryMenuAnchor(e.currentTarget),
@@ -162,19 +182,24 @@ const Navbar = () => {
     },
   ];
 
+  // 📍 Determine if current page should show filter button
+  const isFilterPage = location.pathname === "/products" ||
+    location.pathname === "/category" ||
+    location.pathname.startsWith("/category");
+
   return (
     <>
       <AppBar
         position="fixed"
         sx={{
-          background: isScrolled
-            ? "linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%)"
-            : "linear-gradient(135deg, #2E7D32 0%, #00BFA5 100%)",
-          transition: "background 0.4s ease-in-out, box-shadow 0.3s ease",
-          boxShadow: isScrolled ? "0px 4px 20px rgba(0, 0, 0, 0.2)" : "none",
+          // Keep same gradient always - no color change on scroll
+          background: "linear-gradient(135deg, #2E7D32 0%, #00BFA5 100%)",
+          transition: "box-shadow 0.3s ease",
+          boxShadow: isScrolled ? "0px 4px 20px rgba(0, 0, 0, 0.15)" : "none",
           borderBottom: "1px solid",
           borderColor: "rgba(255,255,255,0.1)",
           backdropFilter: "blur(10px)",
+          zIndex: 1300, // Higher than scrollbar to prevent overlap
         }}
       >
         <Container maxWidth="xl">
@@ -273,7 +298,7 @@ const Navbar = () => {
             {/* Spacer for Desktop */}
             {!isMobile && <Box sx={{ flexGrow: 1 }} />}
 
-            {/* 🎯 Right Action Icons - Fully Responsive */}
+            {/* 🎯 Right Action Icons - Desktop Only major icons, mobile simplified */}
             <Box
               sx={{
                 display: "flex",
@@ -282,85 +307,135 @@ const Navbar = () => {
                 gap: { xs: 0.5, sm: 1, md: 1.5 },
               }}
             >
-              {/* 🔧 Filter Button */}
-              <Tooltip title="Filters">
-                <IconButton
-                  onClick={() => setIsFilterOpen(true)}
-                  sx={{
-                    color: "#fff",
-                    bgcolor: "rgba(255,255,255,0.1)",
-                    // 📱 Touch-friendly size (minimum 44x44px)
-                    minWidth: { xs: 44, md: 40 },
-                    minHeight: { xs: 44, md: 40 },
-                    p: { xs: 1, md: 1 },
-                    "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
-                  }}
-                >
-                  <FilterList sx={{ fontSize: { xs: 20, md: 24 } }} />
-                </IconButton>
-              </Tooltip>
-
-              {/* ❤️ Wishlist Icon */}
-              <Tooltip title="Wishlist">
-                <IconButton
-                  onClick={openWishlist}
-                  sx={{
-                    color: "#fff",
-                    // 📱 Responsive Padding
-                    p: { xs: 0.75, md: 1 },
-                    // 📱 Touch-friendly size
-                    minWidth: { xs: 44, md: 40 },
-                    minHeight: { xs: 44, md: 40 },
-                  }}
-                >
-                  <Badge
-                    badgeContent={wishlistItemCount}
-                    color="error"
-                    // 📱 Smaller badge on mobile
+              {/* 🔧 Filter Button - Desktop Only, Only on filter pages */}
+              {!isMobile && isFilterPage && (
+                <Tooltip title="Filters">
+                  <IconButton
+                    onClick={() => setIsFilterOpen(true)}
                     sx={{
-                      "& .MuiBadge-badge": {
-                        fontSize: { xs: "0.65rem", md: "0.75rem" },
-                        minWidth: { xs: 16, md: 20 },
-                        height: { xs: 16, md: 20 },
+                      color: "#fff",
+                      bgcolor: "rgba(255,255,255,0.15)",
+                      minWidth: 44,
+                      minHeight: 44,
+                      p: 1,
+                      borderRadius: 2,
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        bgcolor: "rgba(255,255,255,0.25)",
+                        transform: "scale(1.05)",
                       },
                     }}
                   >
-                    {/* 📱 Responsive Icon Size */}
-                    <FavoriteBorder sx={{ fontSize: { xs: 20, md: 24 } }} />
-                  </Badge>
-                </IconButton>
-              </Tooltip>
+                    <FilterList sx={{ fontSize: 24 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
 
-              {/* 🛒 Cart Icon */}
-              <Tooltip title="Cart">
-                <IconButton
-                  onClick={openCart}
-                  sx={{
-                    color: "#fff",
-                    // 📱 Responsive Padding
-                    p: { xs: 0.75, md: 1 },
-                    // 📱 Touch-friendly size
-                    minWidth: { xs: 44, md: 40 },
-                    minHeight: { xs: 44, md: 40 },
-                  }}
-                >
-                  <Badge
-                    badgeContent={cartItemCount}
-                    color="warning"
-                    // 📱 Smaller badge on mobile
+              {/* ❤️ Wishlist Icon - Desktop Only */}
+              {!isMobile && (
+                <Tooltip title="Wishlist">
+                  <IconButton
+                    onClick={openWishlist}
                     sx={{
-                      "& .MuiBadge-badge": {
-                        fontSize: { xs: "0.65rem", md: "0.75rem" },
-                        minWidth: { xs: 16, md: 20 },
-                        height: { xs: 16, md: 20 },
+                      color: "#fff",
+                      p: 1.2,
+                      minWidth: 44,
+                      minHeight: 44,
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        transform: "scale(1.1)",
+                        bgcolor: "rgba(255,255,255,0.1)",
                       },
                     }}
                   >
-                    {/* 📱 Responsive Icon Size */}
-                    <ShoppingCart sx={{ fontSize: { xs: 20, md: 24 } }} />
-                  </Badge>
-                </IconButton>
-              </Tooltip>
+                    <Badge
+                      badgeContent={wishlistItemCount}
+                      sx={{
+                        "& .MuiBadge-badge": {
+                          fontSize: "0.7rem",
+                          minWidth: 18,
+                          height: 18,
+                          background: "linear-gradient(135deg, #e53935 0%, #ef5350 100%)",
+                          border: "2px solid rgba(255,255,255,0.3)",
+                        },
+                      }}
+                    >
+                      <FavoriteBorder sx={{ fontSize: 24 }} />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+              )}
+
+              {/* 🛒 Cart Icon - Desktop Only */}
+              {!isMobile && (
+                <Tooltip title="Cart">
+                  <IconButton
+                    onClick={openCart}
+                    sx={{
+                      color: "#fff",
+                      p: 1.2,
+                      minWidth: 44,
+                      minHeight: 44,
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        transform: "scale(1.1)",
+                        bgcolor: "rgba(255,255,255,0.1)",
+                      },
+                    }}
+                  >
+                    <Badge
+                      badgeContent={cartItemCount}
+                      sx={{
+                        "& .MuiBadge-badge": {
+                          fontSize: "0.7rem",
+                          minWidth: 18,
+                          height: 18,
+                          background: "linear-gradient(135deg, #ff9800 0%, #ffc107 100%)",
+                          color: "#000",
+                          fontWeight: 700,
+                          border: "2px solid rgba(255,255,255,0.3)",
+                        },
+                      }}
+                    >
+                      <ShoppingCart sx={{ fontSize: 24 }} />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+              )}
+
+              {/* ❤️ Wishlist Icon - Mobile Only (shows in bottom nav for desktop) */}
+              {isMobile && (
+                <Tooltip title="Wishlist">
+                  <IconButton
+                    onClick={openWishlist}
+                    sx={{
+                      color: "#fff",
+                      p: 0.75,
+                      minWidth: 40,
+                      minHeight: 40,
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        transform: "scale(1.1)",
+                      },
+                    }}
+                  >
+                    <Badge
+                      badgeContent={wishlistItemCount}
+                      sx={{
+                        "& .MuiBadge-badge": {
+                          fontSize: "0.6rem",
+                          minWidth: 15,
+                          height: 15,
+                          background: "linear-gradient(135deg, #e53935 0%, #ef5350 100%)",
+                          border: "1px solid rgba(255,255,255,0.5)",
+                        },
+                      }}
+                    >
+                      <FavoriteBorder sx={{ fontSize: 22 }} />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+              )}
 
               {/* 👤 Profile Icon */}
               <Tooltip title="Profile">
@@ -390,22 +465,6 @@ const Navbar = () => {
                   )}
                 </IconButton>
               </Tooltip>
-
-              {/* 📱 Mobile Menu Button (Show only on Mobile) */}
-              {isMobile && (
-                <IconButton
-                  onClick={() => setMobileOpen(true)}
-                  sx={{
-                    color: "#fff",
-                    // 📱 Touch-friendly size
-                    minWidth: 44,
-                    minHeight: 44,
-                    p: 1,
-                  }}
-                >
-                  <MenuIcon sx={{ fontSize: { xs: 24, md: 28 } }} />
-                </IconButton>
-              )}
             </Box>
           </Toolbar>
         </Container>
@@ -521,7 +580,7 @@ const Navbar = () => {
             color="primary"
             onClick={() => {
               if (isAuthenticated) {
-                handleLogout();
+                handleLogoutClick();
               } else {
                 navigate("/login");
               }
@@ -555,107 +614,107 @@ const Navbar = () => {
       >
         {isAuthenticated
           ? [
-              <MenuItem
-                key="prof"
-                onClick={() => {
-                  navigate("/profile");
-                  setUserMenuAnchor(null);
+            <MenuItem
+              key="prof"
+              onClick={() => {
+                navigate("/profile");
+                setUserMenuAnchor(null);
+              }}
+              sx={{
+                // 📱 Touch-friendly height
+                minHeight: { xs: 44, md: 40 },
+                py: { xs: 1.2, md: 1 },
+              }}
+            >
+              <ListItemIcon>
+                <AccountCircle fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Profile"
+                primaryTypographyProps={{
+                  fontSize: { xs: "0.9rem", md: "1rem" },
                 }}
-                sx={{
-                  // 📱 Touch-friendly height
-                  minHeight: { xs: 44, md: 40 },
-                  py: { xs: 1.2, md: 1 },
+              />
+            </MenuItem>,
+            <MenuItem
+              key="set"
+              onClick={() => {
+                navigate("/profile");
+                setUserMenuAnchor(null);
+              }}
+              sx={{
+                minHeight: { xs: 44, md: 40 },
+                py: { xs: 1.2, md: 1 },
+              }}
+            >
+              <ListItemIcon>
+                <Settings fontSize="small" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Settings"
+                primaryTypographyProps={{
+                  fontSize: { xs: "0.9rem", md: "1rem" },
                 }}
-              >
-                <ListItemIcon>
-                  <AccountCircle fontSize="small" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Profile"
-                  primaryTypographyProps={{
-                    fontSize: { xs: "0.9rem", md: "1rem" },
-                  }}
-                />
-              </MenuItem>,
-              <MenuItem
-                key="set"
-                onClick={() => {
-                  navigate("/profile");
-                  setUserMenuAnchor(null);
+              />
+            </MenuItem>,
+            <Divider key="div" />,
+            <MenuItem
+              key="out"
+              onClick={handleLogoutClick}
+              sx={{
+                minHeight: { xs: 44, md: 40 },
+                py: { xs: 1.2, md: 1 },
+              }}
+            >
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" color="error" />
+              </ListItemIcon>
+              <ListItemText
+                primary="Logout"
+                primaryTypographyProps={{
+                  fontSize: { xs: "0.9rem", md: "1rem" },
                 }}
-                sx={{
-                  minHeight: { xs: 44, md: 40 },
-                  py: { xs: 1.2, md: 1 },
-                }}
-              >
-                <ListItemIcon>
-                  <Settings fontSize="small" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Settings"
-                  primaryTypographyProps={{
-                    fontSize: { xs: "0.9rem", md: "1rem" },
-                  }}
-                />
-              </MenuItem>,
-              <Divider key="div" />,
-              <MenuItem
-                key="out"
-                onClick={handleLogout}
-                sx={{
-                  minHeight: { xs: 44, md: 40 },
-                  py: { xs: 1.2, md: 1 },
-                }}
-              >
-                <ListItemIcon>
-                  <LogoutIcon fontSize="small" color="error" />
-                </ListItemIcon>
-                <ListItemText
-                  primary="Logout"
-                  primaryTypographyProps={{
-                    fontSize: { xs: "0.9rem", md: "1rem" },
-                  }}
-                />
-              </MenuItem>,
-            ]
+              />
+            </MenuItem>,
+          ]
           : [
-              <MenuItem
-                key="in"
-                onClick={() => {
-                  navigate("/login");
-                  setUserMenuAnchor(null);
+            <MenuItem
+              key="in"
+              onClick={() => {
+                navigate("/login");
+                setUserMenuAnchor(null);
+              }}
+              sx={{
+                minHeight: { xs: 44, md: 40 },
+                py: { xs: 1.2, md: 1 },
+              }}
+            >
+              <ListItemText
+                primary="Login"
+                primaryTypographyProps={{
+                  fontSize: { xs: "0.9rem", md: "1rem" },
                 }}
-                sx={{
-                  minHeight: { xs: 44, md: 40 },
-                  py: { xs: 1.2, md: 1 },
+              />
+            </MenuItem>,
+            <MenuItem
+              key="up"
+              onClick={() => {
+                navigate("/register");
+                setUserMenuAnchor(null);
+              }}
+              sx={{
+                minHeight: { xs: 44, md: 40 },
+                py: { xs: 1.2, md: 1 },
+              }}
+            >
+              <ListItemText
+                primary="Register"
+                primaryTypographyProps={{
+                  fontSize: { xs: "0.9rem", md: "1rem" },
                 }}
-              >
-                <ListItemText
-                  primary="Login"
-                  primaryTypographyProps={{
-                    fontSize: { xs: "0.9rem", md: "1rem" },
-                  }}
-                />
-              </MenuItem>,
-              <MenuItem
-                key="up"
-                onClick={() => {
-                  navigate("/register");
-                  setUserMenuAnchor(null);
-                }}
-                sx={{
-                  minHeight: { xs: 44, md: 40 },
-                  py: { xs: 1.2, md: 1 },
-                }}
-              >
-                <ListItemText
-                  primary="Register"
-                  primaryTypographyProps={{
-                    fontSize: { xs: "0.9rem", md: "1rem" },
-                  }}
-                />
-              </MenuItem>,
-            ]}
+              />
+            </MenuItem>,
+          ]}
       </Menu>
 
       {/* 📂 Category Menu */}
@@ -709,6 +768,58 @@ const Navbar = () => {
         setFilters={setFilters}
         onApplyFilters={handleApplyFilters}
       />
+
+      {/* 🔐 Logout Confirmation Dialog */}
+      <Dialog
+        open={logoutDialogOpen}
+        onClose={() => setLogoutDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            minWidth: { xs: "90%", sm: 400 },
+            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            pb: 1,
+          }}
+        >
+          <Warning color="warning" />
+          <Typography variant="h6" fontWeight={700}>
+            Confirm Logout
+          </Typography>
+        </DialogTitle>
+        <Divider />
+        <DialogContent sx={{ pt: 2 }}>
+          <DialogContentText>
+            Are you sure you want to logout? You will need to login again to access your account.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            onClick={() => setLogoutDialogOpen(false)}
+            variant="outlined"
+            color="inherit"
+            sx={{ borderRadius: 2 }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleLogoutConfirm}
+            variant="contained"
+            color="error"
+            startIcon={<LogoutIcon />}
+            sx={{ borderRadius: 2 }}
+          >
+            Logout
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
