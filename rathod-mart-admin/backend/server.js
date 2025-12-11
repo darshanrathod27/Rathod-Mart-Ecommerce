@@ -270,14 +270,11 @@ const startServer = async () => {
 
     // Start Express server
     app.listen(PORT, () => {
-      console.log("╔══════════════════════════════════════════════════╗");
-      console.log("║     🛒 RATHOD MART BACKEND SERVER                 ║");
-      console.log("╠══════════════════════════════════════════════════╣");
-      console.log(`║  ✅ Server:     http://localhost:${PORT}             ║`);
-      console.log(`║  📦 Mode:       ${isProduction ? "PRODUCTION" : "DEVELOPMENT"}                   ║`);
-      console.log(`║  🔐 Security:   Helmet + Rate Limiting            ║`);
-      console.log(`║  📊 Logging:    ${isProduction ? "Combined" : "Dev"} Mode                      ║`);
-      console.log("╚══════════════════════════════════════════════════╝");
+      console.log("");
+      console.log("🛒 Rathod Mart Backend Server");
+      console.log(`   Server:   http://localhost:${PORT}`);
+      console.log(`   Mode:     ${isProduction ? "Production" : "Development"}`);
+      console.log("");
 
       // Cloudinary Connection Check
       if (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY) {
