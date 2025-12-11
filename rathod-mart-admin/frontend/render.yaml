@@ -1,0 +1,22 @@
+# Render Blueprint for Rathod Mart Admin Frontend
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: static
+    name: rathod-mart-admin
+    env: static
+    branch: main
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    pullRequestPreviewsEnabled: false
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://rathod-mart-backend.onrender.com
