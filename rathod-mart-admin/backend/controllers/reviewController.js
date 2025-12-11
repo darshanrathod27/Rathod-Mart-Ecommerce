@@ -1,5 +1,5 @@
 // backend/controllers/reviewController.js
-import asyncHandler from "../utils/asyncHandler.js";
+import asyncHandler from "../middleware/asyncHandler.js";
 import Review from "../models/Review.js";
 import Product from "../models/Product.js";
 import mongoose from "mongoose";
