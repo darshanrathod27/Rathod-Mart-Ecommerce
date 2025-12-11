@@ -22,6 +22,8 @@ import {
   DialogContent,
   DialogActions,
   DialogContentText,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import {
@@ -34,11 +36,14 @@ import {
   Warning,
 } from "@mui/icons-material";
 import FormModal from "../components/Modals/FormModal";
-import VariantMasterForm from "../components/Forms/VariantMasterForm"; // Ensure correct import name
+import VariantMasterForm from "../components/Forms/VariantMasterForm";
+import DynamicResponsiveTable from "../components/Shared/DynamicResponsiveTable";
+import MobileSearchBar from "../components/Common/MobileSearchBar";
 import toast from "react-hot-toast";
 import { useDebounce } from "../hooks/useDebounce";
 import { variantMasterService } from "../services/variantMasterService";
 import { productService } from "../services/productService";
+
 
 const fmtDate = (d) => {
   const date = d || null;
@@ -78,6 +83,9 @@ const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
 );
 
 const VariantMaster = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   // Data
   const [variants, setVariants] = useState([]);
   const [products, setProducts] = useState([]);
@@ -314,108 +322,121 @@ const VariantMaster = () => {
   }
 
   return (
-    <Box sx={{ p: 2 }}>
-      {/* --- Header: Single Row --- */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
-            {/* Search */}
-            <TextField
-              placeholder="Search product, sku, size..."
-              size="small"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search fontSize="small" />
-                  </InputAdornment>
-                ),
-                endAdornment: searchTerm && (
-                  <InputAdornment position="end">
-                    <IconButton size="small" onClick={() => setSearchTerm("")}>
-                      <Clear fontSize="small" />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ flexGrow: 1, minWidth: 240 }}
-            />
-
-            {/* Filter: Product (Autocomplete) */}
-            <Autocomplete
-              size="small"
-              sx={{ minWidth: 220 }}
-              options={products}
-              getOptionLabel={(option) => option.name || ""}
-              value={filterProduct}
-              onChange={(event, newValue) => setFilterProduct(newValue)}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Filter By Product"
-                  placeholder="Select product"
-                />
-              )}
-              isOptionEqualToValue={(option, value) => option._id === value._id}
-            />
-
-            {/* Filter: Status */}
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                label="Status"
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
-              </Select>
-            </FormControl>
-
-            {/* Add Button */}
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={handleAdd}
-              sx={{ whiteSpace: "nowrap", height: 40 }}
-            >
-              Add Variant
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* --- Data Table --- */}
-      <Card>
-        <DataGrid
-          rows={Array.isArray(variants) ? variants : []}
-          columns={columns}
-          getRowId={(row) => row._id}
-          loading={loading}
-          rowCount={rowCount}
-          pageSizeOptions={[10, 20, 50]}
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          paginationMode="server"
-          disableRowSelectionOnClick
-          autoHeight
-          sx={{
-            border: "none",
-            "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: "rgba(76, 175, 80, 0.05)",
-            },
-          }}
+    <Box sx={{ p: { xs: 1, sm: 2 } }}>
+      {/* --- Mobile Search Bar --- */}
+      {isMobile ? (
+        <MobileSearchBar
+          searchValue={searchTerm}
+          onSearchChange={(e) => setSearchTerm(e.target.value)}
+          statusValue={filterStatus}
+          onStatusChange={(e) => setFilterStatus(e.target.value)}
+          onAddClick={handleAdd}
+          addButtonText="Add Variant"
+          searchPlaceholder="Search variants..."
+          showRole={false}
+          statusOptions={[
+            { value: "Active", label: "Active" },
+            { value: "Inactive", label: "Inactive" },
+          ]}
         />
-      </Card>
+      ) : (
+        /* --- Desktop Header: Single Row --- */
+        <Card sx={{ mb: 3 }}>
+          <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              {/* Search */}
+              <TextField
+                placeholder="Search product, sku, size..."
+                size="small"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchTerm && (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearchTerm("")}>
+                        <Clear fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ flexGrow: 1, minWidth: 240 }}
+              />
+
+              {/* Filter: Product (Autocomplete) */}
+              <Autocomplete
+                size="small"
+                sx={{ minWidth: 220 }}
+                options={products}
+                getOptionLabel={(option) => option.name || ""}
+                value={filterProduct}
+                onChange={(event, newValue) => setFilterProduct(newValue)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Filter By Product"
+                    placeholder="Select product"
+                  />
+                )}
+                isOptionEqualToValue={(option, value) => option._id === value._id}
+              />
+
+              {/* Filter: Status */}
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  label="Status"
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Inactive">Inactive</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Add Button */}
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={handleAdd}
+                sx={{ whiteSpace: "nowrap", height: 40 }}
+              >
+                Add Variant
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* --- Responsive Data Table --- */}
+      <DynamicResponsiveTable
+        rows={Array.isArray(variants) ? variants : []}
+        columns={columns}
+        loading={loading}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        pageSizeOptions={[10, 20, 50]}
+        onEdit={handleEdit}
+        onDelete={confirmDelete}
+        titleField="productName"
+        subtitleField="sizeName"
+        statusField="status"
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+      />
 
       {/* --- Menu & Modals --- */}
       <Menu

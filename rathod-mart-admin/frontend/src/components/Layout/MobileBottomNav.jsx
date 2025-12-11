@@ -56,7 +56,7 @@ const MobileBottomNav = () => {
 
   // Main Navigation Items (Bottom Bar)
   const navigationItems = [
-    { label: "Dashboard", value: "/", icon: Dashboard },
+    { label: "Inventory", value: "/inventory", icon: Warehouse },
     { label: "Users", value: "/users", icon: People, badge: 4 },
     { label: "Products", value: "/products", icon: Inventory },
     { label: "More", value: "more", icon: MoreHoriz, isMore: true },
@@ -94,8 +94,8 @@ const MobileBottomNav = () => {
   // Filter items based on search
   const filteredMenuItems = searchQuery
     ? allMenuItems.filter((item) =>
-        item.label.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      item.label.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : null;
 
   // Handle scroll visibility
@@ -124,7 +124,7 @@ const MobileBottomNav = () => {
   const getCurrentValue = () => {
     const currentPath = location.pathname;
     const item = navigationItems.find((item) => item.value === currentPath);
-    return item ? currentPath : "/";
+    return item ? currentPath : "/inventory";
   };
 
   const handleChange = (event, newValue) => {

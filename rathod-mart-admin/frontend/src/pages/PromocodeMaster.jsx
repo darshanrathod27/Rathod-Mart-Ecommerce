@@ -16,6 +16,8 @@ import {
   InputLabel,
   Select,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
 import {
@@ -28,24 +30,29 @@ import {
   LocalOffer,
 } from "@mui/icons-material";
 import FormModal from "../components/Modals/FormModal";
-import PromocodeForm from "../components/Forms/PromocodeForm"; // Import the new form
+import PromocodeForm from "../components/Forms/PromocodeForm";
+import DynamicResponsiveTable from "../components/Shared/DynamicResponsiveTable";
+import MobileSearchBar from "../components/Common/MobileSearchBar";
 import toast from "react-hot-toast";
 import { useDebounce } from "../hooks/useDebounce";
-import { promocodeService } from "../services/promocodeService"; // Import the new service
+import { promocodeService } from "../services/promocodeService";
 
 const fmtDate = (d) =>
   d
     ? new Date(d).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      })
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })
     : "—";
 
 const fmtCurrency = (n) => (n ? `₹${Number(n).toLocaleString("en-IN")}` : "—");
 const fmtPercentage = (n) => (n ? `${n}%` : "—");
 
 const PromocodeMaster = () => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -247,77 +254,93 @@ const PromocodeMaster = () => {
   }
 
   return (
-    <Box>
-      <Card sx={{ mb: 3 }}>
-        <CardContent>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              flexWrap: "wrap",
-              alignItems: "center",
-            }}
-          >
-            <TextField
-              placeholder="Search by code..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{ flexGrow: 1, minWidth: 250 }}
-              size="small"
-            />
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                label="Status"
-              >
-                <MenuItem value="">All</MenuItem>
-                <MenuItem value="Active">Active</MenuItem>
-                <MenuItem value="Inactive">Inactive</MenuItem>
-              </Select>
-            </FormControl>
-            <Button
-              variant="outlined"
-              startIcon={<FilterList />}
-              onClick={handleFilter}
-            >
-              Filter
-            </Button>
-            <Button variant="contained" startIcon={<Add />} onClick={handleAdd}>
-              Add Promocode
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <DataGrid
-          rows={rows}
-          columns={columns}
-          getRowId={(row) => row._id}
-          loading={loading}
-          rowCount={rowCount}
-          pageSizeOptions={[10, 20, 50]}
-          paginationModel={paginationModel}
-          onPaginationModelChange={setPaginationModel}
-          paginationMode="server"
-          disableRowSelectionOnClick
-          sx={{
-            border: "none",
-            "& .MuiDataGrid-columnHeaders": {
-              backgroundColor: "rgba(76, 175, 80, 0.05)",
-            },
-          }}
+    <Box sx={{ p: { xs: 1, sm: 2 } }}>
+      {/* --- Mobile Search Bar --- */}
+      {isMobile ? (
+        <MobileSearchBar
+          searchValue={searchTerm}
+          onSearchChange={(e) => setSearchTerm(e.target.value)}
+          statusValue={filterStatus}
+          onStatusChange={(e) => setFilterStatus(e.target.value)}
+          onAddClick={handleAdd}
+          addButtonText="Add Promocode"
+          searchPlaceholder="Search by code..."
+          showRole={false}
+          statusOptions={[
+            { value: "Active", label: "Active" },
+            { value: "Inactive", label: "Inactive" },
+          ]}
         />
-      </Card>
+      ) : (
+        /* --- Desktop Header --- */
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box
+              sx={{
+                display: "flex",
+                gap: 2,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <TextField
+                placeholder="Search by code..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ flexGrow: 1, minWidth: 250 }}
+                size="small"
+              />
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Status</InputLabel>
+                <Select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  label="Status"
+                >
+                  <MenuItem value="">All</MenuItem>
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Inactive">Inactive</MenuItem>
+                </Select>
+              </FormControl>
+              <Button
+                variant="outlined"
+                startIcon={<FilterList />}
+                onClick={handleFilter}
+              >
+                Filter
+              </Button>
+              <Button variant="contained" startIcon={<Add />} onClick={handleAdd}>
+                Add Promocode
+              </Button>
+            </Box>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* --- Responsive Data Table --- */}
+      <DynamicResponsiveTable
+        rows={rows}
+        columns={columns}
+        loading={loading}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={setPaginationModel}
+        pageSizeOptions={[10, 20, 50]}
+        onEdit={handleEdit}
+        onDelete={(row) => handleDelete(row?._id)}
+        titleField="code"
+        subtitleField="discountType"
+        statusField="status"
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+      />
 
       <Menu
         anchorEl={anchorEl}

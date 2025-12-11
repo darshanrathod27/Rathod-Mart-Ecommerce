@@ -55,6 +55,7 @@ import FormModal from "../components/Modals/FormModal";
 import ProductViewModal from "../components/Modals/ProductViewModal";
 import ImageUploadModal from "../components/Modals/ImageUploadModal";
 import VariantStockModal from "../components/Modals/VariantStockModal";
+import MobileSearchBar from "../components/Common/MobileSearchBar";
 import { productService } from "../services/productService";
 import { categoryService } from "../services/categoryService";
 import { useDebounce } from "../hooks/useDebounce";
@@ -246,8 +247,8 @@ const MobileProductCard = ({
                   product.stock > 10
                     ? "success"
                     : product.stock > 0
-                    ? "warning"
-                    : "error"
+                      ? "warning"
+                      : "error"
                 }
                 onClick={() => onStock(product)}
                 sx={{
@@ -326,10 +327,10 @@ const MobileProductCard = ({
             Created:{" "}
             {product.createdAt
               ? new Date(product.createdAt).toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
               : "-"}
           </Typography>
         </CardContent>
@@ -622,17 +623,35 @@ export default function Products() {
     {
       field: "name",
       headerName: "Product",
-      flex: 1,
-      minWidth: 240,
+      flex: 1.5,
+      minWidth: 180,
       renderCell: (params) => {
         const categoryLabel =
           params.row.category?.name || params.row.category || "Uncategorized";
         return (
-          <Box>
-            <Typography variant="body2" fontWeight={600}>
+          <Box sx={{ py: 1, overflow: "hidden" }}>
+            <Typography
+              variant="body2"
+              fontWeight={600}
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                display: "block",
+              }}
+            >
               {params.value}
             </Typography>
-            <Typography variant="caption" color="text.secondary">
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                display: "block",
+              }}
+            >
               {categoryLabel}
             </Typography>
           </Box>
@@ -743,10 +762,10 @@ export default function Products() {
         <Typography variant="body2">
           {params.row.createdAt
             ? new Date(params.row.createdAt).toLocaleDateString("en-IN", {
-                day: "2-digit",
-                month: "short",
-                year: "2-digit",
-              })
+              day: "2-digit",
+              month: "short",
+              year: "2-digit",
+            })
             : "-"}
         </Typography>
       ),
@@ -766,251 +785,249 @@ export default function Products() {
 
   // --- Render ---
   return (
-    <Box>
-      <Card
-        sx={{
-          borderRadius: 3,
-          boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-          background: "rgba(255, 255, 255, 0.9)",
-          backdropFilter: "blur(10px)",
-          border: "1px solid rgba(76, 175, 80, 0.1)",
-        }}
-      >
-        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-          {/* --- Header Controls --- */}
-          <Stack spacing={2}>
-            {/* Top Row - Search and Add Button */}
-            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-              {/* Search */}
-              <TextField
-                placeholder="Search products..."
-                size="small"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search />
-                    </InputAdornment>
-                  ),
-                  endAdornment: searchTerm && (
-                    <InputAdornment position="end">
-                      <IconButton
-                        size="small"
-                        onClick={() => setSearchTerm("")}
-                      >
-                        <Clear />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{ flexGrow: 1, minWidth: 200 }}
-              />
-
-              {/* Filter Toggle (Mobile Only) */}
-              {isMobile && (
-                <IconButton
-                  color={showFilters ? "primary" : "default"}
-                  onClick={() => setShowFilters(!showFilters)}
-                  sx={{
-                    border: "1px solid",
-                    borderColor: showFilters ? "primary.main" : "divider",
+    <Box sx={{ p: { xs: 1, sm: 2 } }}>
+      {/* --- Mobile Search Bar --- */}
+      {isMobile ? (
+        <MobileSearchBar
+          searchValue={searchTerm}
+          onSearchChange={(e) => setSearchTerm(e.target.value)}
+          statusValue={filterStatus}
+          onStatusChange={(e) => setFilterStatus(e.target.value)}
+          onAddClick={() => {
+            setEditProduct(null);
+            setOpenForm(true);
+          }}
+          addButtonText="Add Product"
+          searchPlaceholder="Search products..."
+          showRole={false}
+          statusOptions={[
+            { value: "active", label: "Active" },
+            { value: "draft", label: "Draft" },
+            { value: "inactive", label: "Inactive" },
+          ]}
+        />
+      ) : (
+        /* --- Desktop Header --- */
+        <Card
+          sx={{
+            mb: 3,
+            borderRadius: 3,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+            background: "rgba(255, 255, 255, 0.9)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(76, 175, 80, 0.1)",
+          }}
+        >
+          <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+            <Stack spacing={2}>
+              {/* Top Row - Search and Add Button */}
+              <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+                {/* Search */}
+                <TextField
+                  placeholder="Search products..."
+                  size="small"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search />
+                      </InputAdornment>
+                    ),
+                    endAdornment: searchTerm && (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={() => setSearchTerm("")}
+                        >
+                          <Clear />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
                   }}
-                >
-                  <FilterList />
-                </IconButton>
-              )}
-
-              {/* Add Button */}
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={() => {
-                  setEditProduct(null);
-                  setOpenForm(true);
-                }}
-                sx={{ whiteSpace: "nowrap", height: 40 }}
-              >
-                {isMobile ? "Add" : "Add Product"}
-              </Button>
-            </Box>
-
-            {/* Filters Row */}
-            <AnimatePresence>
-              {(!isMobile || showFilters) && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                    {/* Category Filter */}
-                    <Autocomplete
-                      size="small"
-                      options={categories}
-                      getOptionLabel={(option) => option.name || ""}
-                      value={filterCategory}
-                      onChange={(event, newValue) =>
-                        setFilterCategory(newValue)
-                      }
-                      renderInput={(params) => (
-                        <TextField {...params} label="Filter by Category" />
-                      )}
-                      isOptionEqualToValue={(option, value) =>
-                        option._id === value._id
-                      }
-                      sx={{ flex: 1, minWidth: 200 }}
-                    />
-
-                    {/* Status Filter */}
-                    <FormControl size="small" sx={{ flex: 1, minWidth: 150 }}>
-                      <InputLabel>Status</InputLabel>
-                      <Select
-                        value={filterStatus}
-                        label="Status"
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                      >
-                        <MenuItem value="">All Status</MenuItem>
-                        <MenuItem value="active">Active</MenuItem>
-                        <MenuItem value="draft">Draft</MenuItem>
-                        <MenuItem value="inactive">Inactive</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Stack>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Stack>
-
-          {/* --- Data Display --- */}
-          <Box sx={{ mt: 3 }}>
-            {/* Desktop Table */}
-            {!isMobile ? (
-              <Box sx={{ height: 600, width: "100%" }}>
-                <DataGrid
-                  rows={products}
-                  columns={columns}
-                  getRowId={(r) => r._id}
-                  rowCount={totalRows}
-                  paginationMode="server"
-                  paginationModel={paginationModel}
-                  onPaginationModelChange={setPaginationModel}
-                  pageSizeOptions={[10, 20, 50, 100]}
-                  sortingMode="server"
-                  sortModel={sortModel}
-                  onSortModelChange={setSortModel}
-                  loading={loading}
-                  disableRowSelectionOnClick
-                  rowHeight={70}
-                  sx={{
-                    border: "none",
-                    "& .MuiDataGrid-columnHeaders": {
-                      backgroundColor: "rgba(76, 175, 80, 0.05)",
-                    },
-                    "& .MuiDataGrid-cell": {
-                      display: "flex",
-                      alignItems: "center",
-                    },
-                  }}
+                  sx={{ flexGrow: 1, minWidth: 200 }}
                 />
-              </Box>
-            ) : (
-              /* Mobile Card View */
-              <Box>
-                {loading ? (
-                  <Box
-                    sx={{ display: "flex", justifyContent: "center", py: 4 }}
-                  >
-                    <CircularProgress />
-                  </Box>
-                ) : products.length === 0 ? (
-                  <Paper
-                    sx={{
-                      p: 4,
-                      textAlign: "center",
-                      background: "rgba(76, 175, 80, 0.05)",
-                      borderRadius: 3,
-                    }}
-                  >
-                    <Typography color="text.secondary">
-                      No products found
-                    </Typography>
-                  </Paper>
-                ) : (
-                  <>
-                    <AnimatePresence>
-                      {products.map((product) => (
-                        <MobileProductCard
-                          key={product._id}
-                          product={product}
-                          onView={handleView}
-                          onEdit={handleOpenEdit}
-                          onDelete={confirmDelete}
-                          onImages={(p) => {
-                            setImageModalProduct(p);
-                            setOpenImageModal(true);
-                          }}
-                          onStock={(p) => {
-                            setVariantProduct(p);
-                            setOpenVariantModal(true);
-                          }}
-                        />
-                      ))}
-                    </AnimatePresence>
 
-                    {/* Mobile Pagination */}
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        mt: 2,
-                      }}
-                    >
-                      <Typography variant="caption" color="text.secondary">
-                        Showing {products.length} of {totalRows}
-                      </Typography>
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          disabled={paginationModel.page === 0}
-                          onClick={() =>
-                            setPaginationModel((prev) => ({
-                              ...prev,
-                              page: prev.page - 1,
-                            }))
-                          }
-                        >
-                          Previous
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          disabled={
-                            (paginationModel.page + 1) *
-                              paginationModel.pageSize >=
-                            totalRows
-                          }
-                          onClick={() =>
-                            setPaginationModel((prev) => ({
-                              ...prev,
-                              page: prev.page + 1,
-                            }))
-                          }
-                        >
-                          Next
-                        </Button>
-                      </Stack>
-                    </Box>
-                  </>
-                )}
+                {/* Add Button */}
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => {
+                    setEditProduct(null);
+                    setOpenForm(true);
+                  }}
+                  sx={{ whiteSpace: "nowrap", height: 40 }}
+                >
+                  Add Product
+                </Button>
               </Box>
+
+              {/* Filters Row */}
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                {/* Category Filter */}
+                <Autocomplete
+                  size="small"
+                  options={categories}
+                  getOptionLabel={(option) => option.name || ""}
+                  value={filterCategory}
+                  onChange={(event, newValue) => setFilterCategory(newValue)}
+                  renderInput={(params) => (
+                    <TextField {...params} label="Filter by Category" />
+                  )}
+                  isOptionEqualToValue={(option, value) =>
+                    option._id === value._id
+                  }
+                  sx={{ flex: 1, minWidth: 200 }}
+                />
+
+                {/* Status Filter */}
+                <FormControl size="small" sx={{ flex: 1, minWidth: 150 }}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={filterStatus}
+                    label="Status"
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                  >
+                    <MenuItem value="">All Status</MenuItem>
+                    <MenuItem value="active">Active</MenuItem>
+                    <MenuItem value="draft">Draft</MenuItem>
+                    <MenuItem value="inactive">Inactive</MenuItem>
+                  </Select>
+                </FormControl>
+              </Stack>
+            </Stack>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* --- Data Display --- */}
+      <Box sx={{ mt: isMobile ? 0 : 0 }}>
+        {/* Desktop Table */}
+        {!isMobile ? (
+          <Card sx={{ borderRadius: 3 }}>
+            <Box sx={{ height: 600, width: "100%" }}>
+              <DataGrid
+                rows={products}
+                columns={columns}
+                getRowId={(r) => r._id}
+                rowCount={totalRows}
+                paginationMode="server"
+                paginationModel={paginationModel}
+                onPaginationModelChange={setPaginationModel}
+                pageSizeOptions={[10, 20, 50, 100]}
+                sortingMode="server"
+                sortModel={sortModel}
+                onSortModelChange={setSortModel}
+                loading={loading}
+                disableRowSelectionOnClick
+                rowHeight={70}
+                sx={{
+                  border: "none",
+                  "& .MuiDataGrid-columnHeaders": {
+                    backgroundColor: "rgba(76, 175, 80, 0.05)",
+                  },
+                  "& .MuiDataGrid-cell": {
+                    display: "flex",
+                    alignItems: "center",
+                  },
+                }}
+              />
+            </Box>
+          </Card>
+        ) : (
+          /* Mobile Card View */
+          <Box>
+            {loading ? (
+              <Box
+                sx={{ display: "flex", justifyContent: "center", py: 4 }}
+              >
+                <CircularProgress />
+              </Box>
+            ) : products.length === 0 ? (
+              <Paper
+                sx={{
+                  p: 4,
+                  textAlign: "center",
+                  background: "rgba(76, 175, 80, 0.05)",
+                  borderRadius: 3,
+                }}
+              >
+                <Typography color="text.secondary">
+                  No products found
+                </Typography>
+              </Paper>
+            ) : (
+              <>
+                <AnimatePresence>
+                  {products.map((product) => (
+                    <MobileProductCard
+                      key={product._id}
+                      product={product}
+                      onView={handleView}
+                      onEdit={handleOpenEdit}
+                      onDelete={confirmDelete}
+                      onImages={(p) => {
+                        setImageModalProduct(p);
+                        setOpenImageModal(true);
+                      }}
+                      onStock={(p) => {
+                        setVariantProduct(p);
+                        setOpenVariantModal(true);
+                      }}
+                    />
+                  ))}
+                </AnimatePresence>
+
+                {/* Mobile Pagination */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mt: 2,
+                  }}
+                >
+                  <Typography variant="caption" color="text.secondary">
+                    Showing {products.length} of {totalRows}
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={paginationModel.page === 0}
+                      onClick={() =>
+                        setPaginationModel((prev) => ({
+                          ...prev,
+                          page: prev.page - 1,
+                        }))
+                      }
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={
+                        (paginationModel.page + 1) *
+                        paginationModel.pageSize >=
+                        totalRows
+                      }
+                      onClick={() =>
+                        setPaginationModel((prev) => ({
+                          ...prev,
+                          page: prev.page + 1,
+                        }))
+                      }
+                    >
+                      Next
+                    </Button>
+                  </Stack>
+                </Box>
+              </>
             )}
           </Box>
-        </CardContent>
-      </Card>
+        )}
+      </Box>
 
       {/* --- Desktop Action Menu --- */}
       <Menu
@@ -1087,23 +1104,27 @@ export default function Products() {
         />
       )}
 
-      {openImageModal && (
-        <ImageUploadModal
-          open={openImageModal}
-          onClose={() => setOpenImageModal(false)}
-          product={imageModalProduct}
-          onUploadSuccess={fetchProducts}
-        />
-      )}
+      {
+        openImageModal && (
+          <ImageUploadModal
+            open={openImageModal}
+            onClose={() => setOpenImageModal(false)}
+            product={imageModalProduct}
+            onUploadSuccess={fetchProducts}
+          />
+        )
+      }
 
-      {variantProduct && (
-        <VariantStockModal
-          open={openVariantModal}
-          onClose={() => setOpenVariantModal(false)}
-          product={variantProduct}
-          onSaved={fetchProducts}
-        />
-      )}
+      {
+        variantProduct && (
+          <VariantStockModal
+            open={openVariantModal}
+            onClose={() => setOpenVariantModal(false)}
+            product={variantProduct}
+            onSaved={fetchProducts}
+          />
+        )
+      }
 
       <DeleteConfirmDialog
         open={deleteDialogOpen}
