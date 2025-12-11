@@ -5,7 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cookieParser from "cookie-parser";
 import connectDB from "./config/database.js";
-import cloudinary from "./utils/cloudinary.js"; // Cloudinary import
+import cloudinary from "./utils/cloudinary.js";
 
 // routes imports
 import userRoutes from "./routes/userRoutes.js";

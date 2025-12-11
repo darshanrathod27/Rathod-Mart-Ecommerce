@@ -7,10 +7,12 @@ const generateToken = (res, userId, cookieName = "jwt") => {
   });
 
   // Set JWT as an HTTP-Only cookie
+  const isProduction = process.env.NODE_ENV === "production";
+  
   res.cookie(cookieName, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV !== "production", // Use secure cookies in production
-    sameSite: "strict", // Prevent CSRF
+    secure: isProduction, // Use secure cookies in production (HTTPS required)
+    sameSite: isProduction ? "none" : "lax", // "none" required for cross-origin cookies in production
     maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
   });
 };
