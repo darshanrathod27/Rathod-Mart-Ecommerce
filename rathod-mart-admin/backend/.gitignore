@@ -18,11 +18,14 @@ uploads/profile/*
 # Lock file
 package-lock.json
 
-# Env (track .env)
-!.env
-*.env.local
-*.env.*.local
+# Environment variables - NEVER COMMIT
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
 
 # System
 .DS_Store
 .vscode/
+
