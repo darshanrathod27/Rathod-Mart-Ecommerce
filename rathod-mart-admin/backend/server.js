@@ -48,6 +48,19 @@ app.use(cookieParser());
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// Root route - API info
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "Rathod Mart Backend API is running!",
+    version: "1.0.0",
+    endpoints: {
+      health: "/health",
+      api: "/api/*"
+    }
+  });
+});
+
 // Health check
 app.get("/health", (req, res) => res.json({ success: true, time: new Date() }));
 
