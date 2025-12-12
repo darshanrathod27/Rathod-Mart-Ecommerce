@@ -1,4 +1,6 @@
-﻿# Node Modules
+﻿# ===== CUSTOMER FRONTEND .gitignore =====
+
+# Node Modules
 node_modules/
 **/node_modules/
 
@@ -23,19 +25,6 @@ Thumbs.db
 .env.*.local
 .env.development
 .env.production
-
-# Uploads (ignore only IMAGES)
-**/uploads/product/*
-**/uploads/profile/*
-
-!**/uploads/product/.gitkeep
-!**/uploads/profile/.gitkeep
-
-# Lockfiles
-package-lock.json
-**/package-lock.json
-**/yarn.lock
-**/pnpm-lock.yaml
 
 # Logs
 logs

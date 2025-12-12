@@ -9,14 +9,15 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Uploads (ignore files only)
+# Uploads (ignore image files only)
 uploads/product/*
 uploads/profile/*
+uploads/products/*
+uploads/ai-generated-images/*
 !uploads/product/.gitkeep
 !uploads/profile/.gitkeep
-
-# Lock file
-package-lock.json
+!uploads/products/.gitkeep
+!uploads/ai-generated-images/.gitkeep
 
 # Environment variables - NEVER COMMIT
 .env
@@ -28,4 +29,3 @@ package-lock.json
 # System
 .DS_Store
 .vscode/
-

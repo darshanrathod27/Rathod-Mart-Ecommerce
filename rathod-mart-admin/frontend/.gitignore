@@ -18,11 +18,6 @@ yarn-error.log*
 .env.development
 .env.production
 
-# Locks
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-
 # OS / Editor
 .DS_Store
 Thumbs.db

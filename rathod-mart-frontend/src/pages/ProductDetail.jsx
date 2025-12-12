@@ -385,8 +385,7 @@ const ProductDetail = () => {
                 component="button"
                 onClick={() =>
                   navigate(
-                    `/products?category=${
-                      product.category._id || product.category
+                    `/products?category=${product.category._id || product.category
                     }`
                   )
                 }
@@ -493,9 +492,8 @@ const ProductDetail = () => {
                   {gallery.map((img, i) => (
                     <Box
                       key={i}
-                      className={`thumbnail ${
-                        selectedImage === i ? "active" : ""
-                      }`}
+                      className={`thumbnail ${selectedImage === i ? "active" : ""
+                        }`}
                       onClick={() => setSelectedImage(i)}
                       tabIndex={0}
                       sx={{
@@ -562,9 +560,8 @@ const ProductDetail = () => {
                         : "Out of Stock"
                     }
                     icon={<Verified />}
-                    className={`stock-chip ${
-                      currentStock > 0 ? "in-stock" : "out-of-stock"
-                    }`}
+                    className={`stock-chip ${currentStock > 0 ? "in-stock" : "out-of-stock"
+                      }`}
                     size={isSmallMobile ? "small" : "medium"}
                   />
                 </Box>
@@ -750,17 +747,43 @@ const ProductDetail = () => {
             >
               Product Details
             </Typography>
-            <Typography
-              variant="body1"
+            {/* Render HTML description properly */}
+            <Box
               sx={{
                 color: "text.secondary",
                 lineHeight: 1.8,
-                whiteSpace: "pre-wrap",
                 fontSize: { xs: "0.9rem", md: "1rem" },
+                "& h3": {
+                  fontSize: { xs: "1.1rem", md: "1.25rem" },
+                  fontWeight: 700,
+                  color: "text.primary",
+                  mt: 2,
+                  mb: 1,
+                },
+                "& h4": {
+                  fontSize: { xs: "1rem", md: "1.1rem" },
+                  fontWeight: 600,
+                  color: "text.primary",
+                  mt: 2,
+                  mb: 1,
+                },
+                "& ul": {
+                  pl: 2,
+                  mb: 1.5,
+                },
+                "& li": {
+                  mb: 0.5,
+                },
+                "& p": {
+                  mb: 1,
+                },
+                "& strong": {
+                  fontWeight: 600,
+                  color: "text.primary",
+                },
               }}
-            >
-              {product.description}
-            </Typography>
+              dangerouslySetInnerHTML={{ __html: product.description }}
+            />
           </Paper>
         )}
 
@@ -1049,9 +1072,8 @@ const ProductDetail = () => {
               {gallery.map((img, i) => (
                 <Box
                   key={i}
-                  className={`modal-thumbnail ${
-                    i === modalIndex ? "active" : ""
-                  }`}
+                  className={`modal-thumbnail ${i === modalIndex ? "active" : ""
+                    }`}
                   onClick={() => setModalIndex(i)}
                   tabIndex={0}
                   sx={{
