@@ -1,5 +1,5 @@
 // frontend/src/components/Layout/Sidebar.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -13,6 +13,8 @@ import {
   Divider,
   Avatar,
   Chip,
+  Skeleton,
+  Stack,
 } from "@mui/material";
 import { motion } from "framer-motion";
 import {
@@ -25,9 +27,11 @@ import {
   Inventory2,
   AdminPanelSettings,
   TrendingUp,
-  // --- 1. ADD THIS IMPORT ---
   LocalOffer,
+  ShoppingCart,
+  CheckCircle,
 } from "@mui/icons-material";
+import api from "../../services/api";
 
 const menuItems = [
   { text: "Users", icon: People, path: "/users" },
@@ -41,7 +45,6 @@ const menuItems = [
     icon: Inventory2,
     path: "/inventory",
   },
-  // --- 2. ADD THIS NEW MENU ITEM ---
   {
     text: "Promocodes",
     icon: LocalOffer,
@@ -58,6 +61,31 @@ const Sidebar = ({
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Live Stats State
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // Fetch dashboard stats
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const { data } = await api.get("/dashboard/stats");
+        if (data.success) {
+          setStats(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats:", err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+    // Refresh stats every 60 seconds
+    const interval = setInterval(fetchStats, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -195,7 +223,7 @@ const Sidebar = ({
               component={motion.div}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }} // Made animation faster
+              transition={{ duration: 0.3, delay: index * 0.05 }}
             >
               <ListItemButton
                 selected={isActive}
@@ -252,24 +280,6 @@ const Sidebar = ({
                     fontSize: "0.95rem",
                   }}
                 />
-                {/* Badge for notifications */}
-                {item.badge && (
-                  <Chip
-                    label={item.badge}
-                    size="small"
-                    sx={{
-                      height: 20,
-                      minWidth: 20,
-                      fontSize: "0.7rem",
-                      fontWeight: 600,
-                      bgcolor:
-                        typeof item.badge === "number"
-                          ? "error.main"
-                          : "success.main",
-                      color: "white",
-                    }}
-                  />
-                )}
                 {/* Active Indicator */}
                 {isActive && (
                   <Box
@@ -294,31 +304,70 @@ const Sidebar = ({
 
       <Divider sx={{ mx: 2 }} />
 
-      {/* Stats Section */}
-      <Box sx={{ p: 2 }}>
+      {/* Compact Live Stats */}
+      <Box
+        sx={{
+          p: 1.5,
+          mx: 2,
+          my: 1,
+          borderRadius: 2,
+          bgcolor: "rgba(76, 175, 80, 0.05)",
+          display: "flex",
+          gap: 1,
+        }}
+      >
+        {/* Products */}
         <Box
           sx={{
-            p: 2,
-            borderRadius: 2,
-            background: "linear-gradient(135deg, #E8F5E8 0%, #C8E6C9 100%)",
-            border: "1px solid rgba(76, 175, 80, 0.2)",
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            p: 1,
+            borderRadius: 1.5,
+            bgcolor: "rgba(76, 175, 80, 0.1)",
           }}
         >
-          <Typography
-            variant="caption"
-            sx={{ color: "text.secondary", fontWeight: 600, display: "block" }}
-          >
-            System Status
-          </Typography>
-          <Typography
-            variant="h6"
-            sx={{ color: "primary.main", fontWeight: 700 }}
-          >
-            98.5%
-          </Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Uptime
-          </Typography>
+          <Inventory sx={{ color: "primary.main", fontSize: 18 }} />
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", lineHeight: 1 }}>
+              Products
+            </Typography>
+            {statsLoading ? (
+              <Skeleton width={24} height={18} />
+            ) : (
+              <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ lineHeight: 1.2 }}>
+                {stats?.products ?? 0}
+              </Typography>
+            )}
+          </Box>
+        </Box>
+
+        {/* Orders */}
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            p: 1,
+            borderRadius: 1.5,
+            bgcolor: "rgba(33, 150, 243, 0.1)",
+          }}
+        >
+          <ShoppingCart sx={{ color: "#2196F3", fontSize: 18 }} />
+          <Box>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", lineHeight: 1 }}>
+              Orders
+            </Typography>
+            {statsLoading ? (
+              <Skeleton width={24} height={18} />
+            ) : (
+              <Typography variant="subtitle2" fontWeight={700} sx={{ color: "#2196F3", lineHeight: 1.2 }}>
+                {stats?.orders ?? 0}
+              </Typography>
+            )}
+          </Box>
         </Box>
       </Box>
 
@@ -391,3 +440,4 @@ const Sidebar = ({
 };
 
 export default Sidebar;
+

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Drawer,
@@ -12,10 +12,10 @@ import {
   IconButton,
   Divider,
   Chip,
-  LinearProgress,
   Paper,
   Collapse,
   Badge,
+  Skeleton,
 } from "@mui/material";
 import {
   Dashboard,
@@ -35,6 +35,7 @@ import {
   Logout,
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
+import api from "../../services/api";
 
 const ResponsiveSidebar = ({ open, onClose }) => {
   const navigate = useNavigate();
@@ -44,6 +45,30 @@ const ResponsiveSidebar = ({ open, onClose }) => {
     config: true,
     inventory: true,
   });
+
+  // Live Stats State
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  // Fetch dashboard stats
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchStats = async () => {
+      try {
+        const { data } = await api.get("/dashboard/stats");
+        if (data.success) {
+          setStats(data.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats:", err);
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+  }, [open]);
 
   // Navigation Structure
   const navigationStructure = [
@@ -191,71 +216,13 @@ const ResponsiveSidebar = ({ open, onClose }) => {
               </motion.div>
               <Box>
                 <Typography variant="h6" fontWeight="bold">
-                  Rathod Darshan
+                  Rathod Mart
                 </Typography>
                 <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                  Premium E-Commerce Platform
+                  Admin Dashboard
                 </Typography>
               </Box>
             </Box>
-
-            {/* System Status Card */}
-            <Paper
-              elevation={0}
-              sx={{
-                mt: 2,
-                p: 1.5,
-                bgcolor: "rgba(255,255,255,0.15)",
-                backdropFilter: "blur(10px)",
-                borderRadius: 2,
-              }}
-            >
-              <Box
-                sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}
-              >
-                <Typography variant="caption" fontWeight="bold">
-                  System Status
-                </Typography>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                  <motion.div
-                    animate={{
-                      scale: [1, 1.2, 1],
-                      opacity: [1, 0.8, 1],
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        bgcolor: "#4CAF50",
-                      }}
-                    />
-                  </motion.div>
-                  <Typography variant="caption" fontWeight="bold">
-                    98.5% Uptime
-                  </Typography>
-                </Box>
-              </Box>
-              <LinearProgress
-                variant="determinate"
-                value={98.5}
-                sx={{
-                  height: 6,
-                  borderRadius: 3,
-                  bgcolor: "rgba(255,255,255,0.2)",
-                  "& .MuiLinearProgress-bar": {
-                    bgcolor: "white",
-                    borderRadius: 3,
-                  },
-                }}
-              />
-            </Paper>
           </Box>
         </motion.div>
 
@@ -511,7 +478,7 @@ const ResponsiveSidebar = ({ open, onClose }) => {
             bgcolor: "rgba(76, 175, 80, 0.03)",
           }}
         >
-          {/* Quick Stats */}
+          {/* Quick Stats with Live Data */}
           <Box
             sx={{
               display: "grid",
@@ -529,12 +496,16 @@ const ResponsiveSidebar = ({ open, onClose }) => {
                 borderRadius: 2,
               }}
             >
-              <TrendingUp color="primary" sx={{ fontSize: 20, mb: 0.5 }} />
-              <Typography variant="h6" fontWeight="bold" color="primary">
-                125
-              </Typography>
+              <Inventory color="primary" sx={{ fontSize: 20, mb: 0.5 }} />
+              {statsLoading ? (
+                <Skeleton width={40} height={28} sx={{ mx: "auto" }} />
+              ) : (
+                <Typography variant="h6" fontWeight="bold" color="primary">
+                  {stats?.products ?? 0}
+                </Typography>
+              )}
               <Typography variant="caption" color="text.secondary">
-                Orders
+                Products
               </Typography>
             </Paper>
             <Paper
@@ -542,16 +513,20 @@ const ResponsiveSidebar = ({ open, onClose }) => {
               sx={{
                 p: 1.5,
                 textAlign: "center",
-                bgcolor: "rgba(76, 175, 80, 0.1)",
+                bgcolor: "rgba(33, 150, 243, 0.1)",
                 borderRadius: 2,
               }}
             >
-              <ShoppingCart color="primary" sx={{ fontSize: 20, mb: 0.5 }} />
-              <Typography variant="h6" fontWeight="bold" color="primary">
-                45
-              </Typography>
+              <ShoppingCart sx={{ color: "#2196F3", fontSize: 20, mb: 0.5 }} />
+              {statsLoading ? (
+                <Skeleton width={40} height={28} sx={{ mx: "auto" }} />
+              ) : (
+                <Typography variant="h6" fontWeight="bold" sx={{ color: "#2196F3" }}>
+                  {stats?.orders ?? 0}
+                </Typography>
+              )}
               <Typography variant="caption" color="text.secondary">
-                Products
+                Orders
               </Typography>
             </Paper>
           </Box>

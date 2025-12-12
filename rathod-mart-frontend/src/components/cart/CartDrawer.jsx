@@ -26,11 +26,13 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
+import { useWishlist } from "../../context/WishlistContext";
 import api from "../../data/api";
 
 const CartDrawer = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { closeWishlist } = useWishlist(); // Close wishlist when cart opens
 
   // 🎯 Responsive Breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down("md")); // < 900px
@@ -50,6 +52,13 @@ const CartDrawer = () => {
     applyPromocode,
     removePromocode,
   } = useCart();
+
+  // Close wishlist when cart opens
+  useEffect(() => {
+    if (isCartOpen) {
+      closeWishlist();
+    }
+  }, [isCartOpen, closeWishlist]);
 
   const [promoInput, setPromoInput] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
@@ -96,6 +105,9 @@ const CartDrawer = () => {
       anchor="right"
       open={isCartOpen}
       onClose={closeCart}
+      sx={{
+        zIndex: 1400, // Above header (default AppBar is 1100)
+      }}
       PaperProps={{
         sx: {
           // 📱 Responsive Width
@@ -320,7 +332,7 @@ const CartDrawer = () => {
                         >
                           {item.selectedVariant.size || ""}
                           {item.selectedVariant.size &&
-                          item.selectedVariant.color
+                            item.selectedVariant.color
                             ? " / "
                             : ""}
                           {item.selectedVariant.color || ""}
@@ -485,11 +497,10 @@ const CartDrawer = () => {
                   {coupons.map((c) => (
                     <Chip
                       key={c.code}
-                      label={`${c.code} (${
-                        c.discountType === "Percentage"
+                      label={`${c.code} (${c.discountType === "Percentage"
                           ? c.discountValue + "%"
                           : "₹" + c.discountValue
-                      } OFF)`}
+                        } OFF)`}
                       onClick={() => handleApplyPromo(c.code)}
                       clickable
                       color="primary"

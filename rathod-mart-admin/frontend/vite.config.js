@@ -13,6 +13,10 @@ export default defineConfig({
     target: "esnext",
     rollupOptions: {
       output: {
+        // Cache-busting: Use content hash in filenames
+        entryFileNames: "assets/[name]-[hash].js",
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash].[ext]",
         // Split chunks for better caching
         manualChunks: {
           vendor: ["react", "react-dom", "react-router-dom"],

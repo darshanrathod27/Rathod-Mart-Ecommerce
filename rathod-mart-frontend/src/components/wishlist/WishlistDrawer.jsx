@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Drawer,
   Box,
@@ -25,7 +25,14 @@ import toast from "react-hot-toast";
 const WishlistDrawer = () => {
   const { isWishlistOpen, closeWishlist, wishlistItems, removeFromWishlist } =
     useWishlist();
-  const { addToCart } = useCart();
+  const { addToCart, closeCart } = useCart();
+
+  // Close cart when wishlist opens
+  useEffect(() => {
+    if (isWishlistOpen) {
+      closeCart();
+    }
+  }, [isWishlistOpen, closeCart]);
 
   const handleAddToCart = (item) => {
     addToCart(item);
@@ -39,12 +46,15 @@ const WishlistDrawer = () => {
       anchor="right"
       open={isWishlistOpen}
       onClose={closeWishlist}
+      sx={{
+        zIndex: 1400, // Above header (default AppBar is 1100)
+      }}
       PaperProps={{
         sx: {
           width: { xs: "100%", sm: 440 },
           maxWidth: 500,
-          borderTopLeftRadius: 32,
-          borderBottomLeftRadius: 32,
+          borderTopLeftRadius: { xs: 0, md: 32 },
+          borderBottomLeftRadius: { xs: 0, md: 32 },
           background:
             "linear-gradient(165deg, #e8f5e9 0%, #f1f8e9 50%, #e8f5e9 100%)",
           boxShadow: "0 -20px 60px rgba(46, 125, 50, 0.25)",

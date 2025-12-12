@@ -34,6 +34,7 @@ import cartRoutes from "./routes/cartRoutes.js";
 import promocodeRoutes from "./routes/promocodeRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 // ============================================================
 // CONFIGURATION
@@ -226,6 +227,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/promocodes", promocodeRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payments", paymentRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // ============================================================
 // ERROR HANDLERS
