@@ -647,6 +647,13 @@ const ProductDetail = () => {
                     sx={{
                       py: { xs: 1.2, md: 1 },
                       fontSize: { xs: "0.95rem", md: "1.1rem" },
+                      background: "#2e7d32 !important",
+                      backgroundColor: "#2e7d32 !important",
+                      color: "#fff !important",
+                      "&:hover:not(:disabled)": {
+                        background: "#1b5e20 !important",
+                        backgroundColor: "#1b5e20 !important",
+                      },
                     }}
                   >
                     Add to Cart
@@ -663,6 +670,15 @@ const ProductDetail = () => {
                     sx={{
                       py: { xs: 1.2, md: 1 },
                       fontSize: { xs: "0.95rem", md: "1.1rem" },
+                      background: "linear-gradient(135deg, #ff9800 0%, #f57c00 100%) !important",
+                      backgroundColor: "#ff9800 !important",
+                      color: "#fff !important",
+                      boxShadow: "0 4px 15px rgba(255, 152, 0, 0.3) !important",
+                      "&:hover:not(:disabled)": {
+                        background: "linear-gradient(135deg, #f57c00 0%, #e65100 100%) !important",
+                        backgroundColor: "#f57c00 !important",
+                        boxShadow: "0 6px 20px rgba(255, 152, 0, 0.4) !important",
+                      },
                     }}
                   >
                     Buy Now
