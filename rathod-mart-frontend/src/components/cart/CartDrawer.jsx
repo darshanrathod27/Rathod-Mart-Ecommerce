@@ -13,6 +13,7 @@ import {
   useTheme,
   useMediaQuery,
   Skeleton,
+  CircularProgress,
 } from "@mui/material";
 import {
   Close,
@@ -22,23 +23,20 @@ import {
   ShoppingCartOutlined,
   ArrowForward,
   LocalOffer,
+  ContentCopy,
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useWishlist } from "../../context/WishlistContext";
 import api from "../../data/api";
+import toast from "react-hot-toast";
 
 const CartDrawer = () => {
   const navigate = useNavigate();
   const theme = useTheme();
-  const { closeWishlist } = useWishlist(); // Close wishlist when cart opens
-
-  // 🎯 Responsive Breakpoints
-  const isMobile = useMediaQuery(theme.breakpoints.down("md")); // < 900px
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm")); // < 600px
-  // eslint-disable-next-line no-unused-vars
-  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md")); // 600-900px
+  const { closeWishlist } = useWishlist();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const {
     isCartOpen,
@@ -71,7 +69,7 @@ const CartDrawer = () => {
       setCouponsLoading(true);
       api
         .fetchAvailableCoupons()
-        .then((data) => setCoupons(data))
+        .then((data) => setCoupons(data || []))
         .catch(() => setCoupons([]))
         .finally(() => setCouponsLoading(false));
     }
@@ -97,6 +95,12 @@ const CartDrawer = () => {
     }
   };
 
+  const handleCopyCode = (code) => {
+    navigator.clipboard.writeText(code);
+    toast.success(`Copied: ${code}`);
+    setPromoInput(code);
+  };
+
   const { subtotal, total, discountAmount } = getCartTotal();
   const totalCount = getCartItemsCount();
 
@@ -106,258 +110,187 @@ const CartDrawer = () => {
       open={isCartOpen}
       onClose={closeCart}
       sx={{
-        zIndex: 1400, // Above header (default AppBar is 1100)
+        zIndex: 1400,
       }}
       PaperProps={{
         sx: {
-          // 📱 Responsive Width
-          width: {
-            xs: "100%", // Full width on mobile
-            sm: "85%", // 85% on small tablets
-            md: 440, // Fixed 440px on desktop
-          },
-          maxWidth: { xs: "100%", md: 500 },
-          // 📱 Border radius only on desktop
-          borderTopLeftRadius: { xs: 0, md: 32 },
-          borderBottomLeftRadius: { xs: 0, md: 32 },
-          display: "flex",
-          flexDirection: "column",
+          width: { xs: "80%", sm: 400, md: 440 },
+          maxWidth: 480,
+          background: "linear-gradient(180deg, #F1F8E9 0%, #FFFFFF 100%)",
+          borderLeft: "none",
+          // Full height covering everything
+          height: "100vh",
+          top: 0,
+          // Curved corners on LEFT side
+          borderTopLeftRadius: { xs: 20, md: 32 },
+          borderBottomLeftRadius: { xs: 20, md: 32 },
         },
       }}
     >
-      {/* Header */}
-      <Box
-        sx={{
-          background:
-            "linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #388E3C 100%)",
-          color: "#fff",
-          // 📱 Responsive Padding
-          p: { xs: 2, sm: 2.5, md: 3 },
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          // 📱 Add safe area for notch on mobile
-          pt: { xs: "calc(env(safe-area-inset-top) + 16px)", md: 3 },
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <ShoppingCartOutlined
-            sx={{
-              // 📱 Responsive Icon Size
-              fontSize: { xs: 22, md: 24 },
-            }}
-          />
-          <Box>
-            <Typography
-              variant="h6"
-              fontWeight="800"
-              sx={{
-                // 📱 Responsive Font Size
-                fontSize: { xs: "1.1rem", sm: "1.2rem", md: "1.25rem" },
-              }}
-            >
-              Shopping Cart
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                // 📱 Responsive Font Size
-                fontSize: { xs: "0.7rem", md: "0.75rem" },
-              }}
-            >
-              {totalCount} {totalCount === 1 ? "item" : "items"}
-            </Typography>
-          </Box>
-        </Box>
-        <IconButton
-          onClick={closeCart}
+      <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+        {/* Header with GREEN gradient */}
+        <Box
           sx={{
-            color: "#fff",
-            // 📱 Touch-friendly size
-            width: { xs: 44, md: 40 },
-            height: { xs: 44, md: 40 },
+            p: 2.5,
+            background: "linear-gradient(135deg, #4CAF50 0%, #66BB6A 100%)",
+            color: "white",
+            position: "relative",
+            overflow: "hidden",
+            borderTopLeftRadius: { xs: 20, md: 32 },
           }}
         >
-          <Close sx={{ fontSize: { xs: 22, md: 24 } }} />
-        </IconButton>
-      </Box>
+          {/* Background Pattern */}
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              opacity: 0.1,
+              backgroundImage: `radial-gradient(circle, white 1px, transparent 1px)`,
+              backgroundSize: "20px 20px",
+            }}
+          />
 
-      {/* Cart Items List */}
-      <Box
-        sx={{
-          flex: 1,
-          overflowY: "auto",
-          // 📱 Responsive Padding
-          p: { xs: 1.5, sm: 2 },
-          // 📱 Better scrolling on iOS
-          WebkitOverflowScrolling: "touch",
-          // Hide scrollbar
-          "&::-webkit-scrollbar": {
-            width: { xs: 0, md: "8px" },
-          },
-          "&::-webkit-scrollbar-thumb": {
-            backgroundColor: "rgba(0,0,0,0.2)",
-            borderRadius: "4px",
-          },
-        }}
-      >
-        {cartItems.length === 0 ? (
-          // Empty Cart State
+          {/* Close Button - Top Right Corner */}
+          <IconButton
+            onClick={closeCart}
+            sx={{
+              position: "absolute",
+              top: 16,
+              right: 16,
+              color: "white",
+              bgcolor: "rgba(255,255,255,0.15)",
+              width: 36,
+              height: 36,
+              "&:hover": { bgcolor: "rgba(255,255,255,0.25)" },
+            }}
+          >
+            <Close sx={{ fontSize: 20 }} />
+          </IconButton>
+
+          {/* Logo and Title */}
           <Box
             sx={{
               display: "flex",
-              flexDirection: "column",
               alignItems: "center",
-              justifyContent: "center",
-              // 📱 Responsive Top Margin
-              mt: { xs: 8, md: 10 },
-              px: 2,
+              gap: 2,
+              position: "relative",
             }}
           >
-            <ShoppingCartOutlined
+            <Avatar
               sx={{
-                // 📱 Responsive Icon Size
-                fontSize: { xs: 50, md: 60 },
-                color: "text.disabled",
-                mb: 2,
-              }}
-            />
-            <Typography
-              variant="h6"
-              color="text.secondary"
-              sx={{
-                // 📱 Responsive Font Size
-                fontSize: { xs: "1rem", md: "1.25rem" },
-                textAlign: "center",
+                width: 52,
+                height: 52,
+                bgcolor: "white",
+                color: "primary.main",
+                fontWeight: "bold",
+                border: "3px solid rgba(255,255,255,0.3)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
               }}
             >
-              Your cart is empty
-            </Typography>
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{
-                mt: 1,
-                mb: 3,
-                textAlign: "center",
-                fontSize: { xs: "0.85rem", md: "0.9rem" },
-              }}
-            >
-              Add items to get started
-            </Typography>
-            <Button
-              variant="contained"
-              onClick={closeCart}
-              sx={{
-                // 📱 Touch-friendly size
-                minHeight: { xs: 48, md: 44 },
-                px: { xs: 3, md: 4 },
-                fontSize: { xs: "0.9rem", md: "1rem" },
-                background: "linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)",
-                borderRadius: "50px",
-                fontWeight: 600,
-                "&:hover": {
-                  background:
-                    "linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%)",
-                },
-              }}
-            >
-              Start Shopping
-            </Button>
+              <ShoppingCartOutlined sx={{ fontSize: 26 }} />
+            </Avatar>
+            <Box>
+              <Typography variant="h6" fontWeight="bold">
+                Shopping Cart
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                {totalCount} {totalCount === 1 ? "item" : "items"}
+              </Typography>
+            </Box>
           </Box>
-        ) : (
-          <AnimatePresence>
-            {cartItems.map((item) => (
-              <motion.div
-                key={item.cartId}
-                layout
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
+        </Box>
+
+        {/* Cart Items List */}
+        <Box sx={{ flex: 1, overflowY: "auto", overflowX: "hidden", p: 2 }}>
+          {cartItems.length === 0 ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                py: 8,
+              }}
+            >
+              <ShoppingCartOutlined
+                sx={{ fontSize: 80, color: "text.disabled", mb: 2 }}
+              />
+              <Typography variant="h6" color="text.secondary" sx={{ mb: 1 }}>
+                Your cart is empty
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 3 }}
               >
-                <Paper
-                  elevation={0}
-                  sx={{
-                    // 📱 Responsive Margin & Padding
-                    mb: { xs: 1.5, md: 2 },
-                    p: { xs: 1.5, md: 2 },
-                    border: "1px solid #eee",
-                    borderRadius: { xs: 2, md: 2 },
-                    transition: "all 0.2s ease",
-                    "&:active": {
-                      bgcolor: "rgba(0,0,0,0.02)",
-                    },
-                  }}
+                Add items to get started
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={closeCart}
+                endIcon={<ArrowForward />}
+                sx={{
+                  borderRadius: 50,
+                  px: 3,
+                  py: 1,
+                  background: "linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)",
+                  fontWeight: 700,
+                }}
+              >
+                Start Shopping
+              </Button>
+            </Box>
+          ) : (
+            <AnimatePresence>
+              {cartItems.map((item, index) => (
+                <motion.div
+                  key={item.cartId}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 100 }}
+                  transition={{ delay: index * 0.05 }}
                 >
-                  <Box sx={{ display: "flex", gap: { xs: 1.5, md: 2 } }}>
-                    {/* Product Image */}
-                    <Avatar
-                      src={item.image}
-                      variant="rounded"
-                      sx={{
-                        // 📱 Responsive Avatar Size
-                        width: { xs: 70, sm: 75, md: 80 },
-                        height: { xs: 70, sm: 75, md: 80 },
-                        borderRadius: 2,
-                      }}
-                    />
-
-                    {/* Product Details */}
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      <Typography
-                        variant="subtitle1"
-                        fontWeight="700"
-                        noWrap
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      mb: 1.5,
+                      p: 2,
+                      borderRadius: 3,
+                      border: "1px solid #e8f5e9",
+                      background: "#fff",
+                      transition: "all 0.3s",
+                      "&:hover": {
+                        boxShadow: "0 4px 16px rgba(46,125,50,0.15)",
+                      },
+                    }}
+                  >
+                    <Box sx={{ display: "flex", gap: 2 }}>
+                      <Avatar
+                        src={item.image}
+                        variant="rounded"
                         sx={{
-                          // 📱 Responsive Font Size
-                          fontSize: { xs: "0.9rem", sm: "0.95rem", md: "1rem" },
-                          mb: 0.5,
+                          width: 64,
+                          height: 64,
+                          border: "2px solid #E8F5E9",
+                          borderRadius: 2,
                         }}
-                      >
-                        {item.name}
-                      </Typography>
-
-                      {/* Variant Info */}
-                      {item.selectedVariant && (
+                      />
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{
-                            display: "block",
-                            // 📱 Responsive Font Size
-                            fontSize: { xs: "0.7rem", md: "0.75rem" },
-                            mb: 1,
-                          }}
+                          variant="subtitle2"
+                          fontWeight={600}
+                          noWrap
+                          sx={{ fontSize: "0.9rem", mb: 0.5 }}
                         >
-                          {item.selectedVariant.size || ""}
-                          {item.selectedVariant.size &&
-                            item.selectedVariant.color
-                            ? " / "
-                            : ""}
-                          {item.selectedVariant.color || ""}
+                          {item.name}
                         </Typography>
-                      )}
-
-                      {/* Price and Controls */}
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          // 📱 Stack on very small screens if needed
-                          flexWrap: { xs: "wrap", sm: "nowrap" },
-                          gap: { xs: 1, md: 1.5 },
-                          mt: 1,
-                        }}
-                      >
                         <Typography
-                          fontWeight="700"
+                          fontWeight={700}
                           color="primary"
-                          sx={{
-                            // 📱 Responsive Font Size
-                            fontSize: { xs: "0.95rem", md: "1rem" },
-                          }}
+                          sx={{ fontSize: "1rem" }}
                         >
                           ₹{item.price.toLocaleString()}
                         </Typography>
@@ -367,255 +300,168 @@ const CartDrawer = () => {
                           sx={{
                             display: "flex",
                             alignItems: "center",
-                            bgcolor: "#f5f5f5",
-                            borderRadius: 5,
-                            // 📱 Touch-friendly size
-                            minHeight: { xs: 36, md: 32 },
+                            justifyContent: "space-between",
+                            mt: 1.5,
                           }}
                         >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              bgcolor: "#f5f5f5",
+                              borderRadius: 5,
+                            }}
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={() =>
+                                updateQuantity(item.cartId, item.quantity - 1)
+                              }
+                              disabled={item.quantity <= 1}
+                              sx={{ width: 32, height: 32 }}
+                            >
+                              <Remove sx={{ fontSize: 18 }} />
+                            </IconButton>
+                            <Typography
+                              sx={{
+                                px: 1.5,
+                                fontWeight: 700,
+                                fontSize: "0.9rem",
+                                minWidth: 28,
+                                textAlign: "center",
+                              }}
+                            >
+                              {item.quantity}
+                            </Typography>
+                            <IconButton
+                              size="small"
+                              onClick={() =>
+                                updateQuantity(item.cartId, item.quantity + 1)
+                              }
+                              sx={{ width: 32, height: 32 }}
+                            >
+                              <Add sx={{ fontSize: 18 }} />
+                            </IconButton>
+                          </Box>
                           <IconButton
+                            color="error"
                             size="small"
-                            onClick={() =>
-                              updateQuantity(item.cartId, item.quantity - 1)
-                            }
-                            disabled={item.quantity <= 1}
+                            onClick={() => removeFromCart(item.cartId)}
                             sx={{
-                              // 📱 Touch-friendly size
-                              width: { xs: 36, md: 32 },
-                              height: { xs: 36, md: 32 },
+                              width: 36,
+                              height: 36,
+                              bgcolor: "rgba(244,67,54,0.1)",
                             }}
                           >
-                            <Remove sx={{ fontSize: { xs: 18, md: 20 } }} />
-                          </IconButton>
-                          <Typography
-                            sx={{
-                              px: { xs: 1.5, md: 1 },
-                              fontWeight: 600,
-                              fontSize: { xs: "0.9rem", md: "1rem" },
-                              minWidth: { xs: 32, md: 28 },
-                              textAlign: "center",
-                            }}
-                          >
-                            {item.quantity}
-                          </Typography>
-                          <IconButton
-                            size="small"
-                            onClick={() =>
-                              updateQuantity(item.cartId, item.quantity + 1)
-                            }
-                            sx={{
-                              // 📱 Touch-friendly size
-                              width: { xs: 36, md: 32 },
-                              height: { xs: 36, md: 32 },
-                            }}
-                          >
-                            <Add sx={{ fontSize: { xs: 18, md: 20 } }} />
+                            <Delete sx={{ fontSize: 18 }} />
                           </IconButton>
                         </Box>
-
-                        {/* Delete Button */}
-                        <IconButton
-                          color="error"
-                          size="small"
-                          onClick={() => removeFromCart(item.cartId)}
-                          sx={{
-                            // 📱 Touch-friendly size
-                            width: { xs: 36, md: 32 },
-                            height: { xs: 36, md: 32 },
-                          }}
-                        >
-                          <Delete sx={{ fontSize: { xs: 18, md: 20 } }} />
-                        </IconButton>
                       </Box>
                     </Box>
-                  </Box>
-                </Paper>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        )}
-      </Box>
-
-      {/* Footer Section with Promocodes and Checkout */}
-      {cartItems.length > 0 && (
-        <Box
-          sx={{
-            boxShadow: "0 -4px 20px rgba(0,0,0,0.1)",
-            // 📱 Add safe area for home indicator on iOS
-            pb: { xs: "calc(env(safe-area-inset-bottom) + 8px)", md: 0 },
-          }}
-        >
-          {/* Promocode Recommendations */}
-          {!appliedPromo && (
-            <Box
-              sx={{
-                px: { xs: 2, md: 3 },
-                py: { xs: 1, md: 1 },
-                bgcolor: "#f9f9f9",
-              }}
-            >
-              <Typography
-                variant="caption"
-                sx={{
-                  mb: 1,
-                  fontWeight: 600,
-                  color: "text.secondary",
-                  display: "block",
-                  // 📱 Responsive Font Size
-                  fontSize: { xs: "0.7rem", md: "0.75rem" },
-                }}
-              >
-                Available Coupons:
-              </Typography>
-
-              {couponsLoading ? (
-                <Box sx={{ display: "flex", gap: 1, pb: 1 }}>
-                  {[1, 2].map((i) => (
-                    <Skeleton
-                      key={i}
-                      variant="rectangular"
-                      width={120}
-                      height={28}
-                      sx={{ borderRadius: "14px" }}
-                    />
-                  ))}
-                </Box>
-              ) : coupons.length > 0 ? (
-                <Box
-                  sx={{
-                    display: "flex",
-                    gap: 1,
-                    overflowX: "auto",
-                    pb: 1,
-                    // Hide scrollbar
-                    "&::-webkit-scrollbar": {
-                      display: "none",
-                    },
-                    scrollbarWidth: "none",
-                  }}
-                >
-                  {coupons.map((c) => (
-                    <Chip
-                      key={c.code}
-                      label={`${c.code} (${c.discountType === "Percentage"
-                          ? c.discountValue + "%"
-                          : "₹" + c.discountValue
-                        } OFF)`}
-                      onClick={() => handleApplyPromo(c.code)}
-                      clickable
-                      color="primary"
-                      variant="outlined"
-                      size="small"
-                      icon={
-                        <LocalOffer sx={{ fontSize: { xs: 14, md: 16 } }} />
-                      }
-                      sx={{
-                        // 📱 Touch-friendly size
-                        minHeight: { xs: 32, md: 28 },
-                        fontSize: { xs: "0.75rem", md: "0.8rem" },
-                        fontWeight: 600,
-                        whiteSpace: "nowrap",
-                        "&:active": {
-                          transform: "scale(0.95)",
-                        },
-                      }}
-                    />
-                  ))}
-                </Box>
-              ) : (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ fontSize: { xs: "0.7rem", md: "0.75rem" } }}
-                >
-                  No coupons available
-                </Typography>
-              )}
-            </Box>
+                  </Paper>
+                </motion.div>
+              ))}
+            </AnimatePresence>
           )}
+        </Box>
 
-          {/* Checkout Footer */}
-          <Box sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+        {/* Footer Section with Promocodes */}
+        {cartItems.length > 0 && (
+          <Box
+            sx={{
+              p: 2.5,
+              borderTop: "1px solid",
+              borderColor: "rgba(76, 175, 80, 0.15)",
+              bgcolor: "#fff",
+              borderBottomLeftRadius: { xs: 20, md: 32 },
+            }}
+          >
+            {/* Available Coupons Section */}
+            {!appliedPromo && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" fontWeight={600} color="text.secondary">
+                  Available Coupons:
+                </Typography>
+                {couponsLoading ? (
+                  <Skeleton height={32} />
+                ) : coupons.length > 0 ? (
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.5 }}>
+                    {coupons.slice(0, 3).map((coupon) => (
+                      <Chip
+                        key={coupon.code}
+                        label={coupon.code}
+                        size="small"
+                        icon={<LocalOffer sx={{ fontSize: 14 }} />}
+                        deleteIcon={<ContentCopy sx={{ fontSize: 14 }} />}
+                        onDelete={() => handleCopyCode(coupon.code)}
+                        onClick={() => handleApplyPromo(coupon.code)}
+                        sx={{
+                          cursor: "pointer",
+                          bgcolor: "rgba(76,175,80,0.1)",
+                          "&:hover": { bgcolor: "rgba(76,175,80,0.2)" },
+                        }}
+                      />
+                    ))}
+                  </Box>
+                ) : (
+                  <Typography variant="caption" color="text.disabled">
+                    No coupons available
+                  </Typography>
+                )}
+              </Box>
+            )}
+
             {/* Promocode Input */}
-            <Box
-              sx={{
-                display: "flex",
-                gap: 1,
-                mb: 2,
-                // 📱 Stack on very small screens
-                flexDirection: { xs: appliedPromo ? "row" : "row" },
-              }}
-            >
-              {appliedPromo ? (
-                <Chip
-                  icon={<LocalOffer sx={{ fontSize: { xs: 16, md: 18 } }} />}
-                  label={`Code: ${appliedPromo.code}`}
-                  onDelete={removePromocode}
-                  color="success"
+            {!appliedPromo && (
+              <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+                <TextField
+                  size="small"
+                  placeholder="Enter Promocode"
+                  fullWidth
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
                   sx={{
-                    width: "100%",
-                    justifyContent: "space-between",
-                    // 📱 Touch-friendly height
-                    minHeight: { xs: 44, md: 40 },
-                    fontSize: { xs: "0.85rem", md: "0.9rem" },
-                    fontWeight: 600,
+                    "& .MuiInputBase-root": {
+                      height: 44,
+                      fontSize: "0.9rem",
+                      borderRadius: 2,
+                    },
                   }}
                 />
-              ) : (
-                <>
-                  <TextField
-                    size="small"
-                    placeholder="Enter Promocode"
-                    fullWidth
-                    value={promoInput}
-                    onChange={(e) =>
-                      setPromoInput(e.target.value.toUpperCase())
-                    }
-                    sx={{
-                      "& .MuiInputBase-root": {
-                        // 📱 Touch-friendly height
-                        minHeight: { xs: 44, md: 40 },
-                        fontSize: { xs: "0.9rem", md: "1rem" },
-                      },
-                    }}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={() => handleApplyPromo()}
-                    disabled={promoLoading || !promoInput}
-                    sx={{
-                      background: "#2E7D32",
-                      // 📱 Touch-friendly size
-                      minWidth: { xs: 80, md: 90 },
-                      minHeight: { xs: 44, md: 40 },
-                      fontSize: { xs: "0.85rem", md: "0.9rem" },
-                      fontWeight: 600,
-                      "&:hover": {
-                        background: "#1B5E20",
-                      },
-                    }}
-                  >
-                    {promoLoading ? "..." : "Apply"}
-                  </Button>
-                </>
-              )}
-            </Box>
+                <Button
+                  variant="contained"
+                  onClick={() => handleApplyPromo()}
+                  disabled={promoLoading || !promoInput}
+                  sx={{
+                    background: "#2E7D32",
+                    minWidth: 85,
+                    height: 44,
+                    fontSize: "0.85rem",
+                    fontWeight: 600,
+                    borderRadius: 2,
+                  }}
+                >
+                  {promoLoading ? <CircularProgress size={20} color="inherit" /> : "Apply"}
+                </Button>
+              </Box>
+            )}
 
-            {/* Price Breakdown */}
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                mb: 1,
-              }}
-            >
-              <Typography sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}>
+            {appliedPromo && (
+              <Chip
+                icon={<LocalOffer sx={{ fontSize: 16 }} />}
+                label={`Code: ${appliedPromo.code} (-${appliedPromo.discount}%)`}
+                onDelete={removePromocode}
+                color="success"
+                sx={{ mb: 2, width: "100%", justifyContent: "space-between", height: 40 }}
+              />
+            )}
+
+            {/* Price Summary */}
+            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+              <Typography variant="body1" color="text.secondary">
                 Subtotal
               </Typography>
-              <Typography
-                fontWeight="600"
-                sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}
-              >
+              <Typography variant="body1" fontWeight={600}>
                 ₹{subtotal.toFixed(2)}
               </Typography>
             </Box>
@@ -629,41 +475,20 @@ const CartDrawer = () => {
                   color: "success.main",
                 }}
               >
-                <Typography sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}>
-                  Discount
-                </Typography>
-                <Typography
-                  fontWeight="600"
-                  sx={{ fontSize: { xs: "0.9rem", md: "1rem" } }}
-                >
+                <Typography variant="body2">Discount</Typography>
+                <Typography variant="body2" fontWeight={600}>
                   - ₹{discountAmount.toFixed(2)}
                 </Typography>
               </Box>
             )}
 
-            <Divider sx={{ my: { xs: 1.5, md: 1 } }} />
+            <Divider sx={{ my: 1.5 }} />
 
-            {/* Total */}
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                mb: { xs: 2, md: 2 },
-              }}
-            >
-              <Typography
-                variant="h6"
-                fontWeight="800"
-                sx={{ fontSize: { xs: "1.1rem", md: "1.25rem" } }}
-              >
+            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2.5 }}>
+              <Typography variant="h6" fontWeight={800}>
                 Total
               </Typography>
-              <Typography
-                variant="h6"
-                fontWeight="800"
-                color="primary"
-                sx={{ fontSize: { xs: "1.1rem", md: "1.25rem" } }}
-              >
+              <Typography variant="h6" fontWeight={800} color="primary">
                 ₹{total.toFixed(2)}
               </Typography>
             </Box>
@@ -672,35 +497,31 @@ const CartDrawer = () => {
             <Button
               fullWidth
               variant="contained"
-              size="large"
-              endIcon={<ArrowForward sx={{ fontSize: { xs: 18, md: 20 } }} />}
+              endIcon={<ArrowForward />}
               onClick={handleCheckout}
               sx={{
-                borderRadius: 50,
-                // 📱 Touch-friendly height
-                py: { xs: 1.6, md: 1.5 },
-                minHeight: { xs: 52, md: 48 },
-                // 📱 Responsive Font Size
-                fontSize: { xs: "1rem", md: "1.1rem" },
+                borderRadius: 3,
+                py: 1.5,
+                fontSize: "1rem",
                 fontWeight: 700,
                 background: "linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)",
-                boxShadow: "0 4px 15px rgba(46, 125, 50, 0.3)",
-                "&:hover": {
-                  background:
-                    "linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%)",
-                  boxShadow: "0 6px 20px rgba(46, 125, 50, 0.4)",
-                },
-                "&:active": {
-                  transform: "scale(0.98)",
-                },
-                transition: "all 0.2s ease",
+                boxShadow: "0 4px 16px rgba(46, 125, 50, 0.3)",
               }}
             >
               Proceed to Checkout
             </Button>
+
+            {/* Copyright */}
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: "block", textAlign: "center", mt: 2 }}
+            >
+              © 2025 Rathod Mart
+            </Typography>
           </Box>
-        </Box>
-      )}
+        )}
+      </Box>
     </Drawer>
   );
 };

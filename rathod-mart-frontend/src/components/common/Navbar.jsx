@@ -159,12 +159,6 @@ const Navbar = () => {
 
   const navigationItems = [
     {
-      name: "Home",
-      path: "/",
-      icon: <HomeIcon />,
-      action: () => navigate("/"),
-    },
-    {
       name: "Shop",
       path: "/products",
       icon: <Store />,
@@ -232,15 +226,14 @@ const Navbar = () => {
                   fontSize: { xs: 24, sm: 28, md: 32 },
                 }}
               />
-              {/* 📱 Hide text on extra small, show on small+ */}
+              {/* 📱 Show text on all sizes now for mobile */}
               <Typography
                 variant="h5"
                 noWrap
                 sx={{
                   fontWeight: 800,
                   color: "#fff",
-                  display: { xs: "none", sm: "block" },
-                  // 📱 Responsive Font Size
+                  // 📱 Responsive Font Size - show on all sizes
                   fontSize: { xs: "1rem", sm: "1.2rem", md: "1.5rem" },
                   letterSpacing: "-0.5px",
                 }}
@@ -280,20 +273,23 @@ const Navbar = () => {
             {/* Spacer for Desktop */}
             {!isMobile && <Box sx={{ flexGrow: 1 }} />}
 
-            {/* 🔍 Search Bar - Fully Responsive */}
-            <Box
-              sx={{
-                flexGrow: 1,
-                display: "flex",
-                justifyContent: "center",
-                // 📱 Responsive Margin - Mobile par kam
-                mx: { xs: 1, md: 2 },
-                // 📱 Max Width Control
-                maxWidth: { xs: "100%", sm: 400, md: 500 },
-              }}
-            >
-              <SearchBar categories={navCategories} />
-            </Box>
+            {/* 🔍 Search Bar - Desktop Only */}
+            {!isMobile && (
+              <Box
+                sx={{
+                  flexGrow: 1,
+                  display: "flex",
+                  justifyContent: "center",
+                  mx: 2,
+                  maxWidth: 500,
+                }}
+              >
+                <SearchBar categories={navCategories} />
+              </Box>
+            )}
+
+            {/* Mobile Spacer */}
+            {isMobile && <Box sx={{ flexGrow: 1 }} />}
 
             {/* Spacer for Desktop */}
             {!isMobile && <Box sx={{ flexGrow: 1 }} />}
@@ -307,29 +303,7 @@ const Navbar = () => {
                 gap: { xs: 0.5, sm: 1, md: 1.5 },
               }}
             >
-              {/* 🔧 Filter Button - Desktop Only, Only on filter pages */}
-              {!isMobile && isFilterPage && (
-                <Tooltip title="Filters">
-                  <IconButton
-                    onClick={() => setIsFilterOpen(true)}
-                    sx={{
-                      color: "#fff",
-                      bgcolor: "rgba(255,255,255,0.15)",
-                      minWidth: 44,
-                      minHeight: 44,
-                      p: 1,
-                      borderRadius: 2,
-                      transition: "all 0.3s ease",
-                      "&:hover": {
-                        bgcolor: "rgba(255,255,255,0.25)",
-                        transform: "scale(1.05)",
-                      },
-                    }}
-                  >
-                    <FilterList sx={{ fontSize: 24 }} />
-                  </IconButton>
-                </Tooltip>
-              )}
+              {/* Filter Button removed - using sticky filter button instead */}
 
               {/* ❤️ Wishlist Icon - Desktop Only */}
               {!isMobile && (
@@ -403,7 +377,28 @@ const Navbar = () => {
                 </Tooltip>
               )}
 
-              {/* ❤️ Wishlist Icon - Mobile Only (shows in bottom nav for desktop) */}
+              {/* 🔥 Trending Button - Mobile Only */}
+              {isMobile && (
+                <Tooltip title="Trending">
+                  <IconButton
+                    onClick={() => navigate("/category?trending=true")}
+                    sx={{
+                      color: "#fff",
+                      p: 0.75,
+                      minWidth: 40,
+                      minHeight: 40,
+                      transition: "all 0.3s ease",
+                      "&:hover": {
+                        transform: "scale(1.1)",
+                      },
+                    }}
+                  >
+                    <TrendingUp sx={{ fontSize: 22 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
+
+              {/* ❤️ Wishlist Icon - Mobile Only */}
               {isMobile && (
                 <Tooltip title="Wishlist">
                   <IconButton

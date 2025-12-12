@@ -173,6 +173,9 @@ const AdvancedFilterDrawer = ({ open, onClose, filters, setFilters }) => {
       anchor="left"
       open={open}
       onClose={onClose}
+      sx={{
+        zIndex: 1400, // Above header (zIndex: 1300)
+      }}
       PaperProps={{
         component: motion.div,
         initial: { x: -400 },
