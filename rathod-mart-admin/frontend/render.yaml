@@ -6,13 +6,25 @@ services:
     name: rathod-mart-admin
     env: static
     branch: main
-    buildCommand: npm install && npm run build
+    buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     pullRequestPreviewsEnabled: false
     headers:
-      - path: /*
+      # HTML files - no cache (always fresh)
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /*.html
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      # Static assets with hash in filename - cache forever
+      - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
+      # Fallback for other files - short cache
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=3600
     routes:
       - type: rewrite
         source: /*
