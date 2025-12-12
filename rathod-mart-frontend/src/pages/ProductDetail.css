@@ -128,7 +128,8 @@
 @media (max-width: 768px) {
   .main-image-container {
     height: 350px;
-    cursor: pointer; /* Change cursor on mobile */
+    cursor: pointer;
+    /* Change cursor on mobile */
     border-radius: 8px;
   }
 }
@@ -199,6 +200,7 @@
     opacity: 0;
     transform: translateX(-12px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -402,18 +404,25 @@
   }
 }
 
-.stock-chip {
-  font-weight: 700;
+/* Stock Chip - Force styles over MUI */
+.stock-chip,
+.stock-chip.MuiChip-root,
+.rating-section .stock-chip {
+  font-weight: 700 !important;
 }
 
-.stock-chip.in-stock {
-  background: #e8f5e9;
-  color: #2e7d32;
+.stock-chip.in-stock,
+.stock-chip.in-stock.MuiChip-root {
+  background: #e8f5e9 !important;
+  background-color: #e8f5e9 !important;
+  color: #2e7d32 !important;
 }
 
-.stock-chip.out-of-stock {
-  background: #ffebee;
-  color: #c62828;
+.stock-chip.out-of-stock,
+.stock-chip.out-of-stock.MuiChip-root {
+  background: #ffebee !important;
+  background-color: #ffebee !important;
+  color: #c62828 !important;
 }
 
 /* Price Section */
@@ -432,10 +441,14 @@
   }
 }
 
-.current-price {
-  font-size: 2.5rem;
-  font-weight: 900;
-  color: #2e7d32;
+/* Current Price - Force styles over MUI */
+.current-price,
+.current-price.MuiTypography-root,
+.price-section .current-price {
+  font-size: 2.5rem !important;
+  font-weight: 900 !important;
+  color: #2e7d32 !important;
+  line-height: 1.2 !important;
 }
 
 /* Mobile: Responsive price */
@@ -457,10 +470,13 @@
   }
 }
 
-.original-price {
-  font-size: 1.5rem;
-  color: #999;
-  text-decoration: line-through;
+/* Original Price - Force styles over MUI */
+.original-price,
+.original-price.MuiTypography-root,
+.price-section .original-price {
+  font-size: 1.5rem !important;
+  color: #999 !important;
+  text-decoration: line-through !important;
 }
 
 /* Mobile: Smaller original price */
@@ -476,11 +492,17 @@
   }
 }
 
-.discount-chip {
-  background: #ff5722;
-  color: #fff;
-  font-weight: 800;
-  font-size: 1rem;
+/* Discount Chip - Force styles over MUI */
+.discount-chip,
+.discount-chip.MuiChip-root,
+.price-section .discount-chip {
+  background: #ff5722 !important;
+  background-color: #ff5722 !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  font-size: 1rem !important;
+  height: auto !important;
+  padding: 4px 8px !important;
 }
 
 /* Mobile: Smaller discount chip */
@@ -526,6 +548,7 @@
 
 /* Mobile: Full width buttons */
 @media (max-width: 600px) {
+
   .add-to-cart-btn,
   .add-to-cart-btn.MuiButton-root {
     min-width: 100%;
@@ -544,6 +567,7 @@
 
 /* Mobile: Reduce hover effect */
 @media (max-width: 768px) {
+
   .add-to-cart-btn:hover:not(:disabled),
   .add-to-cart-btn.MuiButton-root:hover:not(:disabled) {
     transform: none;
@@ -577,6 +601,7 @@
 
 /* Mobile: Full width */
 @media (max-width: 600px) {
+
   .buy-now-btn,
   .buy-now-btn.MuiButton-root {
     min-width: 100%;
@@ -587,6 +612,7 @@
 
 /* Mobile: Reduce hover effect */
 @media (max-width: 768px) {
+
   .buy-now-btn:hover:not(:disabled),
   .buy-now-btn.MuiButton-root:hover:not(:disabled) {
     transform: none;
@@ -607,6 +633,7 @@
 
 /* Mobile: Reduce hover scale */
 @media (max-width: 768px) {
+
   .wishlist-icon-btn:hover,
   .share-icon-btn:hover {
     transform: scale(1.05);
@@ -692,7 +719,7 @@
   }
 }
 
-.zoom-modal > .zoom-card {
+.zoom-modal>.zoom-card {
   background: #fff;
   border-radius: 14px;
   padding: 18px;
@@ -701,7 +728,7 @@
 
 /* Mobile: Smaller padding */
 @media (max-width: 600px) {
-  .zoom-modal > .zoom-card {
+  .zoom-modal>.zoom-card {
     padding: 12px;
     border-radius: 10px;
   }
@@ -805,6 +832,7 @@
 
 /* Mobile: Reduce hover effect */
 @media (max-width: 768px) {
+
   .modal-thumbnail:hover,
   .modal-thumbnail.active {
     transform: scale(1.05);
@@ -826,6 +854,7 @@
 
 /* Mobile: Reduce spacing */
 @media (max-width: 768px) {
+
   .product-description-section,
   .user-rating-section {
     padding: 1.5rem;
@@ -834,6 +863,7 @@
 }
 
 @media (max-width: 600px) {
+
   .product-description-section,
   .user-rating-section {
     padding: 1rem;
@@ -876,6 +906,7 @@
 
 /* Touch-friendly interactions on mobile */
 @media (max-width: 768px) {
+
   .thumbnail,
   .modal-thumbnail,
   button,
@@ -886,6 +917,7 @@
 
 /* Prevent text selection on mobile gestures */
 @media (max-width: 768px) {
+
   .main-product-image,
   .thumbnail img,
   .modal-thumbnail img {

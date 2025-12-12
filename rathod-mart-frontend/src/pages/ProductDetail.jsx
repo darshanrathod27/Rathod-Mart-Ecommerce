@@ -71,17 +71,44 @@ const PriceBlock = ({
     discountPrice < basePrice;
   return (
     <Box className="price-section">
-      <Typography className="current-price">
+      <Typography
+        className="current-price"
+        sx={{
+          fontSize: { xs: "1.75rem", sm: "2rem", md: "2.5rem" },
+          fontWeight: "900 !important",
+          color: "#2e7d32 !important",
+          lineHeight: 1.2,
+        }}
+      >
         ₹{priceToShow?.toLocaleString() || 0}
       </Typography>
       {hasDiscount && (
         <>
-          <Typography className="original-price">
+          <Typography
+            className="original-price"
+            sx={{
+              fontSize: { xs: "1.1rem", sm: "1.25rem", md: "1.5rem" },
+              color: "#999 !important",
+              textDecoration: "line-through !important",
+            }}
+          >
             ₹{basePrice?.toLocaleString() || 0}
           </Typography>
           <Chip
             label={`${discountPercent || 0}% OFF`}
             className="discount-chip"
+            sx={{
+              background: "#ff5722 !important",
+              backgroundColor: "#ff5722 !important",
+              color: "#fff !important",
+              fontWeight: "800 !important",
+              fontSize: { xs: "0.85rem", md: "1rem" },
+              height: "auto !important",
+              padding: "4px 8px !important",
+              "& .MuiChip-label": {
+                padding: "0 !important",
+              },
+            }}
           />
         </>
       )}
@@ -514,7 +541,14 @@ const ProductDetail = () => {
                 {product.brand && (
                   <Typography
                     className="product-brand"
-                    sx={{ fontSize: { xs: "0.8rem", md: "0.95rem" } }}
+                    sx={{
+                      fontSize: { xs: "0.8rem", md: "0.95rem" },
+                      color: "#2e7d32 !important",
+                      fontWeight: "600 !important",
+                      textTransform: "uppercase",
+                      letterSpacing: "1px",
+                      mb: 0.5,
+                    }}
                   >
                     {product.brand}
                   </Typography>
@@ -525,6 +559,9 @@ const ProductDetail = () => {
                   className="product-title"
                   sx={{
                     fontSize: { xs: "1.5rem", sm: "1.8rem", md: "2.2rem" },
+                    fontWeight: "800 !important",
+                    color: "#1a1a1a !important",
+                    lineHeight: 1.3,
                     mb: { xs: 1, md: 1 },
                   }}
                 >
@@ -535,6 +572,8 @@ const ProductDetail = () => {
                 <Box
                   className="rating-section"
                   sx={{
+                    display: "flex",
+                    alignItems: "center",
                     flexWrap: "wrap",
                     gap: { xs: "0.5rem", md: "1rem" },
                     mb: { xs: 1.5, md: 1.5 },
@@ -548,7 +587,11 @@ const ProductDetail = () => {
                   />
                   <Typography
                     className="rating-text"
-                    sx={{ fontSize: { xs: "0.85rem", md: "0.95rem" } }}
+                    sx={{
+                      fontSize: { xs: "0.85rem", md: "0.95rem" },
+                      color: "#666 !important",
+                      fontWeight: "600 !important",
+                    }}
                   >
                     {(product.rating || 0).toFixed(1)} ({product.reviews || 0}{" "}
                     reviews)
@@ -563,6 +606,22 @@ const ProductDetail = () => {
                     className={`stock-chip ${currentStock > 0 ? "in-stock" : "out-of-stock"
                       }`}
                     size={isSmallMobile ? "small" : "medium"}
+                    sx={{
+                      fontWeight: "700 !important",
+                      ...(currentStock > 0
+                        ? {
+                          background: "#e8f5e9 !important",
+                          backgroundColor: "#e8f5e9 !important",
+                          color: "#2e7d32 !important",
+                          "& .MuiChip-icon": { color: "#2e7d32 !important" },
+                        }
+                        : {
+                          background: "#ffebee !important",
+                          backgroundColor: "#ffebee !important",
+                          color: "#c62828 !important",
+                          "& .MuiChip-icon": { color: "#c62828 !important" },
+                        }),
+                    }}
                   />
                 </Box>
 
