@@ -2,6 +2,7 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import generateToken from "../utils/generateToken.js";
+import { getCookieOptions } from "../utils/cookieOptions.js";
 import {
   deleteFromCloudinary,
   getPublicIdFromUrl,
@@ -74,12 +75,14 @@ export const loginUser = ah(async (req, res) => {
 });
 
 export const logoutAdmin = ah(async (req, res) => {
-  res.cookie("admin_jwt", "", { httpOnly: true, expires: new Date(0) });
+  // Use getCookieOptions(0) to clear cookie with matching attributes for cross-origin
+  res.cookie("admin_jwt", "", getCookieOptions(0));
   res.status(200).json({ message: "Logged out" });
 });
 
 export const logoutUser = ah(async (req, res) => {
-  res.cookie("jwt", "", { httpOnly: true, expires: new Date(0) });
+  // Use getCookieOptions(0) to clear cookie with matching attributes for cross-origin
+  res.cookie("jwt", "", getCookieOptions(0));
   res.status(200).json({ message: "Logged out" });
 });
 
