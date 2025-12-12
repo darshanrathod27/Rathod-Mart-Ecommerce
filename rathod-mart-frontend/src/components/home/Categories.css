@@ -73,7 +73,8 @@
   scrollbar-width: none;
   -ms-overflow-style: none;
   cursor: grab;
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Smooth scrolling on iOS */
 }
 
 .category-scroller::-webkit-scrollbar {
@@ -107,17 +108,17 @@
   cursor: pointer !important;
   position: relative !important;
   overflow: hidden !important;
-  background: linear-gradient(
-    135deg,
-    #ffffff 0%,
-    var(--category-color-light) 100%
-  ) !important;
+  background: linear-gradient(135deg,
+      #ffffff 0%,
+      var(--category-color-light) 100%) !important;
   padding: 14px !important;
   transform-origin: center;
   will-change: transform;
   user-select: none;
-  -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
-  touch-action: pan-x; /* Better touch scrolling */
+  -webkit-tap-highlight-color: transparent;
+  /* Remove tap highlight on mobile */
+  touch-action: pan-x;
+  /* Better touch scrolling */
 }
 
 /* Subtle Border Glow */
@@ -127,13 +128,12 @@
   inset: 0;
   border-radius: 14px;
   padding: 1.5px;
-  background: linear-gradient(
-    135deg,
-    var(--category-color-border),
-    transparent,
-    var(--category-color-border)
-  );
+  background: linear-gradient(135deg,
+      var(--category-color-border),
+      transparent,
+      var(--category-color-border));
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   opacity: 1;
@@ -147,12 +147,10 @@
   left: -100%;
   width: 60%;
   height: 200%;
-  background: linear-gradient(
-    100deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.5) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(100deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.5) 50%,
+      transparent 100%);
   transform: skewX(-20deg);
   z-index: 1;
   pointer-events: none;
@@ -185,7 +183,8 @@
   text-align: left;
   z-index: 2;
   flex: 1;
-  min-width: 0; /* Prevent text overflow */
+  min-width: 0;
+  /* Prevent text overflow */
 }
 
 .category-name {
@@ -230,11 +229,9 @@
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.9),
-    var(--category-color)
-  );
+  background: radial-gradient(circle,
+      rgba(255, 255, 255, 0.9),
+      var(--category-color));
   pointer-events: none;
 }
 
@@ -242,11 +239,9 @@
 .category-glow {
   position: absolute;
   inset: -20px;
-  background: radial-gradient(
-    circle at center,
-    var(--category-color-light) 0%,
-    transparent 70%
-  );
+  background: radial-gradient(circle at center,
+      var(--category-color-light) 0%,
+      transparent 70%);
   opacity: 0;
   transition: opacity 0.4s ease;
   pointer-events: none;
