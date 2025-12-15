@@ -1,14 +1,13 @@
 // src/store/authSlice.js
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../data/api";
+import safeStorage from "../utils/storage";
 
 const initialState = {
-  userInfo: localStorage.getItem("userInfo")
-    ? JSON.parse(localStorage.getItem("userInfo"))
-    : null,
-  isAuthenticated: localStorage.getItem("userInfo") ? true : false,
+  userInfo: safeStorage.getJSON("userInfo", null),
+  isAuthenticated: safeStorage.getItem("userInfo") ? true : false,
   status: "idle",
-  isLoginDrawerOpen: false, // NEW STATE
+  isLoginDrawerOpen: false,
 };
 
 export const checkAuthStatus = createAsyncThunk(
@@ -31,15 +30,15 @@ const authSlice = createSlice({
       state.userInfo = action.payload;
       state.isAuthenticated = true;
       state.status = "succeeded";
-      state.isLoginDrawerOpen = false; // Close drawer on login
-      localStorage.setItem("userInfo", JSON.stringify(action.payload));
+      state.isLoginDrawerOpen = false;
+      safeStorage.setJSON("userInfo", action.payload);
     },
     logout(state) {
       state.userInfo = null;
       state.isAuthenticated = false;
       state.status = "idle";
       state.isLoginDrawerOpen = false;
-      localStorage.removeItem("userInfo");
+      safeStorage.removeItem("userInfo");
     },
     openLoginDrawer: (state) => {
       state.isLoginDrawerOpen = true;
@@ -57,13 +56,13 @@ const authSlice = createSlice({
         state.userInfo = action.payload;
         state.isAuthenticated = true;
         state.status = "succeeded";
-        localStorage.setItem("userInfo", JSON.stringify(action.payload));
+        safeStorage.setJSON("userInfo", action.payload);
       })
       .addCase(checkAuthStatus.rejected, (state) => {
         state.userInfo = null;
         state.isAuthenticated = false;
         state.status = "failed";
-        localStorage.removeItem("userInfo");
+        safeStorage.removeItem("userInfo");
       });
   },
 });

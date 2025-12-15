@@ -24,6 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import ProductCard from "../components/home/ProductCard";
 import AdvancedFilterDrawer from "../components/filter/AdvancedFilterDrawer";
+import { useFilter } from "../context/FilterContext";
 import api from "../data/api";
 
 const CategoryProducts = () => {
@@ -32,7 +33,9 @@ const CategoryProducts = () => {
   const categoryId = searchParams.get("category") || "";
   const isTrendingPage = searchParams.get("trending") === "true";
 
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  // Use shared filter context for drawer open/close state
+  const { isFilterOpen, openFilter, closeFilter } = useFilter();
+
   const [filters, setFilters] = useState({
     categories: categoryId ? [categoryId] : [],
     brands: [],
@@ -258,7 +261,7 @@ const CategoryProducts = () => {
       {/* Filter FAB - Hidden on mobile (MobileBottomNav provides filter for mobile) */}
       <Fab
         color="primary"
-        onClick={() => setIsFilterOpen(true)}
+        onClick={openFilter}
         sx={{
           position: "fixed",
           bottom: 30,
@@ -274,7 +277,7 @@ const CategoryProducts = () => {
 
       <AdvancedFilterDrawer
         open={isFilterOpen}
-        onClose={() => setIsFilterOpen(false)}
+        onClose={closeFilter}
         filters={filters}
         setFilters={setFilters}
         onApplyFilters={handleApplyFilters}

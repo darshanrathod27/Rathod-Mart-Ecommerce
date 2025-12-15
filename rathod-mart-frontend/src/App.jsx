@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/common/ProtectedRoute";
 import GuestRoute from "./components/common/GuestRoute";
 import AuthDrawer from "./components/common/AuthDrawer";
 import GoogleAuthHandler from "./components/common/GoogleAuthHandler";
+import { FilterProvider } from "./context/FilterContext";
 
 // Lazy load pages
 const Home = lazy(() => import("./pages/Home"));
@@ -22,35 +23,37 @@ const Profile = lazy(() => import("./pages/Profile"));
 
 function App() {
   return (
-    <Suspense fallback={<Loader />}>
-      {/* Global Auth Drawer for Guests */}
-      <AuthDrawer />
+    <FilterProvider>
+      <Suspense fallback={<Loader />}>
+        {/* Global Auth Drawer for Guests */}
+        <AuthDrawer />
 
-      {/* Google OAuth Callback Handler */}
-      <GoogleAuthHandler />
+        {/* Google OAuth Callback Handler */}
+        <GoogleAuthHandler />
 
-      <Routes>
-        <Route element={<GuestRoute />}>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-        </Route>
-
-        <Route path="/" element={<MainLayout />}>
-          <Route index element={<Home />} />
-          <Route path="/category" element={<CategoryProducts />} />
-          <Route path="/products" element={<CategoryProducts />} />
-          <Route path="/product/:id" element={<ProductDetail />} />
-          <Route path="/search" element={<SearchPage />} />
-
-          <Route element={<ProtectedRoute />}>
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/profile" element={<Profile />} />
+        <Routes>
+          <Route element={<GuestRoute />}>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
           </Route>
 
-          <Route path="*" element={<Home />} />
-        </Route>
-      </Routes>
-    </Suspense>
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<Home />} />
+            <Route path="/category" element={<CategoryProducts />} />
+            <Route path="/products" element={<CategoryProducts />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/search" element={<SearchPage />} />
+
+            <Route element={<ProtectedRoute />}>
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/profile" element={<Profile />} />
+            </Route>
+
+            <Route path="*" element={<Home />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </FilterProvider>
   );
 }
 

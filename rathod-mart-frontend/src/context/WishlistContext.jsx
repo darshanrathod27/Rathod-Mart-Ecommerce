@@ -10,6 +10,7 @@ import { useSelector, useDispatch } from "react-redux";
 import api from "../data/api";
 import toast from "react-hot-toast";
 import { openLoginDrawer } from "../store/authSlice";
+import safeStorage from "../utils/storage";
 
 const WishlistContext = createContext();
 export const useWishlist = () => useContext(WishlistContext);
@@ -57,21 +58,19 @@ export const WishlistProvider = ({ children }) => {
   useEffect(() => {
     const sync = async () => {
       if (isAuthenticated) {
-        const guestItems = JSON.parse(
-          localStorage.getItem("guestWishlistItems") || "[]"
-        );
+        const guestItems = safeStorage.getJSON("guestWishlistItems", []);
         if (guestItems.length > 0) {
           const ids = guestItems.map((i) => i.id);
           const { data } = await api.post("/wishlist/merge", { items: ids });
           setWishlistItems(normalize(data.data));
-          localStorage.removeItem("guestWishlistItems");
+          safeStorage.removeItem("guestWishlistItems");
           toast.success("Wishlist merged!");
         } else {
           await fetchWishlist();
         }
       } else {
-        const saved = localStorage.getItem("guestWishlistItems");
-        setWishlistItems(normalize(saved ? JSON.parse(saved) : []));
+        const saved = safeStorage.getJSON("guestWishlistItems", []);
+        setWishlistItems(normalize(saved));
       }
     };
     sync();
@@ -79,7 +78,7 @@ export const WishlistProvider = ({ children }) => {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      localStorage.setItem("guestWishlistItems", JSON.stringify(wishlistItems));
+      safeStorage.setJSON("guestWishlistItems", wishlistItems);
     }
   }, [wishlistItems, isAuthenticated]);
 

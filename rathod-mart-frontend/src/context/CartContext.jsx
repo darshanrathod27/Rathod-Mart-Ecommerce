@@ -1,4 +1,3 @@
-// src/context/CartContext.jsx
 import React, {
   createContext,
   useContext,
@@ -10,6 +9,7 @@ import { useSelector, useDispatch } from "react-redux";
 import api from "../data/api";
 import toast from "react-hot-toast";
 import { openLoginDrawer } from "../store/authSlice";
+import safeStorage from "../utils/storage";
 
 const CartContext = createContext();
 
@@ -54,10 +54,10 @@ const normalizeCartItems = (items) => {
       stock: stock, // Corrected Stock
       selectedVariant: vId
         ? {
-            id: vId,
-            color: variant.color?.colorName || variant.color?.value,
-            size: variant.size?.sizeName || variant.size?.value,
-          }
+          id: vId,
+          color: variant.color?.colorName || variant.color?.value,
+          size: variant.size?.sizeName || variant.size?.value,
+        }
         : null,
     };
   });
@@ -88,9 +88,7 @@ export const CartProvider = ({ children }) => {
   useEffect(() => {
     const sync = async () => {
       if (isAuthenticated) {
-        const guest = JSON.parse(
-          localStorage.getItem("guestCartItems") || "[]"
-        );
+        const guest = safeStorage.getJSON("guestCartItems", []);
         if (guest.length > 0) {
           try {
             const items = guest.map((i) => ({
@@ -101,7 +99,7 @@ export const CartProvider = ({ children }) => {
             }));
             const { data } = await api.post("/cart/merge", { items });
             setCartItems(normalizeCartItems(data.data));
-            localStorage.removeItem("guestCartItems");
+            safeStorage.removeItem("guestCartItems");
             toast.success("Cart merged successfully!");
           } catch (e) {
             console.error(e);
@@ -110,8 +108,8 @@ export const CartProvider = ({ children }) => {
           await fetchCart();
         }
       } else {
-        const saved = localStorage.getItem("guestCartItems");
-        setCartItems(normalizeCartItems(saved ? JSON.parse(saved) : []));
+        const saved = safeStorage.getJSON("guestCartItems", []);
+        setCartItems(normalizeCartItems(saved));
         setAppliedPromo(null);
       }
     };
@@ -120,7 +118,7 @@ export const CartProvider = ({ children }) => {
 
   useEffect(() => {
     if (!isAuthenticated)
-      localStorage.setItem("guestCartItems", JSON.stringify(cartItems));
+      safeStorage.setJSON("guestCartItems", cartItems);
   }, [cartItems, isAuthenticated]);
 
   const addToCart = async (product, variant = null, qty = 1) => {
@@ -249,7 +247,7 @@ export const CartProvider = ({ children }) => {
     if (isAuthenticated) {
       try {
         await api.post("/cart/clear");
-      } catch {}
+      } catch { }
     }
   };
 

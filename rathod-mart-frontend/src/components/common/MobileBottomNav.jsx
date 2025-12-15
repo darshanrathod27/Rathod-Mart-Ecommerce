@@ -37,7 +37,7 @@ import { useCart } from "../../context/CartContext";
 import { useWishlist } from "../../context/WishlistContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSelector } from "react-redux";
-import AdvancedFilterDrawer from "../filter/AdvancedFilterDrawer";
+import { useFilter } from "../../context/FilterContext";
 import api from "../../data/api";
 
 // API Base URL for images
@@ -63,16 +63,9 @@ const MobileBottomNav = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [searchSuggestions, setSearchSuggestions] = useState({ products: [], categories: [] });
     const [searchLoading, setSearchLoading] = useState(false);
-    const [isFilterOpen, setIsFilterOpen] = useState(false);
-    const [filters, setFilters] = useState({
-        categories: [],
-        brands: [],
-        priceRange: [0, 100000],
-        ratings: [],
-        discounts: [],
-        inStock: false,
-        sortBy: "featured",
-    });
+    // Use shared filter context - drawer is rendered by the page component
+    const { openFilter } = useFilter();
+
     const [categories, setCategories] = useState([]);
 
     React.useEffect(() => {
@@ -118,34 +111,6 @@ const MobileBottomNav = () => {
 
     const cartCount = getCartItemsCount();
     const wishlistCount = getWishlistItemsCount();
-
-    // Handler for applying filters - navigates to /products with filter params
-    const handleApplyFilters = (appliedFilters) => {
-        const params = new URLSearchParams();
-
-        // Add category filters
-        if (appliedFilters.categories?.length) {
-            params.set('category', appliedFilters.categories.join(','));
-        }
-        // Add brand filters  
-        if (appliedFilters.brands?.length) {
-            params.set('brands', appliedFilters.brands.join(','));
-        }
-        // Add price range
-        if (appliedFilters.priceRange) {
-            params.set('minPrice', appliedFilters.priceRange[0]);
-            params.set('maxPrice', appliedFilters.priceRange[1]);
-        }
-        // Add sort
-        if (appliedFilters.sortBy && appliedFilters.sortBy !== 'featured') {
-            params.set('sortBy', appliedFilters.sortBy);
-        }
-
-        // Navigate to products page with filters
-        const queryString = params.toString();
-        navigate(`/products${queryString ? `?${queryString}` : ''}`);
-        setIsFilterOpen(false);
-    };
 
     // Only show on mobile
     if (!isMobile) return null;
@@ -216,7 +181,7 @@ const MobileBottomNav = () => {
                         onClick={(e) => {
                             e.stopPropagation();
                             e.preventDefault();
-                            setIsFilterOpen(true);
+                            openFilter();
                         }}
                         sx={{
                             position: "fixed",
@@ -802,15 +767,6 @@ const MobileBottomNav = () => {
                     )}
                 </Box>
             </Drawer>
-
-            {/* Filter Drawer */}
-            <AdvancedFilterDrawer
-                open={isFilterOpen}
-                onClose={() => setIsFilterOpen(false)}
-                filters={filters}
-                setFilters={setFilters}
-                onApplyFilters={handleApplyFilters}
-            />
         </>
     );
 };
