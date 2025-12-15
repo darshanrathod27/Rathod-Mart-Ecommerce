@@ -152,13 +152,13 @@ const ProductCard = ({
           )}
         </Box>
 
-        {/* Product Content - MOBILE: Tighter padding */}
+        {/* Product Content - MOBILE: Extra tight compact layout */}
         <CardContent
           className="product-content"
           sx={{
-            // 📱 MOBILE: Reduced padding
-            p: { xs: 1, sm: 1.5, md: 2 },
-            "&:last-child": { pb: { xs: 1, sm: 1.5, md: 2 } },
+            // 📱 MOBILE: Minimal padding for compact card
+            p: { xs: 0.75, sm: 1.25, md: 2 },
+            "&:last-child": { pb: { xs: 0.75, sm: 1.25, md: 2 } },
           }}
         >
           <Typography
@@ -166,20 +166,20 @@ const ProductCard = ({
             className="product-name"
             noWrap
             sx={{
-              // 📱 MOBILE: Smaller font
-              fontSize: { xs: "0.8rem", sm: "0.9rem", md: "1rem" },
+              // 📱 MOBILE: Compact font, minimal margin
+              fontSize: { xs: "0.75rem", sm: "0.85rem", md: "1rem" },
               fontWeight: 700,
-              mb: { xs: 0.25, md: 0.5 },
-              lineHeight: 1.3,
+              mb: { xs: 0, md: 0.5 },
+              lineHeight: 1.2,
             }}
           >
             {product?.name}
           </Typography>
 
-          {/* Rating - MOBILE: Smaller */}
+          {/* Rating - MOBILE: Compact */}
           <Box
             className="product-rating-box"
-            sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: { xs: 0.5, md: 1 } }}
+            sx={{ display: "flex", alignItems: "center", gap: 0.25, mb: { xs: 0.25, md: 1 } }}
           >
             <Rating
               value={product?.rating || 0}
@@ -189,8 +189,8 @@ const ProductCard = ({
               className="product-rating"
               sx={{
                 color: "#ffa726",
-                // 📱 MOBILE: Smaller stars
-                fontSize: { xs: "0.85rem", sm: "1rem", md: "1.25rem" },
+                // 📱 MOBILE: Tiny stars
+                fontSize: { xs: "0.75rem", sm: "0.9rem", md: "1.25rem" },
                 "& .MuiRating-iconEmpty": {
                   color: "#e0e0e0",
                 },
@@ -199,22 +199,26 @@ const ProductCard = ({
             <Typography
               variant="caption"
               className="product-reviews"
-              sx={{ fontSize: { xs: "0.65rem", sm: "0.7rem", md: "0.75rem" } }}
+              sx={{ fontSize: { xs: "0.6rem", sm: "0.65rem", md: "0.75rem" }, color: "#888" }}
             >
               ({product?.reviews ?? 0})
             </Typography>
           </Box>
 
-          {/* Price */}
+          {/* Price - MOBILE: Compact */}
           <Box
             className="product-price-box"
-            sx={{ display: "flex", alignItems: "baseline", gap: 1 }}
+            sx={{ display: "flex", alignItems: "baseline", gap: 0.5 }}
           >
             <Typography
               variant="h6"
               className="product-price"
-              // 📱 MOBILE: Smaller price font
-              sx={{ fontSize: { xs: "0.9rem", sm: "1rem", md: "1.2rem" } }}
+              sx={{
+                // 📱 MOBILE: Compact price
+                fontSize: { xs: "0.85rem", sm: "0.95rem", md: "1.2rem" },
+                fontWeight: 700,
+                color: "#2e7d32",
+              }}
             >
               ₹{product?.price}
             </Typography>
@@ -222,7 +226,11 @@ const ProductCard = ({
               <Typography
                 variant="body2"
                 className="product-original-price"
-                sx={{ fontSize: { xs: "0.7rem", sm: "0.75rem", md: "0.85rem" } }}
+                sx={{
+                  fontSize: { xs: "0.65rem", sm: "0.7rem", md: "0.85rem" },
+                  textDecoration: "line-through",
+                  color: "#999",
+                }}
               >
                 ₹{product.originalPrice}
               </Typography>
