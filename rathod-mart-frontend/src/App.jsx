@@ -7,8 +7,8 @@ import Loader from "./components/common/Loader";
 import MainLayout from "./components/common/MainLayout";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import GuestRoute from "./components/common/GuestRoute";
-import AuthDrawer from "./components/common/AuthDrawer"; // New Drawer
-import GoogleAuthHandler from "./components/common/GoogleAuthHandler"; // Google OAuth Handler
+import AuthDrawer from "./components/common/AuthDrawer";
+import GoogleAuthHandler from "./components/common/GoogleAuthHandler";
 
 // Lazy load pages
 const Home = lazy(() => import("./pages/Home"));
