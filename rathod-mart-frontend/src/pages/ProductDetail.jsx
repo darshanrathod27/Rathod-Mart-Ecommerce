@@ -158,6 +158,11 @@ const ProductDetail = () => {
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [submitLoading, setSubmitLoading] = useState(false);
 
+  // 🔝 Scroll to top when page loads or product ID changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [id]);
+
   // Fetch product data
   useEffect(() => {
     let mounted = true;
@@ -240,6 +245,7 @@ const ProductDetail = () => {
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const gallery = useMemo(() => {

@@ -29,7 +29,6 @@ const OfferGridCard = ({
 
   // 🎯 Responsive Breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down("md")); // < 900px
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm")); // < 600px
 
   // ========================================
   // SIGN IN / WELCOME CARD (Authenticated User)

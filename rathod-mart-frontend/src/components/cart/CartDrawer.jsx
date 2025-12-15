@@ -10,8 +10,6 @@ import {
   Chip,
   TextField,
   Divider,
-  useTheme,
-  useMediaQuery,
   Skeleton,
   CircularProgress,
 } from "@mui/material";
@@ -29,14 +27,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
 import { useWishlist } from "../../context/WishlistContext";
+import { useSelector } from "react-redux";
 import api from "../../data/api";
 import toast from "react-hot-toast";
 
 const CartDrawer = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
   const { closeWishlist } = useWishlist();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  // Check if user is logged in
+  const { isAuthenticated } = useSelector((state) => state.auth || {});
 
   const {
     isCartOpen,
@@ -63,9 +63,9 @@ const CartDrawer = () => {
   const [coupons, setCoupons] = useState([]);
   const [couponsLoading, setCouponsLoading] = useState(false);
 
-  // Fetch available coupons when drawer opens
+  // Fetch available coupons when drawer opens - ONLY for logged in users
   useEffect(() => {
-    if (isCartOpen && cartItems.length > 0) {
+    if (isCartOpen && cartItems.length > 0 && isAuthenticated) {
       setCouponsLoading(true);
       api
         .fetchAvailableCoupons()
@@ -73,7 +73,7 @@ const CartDrawer = () => {
         .catch(() => setCoupons([]))
         .finally(() => setCouponsLoading(false));
     }
-  }, [isCartOpen, cartItems.length]);
+  }, [isCartOpen, cartItems.length, isAuthenticated]);
 
   const handleCheckout = () => {
     closeCart();

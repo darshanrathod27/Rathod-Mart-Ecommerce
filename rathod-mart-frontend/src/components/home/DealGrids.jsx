@@ -1,5 +1,5 @@
 // src/components/home/DealGrids.jsx - PERFECT MOBILE RESPONSIVE
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Box, Container, Grid, useTheme, useMediaQuery } from "@mui/material";
 import OfferGridCard from "./OfferGridCard";
 import SponsorBanner from "./SponsorBanner";
@@ -17,7 +17,6 @@ const DealGrids = () => {
 
   // 🎯 Responsive Breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down("md")); // < 900px
-  const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm")); // < 600px
 
   // Auth state from Redux
   const { isAuthenticated, userInfo } = useSelector((state) => state.auth);
@@ -26,9 +25,9 @@ const DealGrids = () => {
   const [dynamicDeals, setDynamicDeals] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 📱 MOBILE: Auto-scroll ref and state
+  // 📱 MOBILE: Auto-scroll ref
   const scrollContainerRef = useRef(null);
-  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const scrollIndexRef = useRef(0);
   const totalCards = dynamicDeals.length + 1; // deals + refer card
 
   // 📱 MOBILE: Auto-scroll effect (only on mobile)
@@ -36,18 +35,15 @@ const DealGrids = () => {
     if (!isMobile || loading || totalCards <= 1) return;
 
     const interval = setInterval(() => {
-      setCurrentCardIndex((prev) => {
-        const next = (prev + 1) % totalCards;
-        if (scrollContainerRef.current) {
-          const container = scrollContainerRef.current;
-          const cardWidth = container.scrollWidth / totalCards;
-          container.scrollTo({
-            left: next * cardWidth,
-            behavior: "smooth"
-          });
-        }
-        return next;
-      });
+      scrollIndexRef.current = (scrollIndexRef.current + 1) % totalCards;
+      if (scrollContainerRef.current) {
+        const container = scrollContainerRef.current;
+        const cardWidth = container.scrollWidth / totalCards;
+        container.scrollTo({
+          left: scrollIndexRef.current * cardWidth,
+          behavior: "smooth"
+        });
+      }
     }, 3500); // Auto-scroll every 3.5 seconds
 
     return () => clearInterval(interval);

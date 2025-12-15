@@ -25,12 +25,8 @@ import {
     ShoppingCart,
     Person,
     FilterList,
-    TrendingUp,
-    LocalOffer,
-    FavoriteBorder,
     Close,
     ChevronRight,
-    Favorite,
 } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "../../context/CartContext";
@@ -56,7 +52,7 @@ const MobileBottomNav = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { getCartItemsCount, openCart } = useCart();
-    const { getWishlistItemsCount, openWishlist } = useWishlist();
+    const { openWishlist } = useWishlist();
     const { isAuthenticated } = useSelector((state) => state.auth || {});
 
     const [searchOpen, setSearchOpen] = useState(false);
@@ -110,7 +106,7 @@ const MobileBottomNav = () => {
     }, [searchQuery, categories]);
 
     const cartCount = getCartItemsCount();
-    const wishlistCount = getWishlistItemsCount();
+    // wishlistCount removed - not used in current UI
 
     // Only show on mobile
     if (!isMobile) return null;
