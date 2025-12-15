@@ -182,6 +182,9 @@ export default function PromocodeForm({
               fullWidth
               sx={textFieldStyles}
               InputLabelProps={{ shrink: true }}
+              inputProps={{
+                min: new Date().toISOString().split("T")[0], // Disable past dates
+              }}
             />
           )}
         />

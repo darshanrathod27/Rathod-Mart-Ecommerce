@@ -61,7 +61,21 @@ const updateProductTotalStock = async (productId) => {
 
 /**
  * ------------------------------------------------------------------
- * INTERNAL FUNCTION (For Order Controller)
+ * INTERNAL FUNCTION (For Order Controller) - CHECK STOCK AVAILABILITY
+ * ------------------------------------------------------------------
+ */
+export const checkStockAvailability = async (productId, variantId, quantity) => {
+  const currentBalance = await getCurrentStock(productId, variantId || null);
+  return {
+    available: Number(currentBalance) >= Number(quantity),
+    currentStock: Number(currentBalance),
+    requested: Number(quantity),
+  };
+};
+
+/**
+ * ------------------------------------------------------------------
+ * INTERNAL FUNCTION (For Order Controller) - REDUCE STOCK
  * ------------------------------------------------------------------
  */
 export const reduceStockInternal = async (
