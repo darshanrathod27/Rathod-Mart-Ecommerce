@@ -37,17 +37,51 @@
 </p>
 
 <details>
-<summary>📱 View More Screenshots</summary>
+<summary>🖥️ Desktop Screenshots</summary>
 
 ### Customer Store
-| Home Page | Product Details | Cart |
-|-----------|-----------------|------|
-| ![Home](./screenshots/home.png) | ![Product](./screenshots/product.png) | ![Cart](./screenshots/cart.png) |
+<table>
+  <tr>
+    <td align="center"><b>Home Page</b></td>
+    <td align="center"><b>Products</b></td>
+    <td align="center"><b>Cart</b></td>
+  </tr>
+  <tr>
+    <td><img src="./screenshots/home.png" alt="Home" width="280"/></td>
+    <td><img src="./screenshots/product.png" alt="Product" width="280"/></td>
+    <td><img src="./screenshots/cart.png" alt="Cart" width="280"/></td>
+  </tr>
+</table>
 
 ### Admin Panel
-| Dashboard | Products | Orders |
-|-----------|----------|--------|
-| ![Dashboard](./screenshots/admin-dashboard.png) | ![Products](./screenshots/admin-products.png) | ![Orders](./screenshots/admin-orders.png) |
+<table>
+  <tr>
+    <td align="center"><b>Dashboard</b></td>
+    <td align="center"><b>Products</b></td>
+    <td align="center"><b>Orders</b></td>
+  </tr>
+  <tr>
+    <td><img src="./screenshots/admin-dashboard.png" alt="Dashboard" width="280"/></td>
+    <td><img src="./screenshots/admin-products.png" alt="Products" width="280"/></td>
+    <td><img src="./screenshots/admin-orders.png" alt="Orders" width="280"/></td>
+  </tr>
+</table>
+
+</details>
+
+<details>
+<summary>📱 Mobile Responsive Screenshots</summary>
+
+<table>
+  <tr>
+    <td align="center"><b>Mobile Home</b></td>
+    <td align="center"><b>Mobile Products</b></td>
+  </tr>
+  <tr>
+    <td><img src="./screenshots/mobile-home.png" alt="Mobile Home" width="200"/></td>
+    <td><img src="./screenshots/mobile-products.png" alt="Mobile Products" width="200"/></td>
+  </tr>
+</table>
 
 </details>
 
