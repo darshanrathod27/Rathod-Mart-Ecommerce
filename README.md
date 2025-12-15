@@ -59,11 +59,13 @@
     <td align="center"><b>Dashboard</b></td>
     <td align="center"><b>Products</b></td>
     <td align="center"><b>Orders</b></td>
+    <td align="center"><b>Users</b></td>
   </tr>
   <tr>
-    <td><img src="./screenshots/admin-dashboard.png" alt="Dashboard" width="280"/></td>
-    <td><img src="./screenshots/admin-products.png" alt="Products" width="280"/></td>
-    <td><img src="./screenshots/admin-orders.png" alt="Orders" width="280"/></td>
+    <td><img src="./screenshots/admin-dashboard.png" alt="Dashboard" width="220"/></td>
+    <td><img src="./screenshots/admin-products.png" alt="Products" width="220"/></td>
+    <td><img src="./screenshots/admin-orders.png" alt="Orders" width="220"/></td>
+    <td><img src="./screenshots/admin-users.png" alt="Users" width="220"/></td>
   </tr>
 </table>
 
@@ -295,7 +297,7 @@ npm start
   <a href="https://github.com/darshanrathod27">
     <img src="https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white" alt="GitHub"/>
   </a>
-  <a href="https://linkedin.com/in/darshanrathod27">
+  <a href="https://www.linkedin.com/in/rathod-darshan/">
     <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn"/>
   </a>
 </p>
