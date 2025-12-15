@@ -188,8 +188,8 @@ const Home = () => {
                 {loading
                   ? "Loading..."
                   : err
-                  ? err
-                  : `${filteredProducts.length} products found`}
+                    ? err
+                    : `${filteredProducts.length} products found`}
               </Typography>
 
               {/* (rest of the filter chips and grid logic remains the same) */}
@@ -301,15 +301,28 @@ const Home = () => {
         </Box>
 
         {/* (Filter FAB and Drawer components remain unchanged) */}
+        {/* Filter FAB - Mobile responsive position above bottom nav */}
         <Fab
           color="primary"
           onClick={() => setIsFilterOpen(true)}
           sx={{
             position: "fixed",
-            bottom: 24,
-            left: 24,
+            // Position above mobile bottom nav on phones
+            bottom: { xs: 100, md: 24 },
+            // Right side for better reach on mobile
+            right: { xs: 16, md: "auto" },
+            left: { xs: "auto", md: 24 },
             background: "linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)",
-            zIndex: 1000,
+            zIndex: 1200,
+            // Touch-friendly size on mobile
+            width: { xs: 52, md: 56 },
+            height: { xs: 52, md: 56 },
+            boxShadow: "0 4px 20px rgba(46, 125, 50, 0.4)",
+            // Ensure it's always tappable
+            WebkitTapHighlightColor: "transparent",
+            "&:active": {
+              transform: "scale(0.95)",
+            },
           }}
         >
           <FilterList />

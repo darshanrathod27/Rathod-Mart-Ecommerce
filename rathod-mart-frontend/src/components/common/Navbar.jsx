@@ -273,7 +273,7 @@ const Navbar = () => {
             {/* Spacer for Desktop */}
             {!isMobile && <Box sx={{ flexGrow: 1 }} />}
 
-            {/* 🔍 Search Bar - Desktop Only */}
+            {/* 🔍 Search Bar - Desktop Only (Mobile uses bottom nav search button) */}
             {!isMobile && (
               <Box
                 sx={{
@@ -288,10 +288,10 @@ const Navbar = () => {
               </Box>
             )}
 
-            {/* Mobile Spacer */}
+            {/* Mobile Spacer - search is in bottom nav */}
             {isMobile && <Box sx={{ flexGrow: 1 }} />}
 
-            {/* Spacer for Desktop */}
+            {/* Spacer for Desktop Only */}
             {!isMobile && <Box sx={{ flexGrow: 1 }} />}
 
             {/* 🎯 Right Action Icons - Desktop Only major icons, mobile simplified */}

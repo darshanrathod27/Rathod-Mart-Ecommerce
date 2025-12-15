@@ -160,37 +160,50 @@ const SearchBar = ({ categories = [] }) => {
   if (isMobile) {
     return (
       <>
-        {/* Mobile Search Icon/Bar Trigger */}
+        {/* Mobile Search Icon/Bar Trigger - Fixed for Android clipping */}
         <Box
+          data-search-trigger="mobile"
           onClick={() => setShowMobileSearch(true)}
           sx={{
             width: "100%",
             maxWidth: { xs: "100%", sm: 400 },
+            // Prevent clipping on Android
+            overflow: "hidden",
+            boxSizing: "border-box",
           }}
         >
           <Paper
             elevation={0}
             sx={{
-              p: "2px 15px",
+              p: "2px 12px",
               display: "flex",
               alignItems: "center",
               borderRadius: "50px",
               border: "1px solid rgba(0,0,0,0.1)",
               bgcolor: "rgba(255,255,255,0.9)",
-              height: { xs: 42, sm: 46 },
+              height: { xs: 40, sm: 46 },
               cursor: "pointer",
+              // Ensure proper sizing on Android
+              boxSizing: "border-box",
+              minWidth: 0,
+              overflow: "hidden",
+              WebkitTapHighlightColor: "transparent",
               "&:active": {
                 bgcolor: "rgba(0,0,0,0.05)",
               },
             }}
           >
-            <Search color="action" sx={{ fontSize: { xs: 20, sm: 22 } }} />
+            <Search color="action" sx={{ fontSize: { xs: 18, sm: 22 }, flexShrink: 0 }} />
             <Typography
               sx={{
-                ml: 2,
+                ml: 1.5,
                 flex: 1,
-                fontSize: { xs: "0.85rem", sm: "0.95rem" },
+                fontSize: { xs: "0.8rem", sm: "0.95rem" },
                 color: "text.secondary",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                minWidth: 0,
               }}
             >
               Search products...
@@ -286,40 +299,58 @@ const SearchBar = ({ categories = [] }) => {
                   elevation={0}
                   sx={{
                     flex: 1,
-                    p: { xs: "3px 12px", sm: "4px 15px" },
+                    p: { xs: "3px 10px", sm: "4px 15px" },
                     display: "flex",
                     alignItems: "center",
                     borderRadius: "50px",
                     border: "2px solid",
                     borderColor: "primary.main",
                     bgcolor: "background.paper",
-                    height: { xs: 48, sm: 48 },
+                    height: { xs: 46, sm: 48 },
+                    // Android fix: prevent overflow and clipping
+                    minWidth: 0,
+                    overflow: "hidden",
+                    boxSizing: "border-box",
                   }}
                 >
-                  <Search color="primary" sx={{ fontSize: { xs: 20, sm: 22 } }} />
+                  <Search color="primary" sx={{ fontSize: { xs: 18, sm: 22 }, flexShrink: 0 }} />
                   <InputBase
                     ref={inputRef}
                     sx={{
-                      ml: { xs: 1, sm: 2 },
+                      ml: { xs: 0.8, sm: 2 },
                       flex: 1,
                       // iOS fix: font-size >= 16px prevents auto-zoom on focus
                       fontSize: "16px",
+                      // Android fix: proper overflow handling
+                      minWidth: 0,
                       "& input": {
                         WebkitAppearance: "none",
                         WebkitTapHighlightColor: "transparent",
+                        // Prevent text overflow
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        minWidth: 0,
                       },
                       "& input::placeholder": {
                         fontSize: "14px",
+                        opacity: 0.8,
                       },
                     }}
-                    placeholder="Search for products, brands..."
+                    placeholder="Search products, brands..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    // Removed autoFocus - doesn't work on iOS without user gesture
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleSubmit(e);
+                      }
+                    }}
                     inputProps={{
                       style: {
                         WebkitAppearance: "none",
+                        minWidth: 0,
                       },
+                      enterKeyHint: "search",
                     }}
                   />
                   {query && (

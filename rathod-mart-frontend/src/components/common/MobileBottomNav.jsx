@@ -40,6 +40,16 @@ import { useSelector } from "react-redux";
 import AdvancedFilterDrawer from "../filter/AdvancedFilterDrawer";
 import api from "../../data/api";
 
+// API Base URL for images
+const API_BASE =
+    process.env.REACT_APP_API_URL || "http://localhost:5000";
+
+// Helper to get proper image URL
+const getImageUrl = (url) => {
+    if (!url) return "";
+    return url.startsWith("http") ? url : `${API_BASE}${url}`;
+};
+
 const MobileBottomNav = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -51,6 +61,8 @@ const MobileBottomNav = () => {
 
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [searchSuggestions, setSearchSuggestions] = useState({ products: [], categories: [] });
+    const [searchLoading, setSearchLoading] = useState(false);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filters, setFilters] = useState({
         categories: [],
@@ -69,8 +81,71 @@ const MobileBottomNav = () => {
             .catch(() => { });
     }, []);
 
+    // Fetch search suggestions when query changes
+    React.useEffect(() => {
+        if (!searchQuery || searchQuery.length < 2) {
+            setSearchSuggestions({ products: [], categories: [] });
+            return;
+        }
+
+        const debounceTimer = setTimeout(async () => {
+            setSearchLoading(true);
+            try {
+                // Filter matching categories
+                const matchedCats = categories
+                    .filter((c) => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .slice(0, 3);
+
+                // Fetch matching products from API
+                const products = await api.fetchProducts({
+                    search: searchQuery,
+                    limit: 5,
+                });
+
+                setSearchSuggestions({
+                    categories: matchedCats,
+                    products: products || [],
+                });
+            } catch (err) {
+                console.error("Search error:", err);
+            } finally {
+                setSearchLoading(false);
+            }
+        }, 300);
+
+        return () => clearTimeout(debounceTimer);
+    }, [searchQuery, categories]);
+
     const cartCount = getCartItemsCount();
     const wishlistCount = getWishlistItemsCount();
+
+    // Handler for applying filters - navigates to /products with filter params
+    const handleApplyFilters = (appliedFilters) => {
+        const params = new URLSearchParams();
+
+        // Add category filters
+        if (appliedFilters.categories?.length) {
+            params.set('category', appliedFilters.categories.join(','));
+        }
+        // Add brand filters  
+        if (appliedFilters.brands?.length) {
+            params.set('brands', appliedFilters.brands.join(','));
+        }
+        // Add price range
+        if (appliedFilters.priceRange) {
+            params.set('minPrice', appliedFilters.priceRange[0]);
+            params.set('maxPrice', appliedFilters.priceRange[1]);
+        }
+        // Add sort
+        if (appliedFilters.sortBy && appliedFilters.sortBy !== 'featured') {
+            params.set('sortBy', appliedFilters.sortBy);
+        }
+
+        // Navigate to products page with filters
+        const queryString = params.toString();
+        navigate(`/products${queryString ? `?${queryString}` : ''}`);
+        setIsFilterOpen(false);
+    };
 
     // Only show on mobile
     if (!isMobile) return null;
@@ -99,6 +174,7 @@ const MobileBottomNav = () => {
             id: "search",
             label: "Search",
             icon: Search,
+            // Open the mobile search drawer
             onClick: () => setSearchOpen(true),
             isCenter: true
         },
@@ -126,7 +202,7 @@ const MobileBottomNav = () => {
 
     return (
         <>
-            {/* Floating Filter Button - Only on filter pages */}
+            {/* Floating Filter Button - Only on filter pages, positioned above bottom nav */}
             <AnimatePresence>
                 {isFilterPage && (
                     <Fab
@@ -137,21 +213,36 @@ const MobileBottomNav = () => {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         size="medium"
-                        onClick={() => setIsFilterOpen(true)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setIsFilterOpen(true);
+                        }}
                         sx={{
                             position: "fixed",
-                            bottom: 100,
-                            right: 20,
+                            // Position above bottom nav - accounts for safe area
+                            bottom: "max(90px, calc(80px + env(safe-area-inset-bottom)))",
+                            left: 16,
                             zIndex: 1200,
                             background: "linear-gradient(135deg, #2E7D32 0%, #43A047 100%)",
                             color: "#fff",
                             boxShadow: "0 4px 20px rgba(46, 125, 50, 0.4)",
+                            // Touch-friendly sizing
+                            width: 52,
+                            height: 52,
+                            minWidth: 52,
+                            minHeight: 52,
+                            WebkitTapHighlightColor: "transparent",
                             "&:hover": {
                                 background: "linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%)",
                             },
+                            "&:active": {
+                                transform: "scale(0.95)",
+                                boxShadow: "0 2px 10px rgba(46, 125, 50, 0.5)",
+                            },
                         }}
                     >
-                        <FilterList />
+                        <FilterList sx={{ fontSize: 24 }} />
                     </Fab>
                 )}
             </AnimatePresence>
@@ -382,13 +473,17 @@ const MobileBottomNav = () => {
                             px: { xs: 1.5, sm: 2.5 },
                             py: { xs: 0.8, sm: 1.2 },
                             boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-                            minHeight: { xs: 48, sm: 48 },
+                            minHeight: { xs: 46, sm: 48 },
+                            // Android fix: prevent clipping
+                            minWidth: 0,
+                            overflow: "hidden",
+                            boxSizing: "border-box",
                         }}
                     >
-                        <Search sx={{ color: "#2E7D32", mr: { xs: 1, sm: 1.5 }, fontSize: { xs: 20, sm: 22 } }} />
+                        <Search sx={{ color: "#2E7D32", mr: { xs: 0.8, sm: 1.5 }, fontSize: { xs: 18, sm: 22 }, flexShrink: 0 }} />
                         <input
                             type="text"
-                            placeholder="Search for products, brands..."
+                            placeholder="Search products, brands..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyPress={(e) => {
@@ -407,10 +502,16 @@ const MobileBottomNav = () => {
                                 fontFamily: "inherit",
                                 background: "transparent",
                                 color: "#333",
+                                // Android fix: prevent clipping
                                 minWidth: 0,
+                                width: "100%",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                boxSizing: "border-box",
                                 WebkitAppearance: "none",
                                 WebkitTapHighlightColor: "transparent",
                             }}
+                            enterKeyHint="search"
                         />
                         {searchQuery && (
                             <IconButton
@@ -419,13 +520,14 @@ const MobileBottomNav = () => {
                                 sx={{
                                     p: 0.5,
                                     color: "#9e9e9e",
-                                    minWidth: 36,
-                                    minHeight: 36,
+                                    minWidth: 32,
+                                    minHeight: 32,
+                                    flexShrink: 0,
                                     WebkitTapHighlightColor: "transparent",
                                     "&:active": { color: "#666" },
                                 }}
                             >
-                                <Close sx={{ fontSize: 18 }} />
+                                <Close sx={{ fontSize: 16 }} />
                             </IconButton>
                         )}
                     </Box>
@@ -442,130 +544,262 @@ const MobileBottomNav = () => {
                         pb: "max(20px, env(safe-area-inset-bottom))",
                     }}
                 >
-                    {/* Quick Actions - Better mobile layout */}
-                    <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
-                        <Typography
-                            variant="overline"
-                            sx={{
-                                color: "#2E7D32",
-                                fontWeight: 700,
-                                letterSpacing: 1.5,
-                                fontSize: { xs: "0.65rem", sm: "0.7rem" },
-                                display: "block",
-                                mb: { xs: 1.2, sm: 1.5 },
-                            }}
-                        >
-                            Quick Actions
-                        </Typography>
-                        <Box
-                            sx={{
-                                display: "flex",
-                                flexWrap: "wrap",
-                                gap: { xs: 0.8, sm: 1 },
-                            }}
-                        >
-                            {[
-                                { label: "🔥 Trending", path: "/category?trending=true", color: "#fff3e0" },
-                                { label: "⭐ Best Offers", path: "/products?isBestOffer=true", color: "#e8f5e9" },
-                                { label: "🛍️ All Products", path: "/products", color: "#e3f2fd" },
-                                { label: "❤️ Wishlist", action: () => { openWishlist(); setSearchOpen(false); }, color: "#fce4ec" },
-                            ].map((item) => (
-                                <Box
-                                    key={item.label}
-                                    component={motion.div}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => {
-                                        if (item.action) {
-                                            item.action();
-                                        } else {
-                                            navigate(item.path);
-                                            setSearchOpen(false);
-                                        }
-                                    }}
-                                    sx={{
-                                        px: { xs: 1.5, sm: 2 },
-                                        py: { xs: 1, sm: 1.2 },
-                                        bgcolor: item.color,
-                                        borderRadius: 25,
-                                        cursor: "pointer",
-                                        fontSize: { xs: "0.8rem", sm: "0.85rem" },
-                                        fontWeight: 600,
-                                        transition: "all 0.15s",
-                                        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                                        minHeight: { xs: 40, sm: 44 },
-                                        display: "flex",
-                                        alignItems: "center",
-                                        "&:active": {
-                                            transform: "scale(0.97)",
-                                            boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-                                        },
-                                    }}
-                                >
-                                    {item.label}
-                                </Box>
-                            ))}
+                    {/* 🔍 Search Suggestions - API-based recommendations */}
+                    {searchQuery.length >= 2 && (
+                        <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
+                            {searchLoading ? (
+                                <Typography sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
+                                    Searching...
+                                </Typography>
+                            ) : (
+                                <>
+                                    {/* Category Suggestions */}
+                                    {searchSuggestions.categories.length > 0 && (
+                                        <Box sx={{ mb: 2 }}>
+                                            <Typography
+                                                variant="overline"
+                                                sx={{
+                                                    color: "#2E7D32",
+                                                    fontWeight: 700,
+                                                    letterSpacing: 1.5,
+                                                    fontSize: { xs: "0.65rem", sm: "0.7rem" },
+                                                    display: "block",
+                                                    mb: 1,
+                                                }}
+                                            >
+                                                Categories
+                                            </Typography>
+                                            {searchSuggestions.categories.map((cat) => (
+                                                <Box
+                                                    key={cat.id}
+                                                    onClick={() => {
+                                                        navigate(`/category?category=${cat.id}`);
+                                                        setSearchOpen(false);
+                                                        setSearchQuery("");
+                                                    }}
+                                                    sx={{
+                                                        p: 1.5,
+                                                        borderRadius: 2,
+                                                        cursor: "pointer",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 1,
+                                                        "&:active": { bgcolor: "#e8f5e9" },
+                                                    }}
+                                                >
+                                                    <Typography sx={{ fontSize: "1.2rem" }}>{cat.icon || "📦"}</Typography>
+                                                    <Typography sx={{ fontWeight: 600 }}>{cat.name}</Typography>
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    )}
+
+                                    {/* Product Suggestions */}
+                                    {searchSuggestions.products.length > 0 && (
+                                        <Box>
+                                            <Typography
+                                                variant="overline"
+                                                sx={{
+                                                    color: "#2E7D32",
+                                                    fontWeight: 700,
+                                                    letterSpacing: 1.5,
+                                                    fontSize: { xs: "0.65rem", sm: "0.7rem" },
+                                                    display: "block",
+                                                    mb: 1,
+                                                }}
+                                            >
+                                                Products
+                                            </Typography>
+                                            {searchSuggestions.products.map((product) => (
+                                                <Box
+                                                    key={product._id}
+                                                    onClick={() => {
+                                                        navigate(`/products/${product._id}`);
+                                                        setSearchOpen(false);
+                                                        setSearchQuery("");
+                                                    }}
+                                                    sx={{
+                                                        p: 1.5,
+                                                        borderRadius: 2,
+                                                        cursor: "pointer",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        gap: 1.5,
+                                                        "&:active": { bgcolor: "#f5f5f5" },
+                                                    }}
+                                                >
+                                                    <Box
+                                                        component="img"
+                                                        src={getImageUrl(product.primaryImage || product.image || product.images?.[0])}
+                                                        sx={{
+                                                            width: 48,
+                                                            height: 48,
+                                                            borderRadius: 1,
+                                                            objectFit: "cover",
+                                                            bgcolor: "#f5f5f5",
+                                                        }}
+                                                    />
+                                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                        <Typography
+                                                            sx={{
+                                                                fontWeight: 600,
+                                                                fontSize: "0.9rem",
+                                                                overflow: "hidden",
+                                                                textOverflow: "ellipsis",
+                                                                whiteSpace: "nowrap",
+                                                            }}
+                                                        >
+                                                            {product.name}
+                                                        </Typography>
+                                                        <Typography sx={{ color: "#2E7D32", fontWeight: 700, fontSize: "0.85rem" }}>
+                                                            ₹{product.basePrice?.toLocaleString()}
+                                                        </Typography>
+                                                    </Box>
+                                                    <ChevronRight sx={{ color: "#bdbdbd" }} />
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    )}
+
+                                    {/* No results */}
+                                    {searchSuggestions.categories.length === 0 && searchSuggestions.products.length === 0 && (
+                                        <Typography sx={{ color: "text.secondary", textAlign: "center", py: 2 }}>
+                                            No results found for "{searchQuery}"
+                                        </Typography>
+                                    )}
+                                </>
+                            )}
                         </Box>
-                    </Box>
+                    )}
 
-                    <Divider sx={{ mx: { xs: 1.5, sm: 2 } }} />
-
-                    {/* Categories - Better mobile touch targets */}
-                    <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
-                        <Typography
-                            variant="overline"
-                            sx={{
-                                color: "#2E7D32",
-                                fontWeight: 700,
-                                letterSpacing: 1.5,
-                                fontSize: { xs: "0.65rem", sm: "0.7rem" },
-                                display: "block",
-                                mb: { xs: 1, sm: 1.5 },
-                            }}
-                        >
-                            Browse Categories
-                        </Typography>
-                        <List disablePadding>
-                            {categories.slice(0, 12).map((cat, idx) => (
-                                <ListItem
-                                    key={cat.id || idx}
-                                    component={motion.div}
-                                    initial={{ opacity: 0, x: -15 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: idx * 0.025 }}
-                                    onClick={() => {
-                                        navigate(`/category?category=${cat.id}`);
-                                        setSearchOpen(false);
-                                    }}
+                    {/* Quick Actions - Show when not actively searching */}
+                    {searchQuery.length < 2 && (
+                        <>
+                            <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
+                                <Typography
+                                    variant="overline"
                                     sx={{
-                                        py: { xs: 1.2, sm: 1.5 },
-                                        px: { xs: 1.2, sm: 1.5 },
-                                        cursor: "pointer",
-                                        borderRadius: { xs: 2, sm: 3 },
-                                        mb: { xs: 0.3, sm: 0.5 },
-                                        minHeight: { xs: 52, sm: 56 },
-                                        transition: "all 0.15s",
-                                        "&:active": {
-                                            bgcolor: "#e8f5e9",
-                                            transform: "scale(0.98)",
-                                        },
+                                        color: "#2E7D32",
+                                        fontWeight: 700,
+                                        letterSpacing: 1.5,
+                                        fontSize: { xs: "0.65rem", sm: "0.7rem" },
+                                        display: "block",
+                                        mb: { xs: 1.2, sm: 1.5 },
                                     }}
                                 >
-                                    <ListItemIcon sx={{ minWidth: { xs: 36, sm: 40 }, fontSize: { xs: "1.2rem", sm: "1.4rem" } }}>
-                                        {cat.icon || "📦"}
-                                    </ListItemIcon>
-                                    <ListItemText
-                                        primary={cat.name}
-                                        primaryTypographyProps={{
-                                            fontWeight: 600,
-                                            fontSize: { xs: "0.9rem", sm: "0.95rem" },
-                                            noWrap: true,
-                                        }}
-                                    />
-                                    <ChevronRight sx={{ color: "#bdbdbd", fontSize: { xs: 18, sm: 20 } }} />
-                                </ListItem>
-                            ))}
-                        </List>
-                    </Box>
+                                    Quick Actions
+                                </Typography>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: { xs: 0.8, sm: 1 },
+                                    }}
+                                >
+                                    {[
+                                        { label: "🔥 Trending", path: "/category?trending=true", color: "#fff3e0" },
+                                        { label: "⭐ Best Offers", path: "/products?isBestOffer=true", color: "#e8f5e9" },
+                                        { label: "🛍️ All Products", path: "/products", color: "#e3f2fd" },
+                                        { label: "❤️ Wishlist", action: () => { openWishlist(); setSearchOpen(false); }, color: "#fce4ec" },
+                                    ].map((item) => (
+                                        <Box
+                                            key={item.label}
+                                            component={motion.div}
+                                            whileTap={{ scale: 0.95 }}
+                                            onClick={() => {
+                                                if (item.action) {
+                                                    item.action();
+                                                } else {
+                                                    navigate(item.path);
+                                                    setSearchOpen(false);
+                                                }
+                                            }}
+                                            sx={{
+                                                px: { xs: 1.5, sm: 2 },
+                                                py: { xs: 1, sm: 1.2 },
+                                                bgcolor: item.color,
+                                                borderRadius: 25,
+                                                cursor: "pointer",
+                                                fontSize: { xs: "0.8rem", sm: "0.85rem" },
+                                                fontWeight: 600,
+                                                transition: "all 0.15s",
+                                                boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                                                minHeight: { xs: 40, sm: 44 },
+                                                display: "flex",
+                                                alignItems: "center",
+                                                "&:active": {
+                                                    transform: "scale(0.97)",
+                                                    boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                                                },
+                                            }}
+                                        >
+                                            {item.label}
+                                        </Box>
+                                    ))}
+                                </Box>
+                            </Box>
+
+                            <Divider sx={{ mx: { xs: 1.5, sm: 2 } }} />
+
+                            {/* Categories - Better mobile touch targets */}
+                            <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
+                                <Typography
+                                    variant="overline"
+                                    sx={{
+                                        color: "#2E7D32",
+                                        fontWeight: 700,
+                                        letterSpacing: 1.5,
+                                        fontSize: { xs: "0.65rem", sm: "0.7rem" },
+                                        display: "block",
+                                        mb: { xs: 1, sm: 1.5 },
+                                    }}
+                                >
+                                    Browse Categories
+                                </Typography>
+                                <List disablePadding>
+                                    {categories.slice(0, 12).map((cat, idx) => (
+                                        <ListItem
+                                            key={cat.id || idx}
+                                            component={motion.div}
+                                            initial={{ opacity: 0, x: -15 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: idx * 0.025 }}
+                                            onClick={() => {
+                                                navigate(`/category?category=${cat.id}`);
+                                                setSearchOpen(false);
+                                            }}
+                                            sx={{
+                                                py: { xs: 1.2, sm: 1.5 },
+                                                px: { xs: 1.2, sm: 1.5 },
+                                                cursor: "pointer",
+                                                borderRadius: { xs: 2, sm: 3 },
+                                                mb: { xs: 0.3, sm: 0.5 },
+                                                minHeight: { xs: 52, sm: 56 },
+                                                transition: "all 0.15s",
+                                                "&:active": {
+                                                    bgcolor: "#e8f5e9",
+                                                    transform: "scale(0.98)",
+                                                },
+                                            }}
+                                        >
+                                            <ListItemIcon sx={{ minWidth: { xs: 36, sm: 40 }, fontSize: { xs: "1.2rem", sm: "1.4rem" } }}>
+                                                {cat.icon || "📦"}
+                                            </ListItemIcon>
+                                            <ListItemText
+                                                primary={cat.name}
+                                                primaryTypographyProps={{
+                                                    fontWeight: 600,
+                                                    fontSize: { xs: "0.9rem", sm: "0.95rem" },
+                                                    noWrap: true,
+                                                }}
+                                            />
+                                            <ChevronRight sx={{ color: "#bdbdbd", fontSize: { xs: 18, sm: 20 } }} />
+                                        </ListItem>
+                                    ))}
+                                </List>
+                            </Box>
+                        </>
+                    )}
                 </Box>
             </Drawer>
 
@@ -575,6 +809,7 @@ const MobileBottomNav = () => {
                 onClose={() => setIsFilterOpen(false)}
                 filters={filters}
                 setFilters={setFilters}
+                onApplyFilters={handleApplyFilters}
             />
         </>
     );

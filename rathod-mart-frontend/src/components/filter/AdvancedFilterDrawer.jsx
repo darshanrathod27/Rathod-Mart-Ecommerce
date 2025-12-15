@@ -49,7 +49,7 @@ const defaultFilters = {
   sortBy: "featured",
 };
 
-const AdvancedFilterDrawer = ({ open, onClose, filters, setFilters }) => {
+const AdvancedFilterDrawer = ({ open, onClose, filters, setFilters, onApplyFilters }) => {
   const [tempFilters, setTempFilters] = useState(filters || defaultFilters);
   const [expanded, setExpanded] = useState(["categories", "price"]);
 
@@ -144,6 +144,10 @@ const AdvancedFilterDrawer = ({ open, onClose, filters, setFilters }) => {
 
   const handleApply = () => {
     setFilters(tempFilters);
+    // Call optional callback for parent to handle (e.g., navigation with filter params)
+    if (onApplyFilters) {
+      onApplyFilters(tempFilters);
+    }
     onClose();
   };
 
