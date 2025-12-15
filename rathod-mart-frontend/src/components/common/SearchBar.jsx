@@ -198,7 +198,7 @@ const SearchBar = ({ categories = [] }) => {
           </Paper>
         </Box>
 
-        {/* Mobile Full-Screen Search Drawer - Enhanced Responsive */}
+        {/* Mobile Full-Screen Search Drawer - Fixed for All Devices */}
         <Drawer
           anchor="top"
           open={showMobileSearch}
@@ -207,14 +207,30 @@ const SearchBar = ({ categories = [] }) => {
             setQuery("");
             setSuggestions({ products: [], categories: [] });
           }}
+          // Ensure drawer is above navbar
+          sx={{
+            zIndex: 1400, // Higher than navbar (typically 1100)
+          }}
           PaperProps={{
             sx: {
-              height: "100vh",
-              height: "100dvh", // Dynamic viewport height for mobile browsers
+              // Full screen coverage - works on Android and iOS
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: "100%",
+              maxHeight: "100%",
               width: "100%",
+              // iOS Safari fallback
+              "@supports (-webkit-touch-callout: none)": {
+                height: "-webkit-fill-available",
+              },
               bgcolor: "background.default",
-              // Safe area for notched phones
-              pt: "env(safe-area-inset-top)",
+              borderRadius: 0,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
             },
           }}
           transitionDuration={250}
@@ -227,14 +243,18 @@ const SearchBar = ({ categories = [] }) => {
               overflow: "hidden",
             }}
           >
-            {/* Mobile Search Header - Enhanced */}
+            {/* Mobile Search Header - Fixed for All Devices */}
             <Box
               sx={{
-                p: { xs: 1.5, sm: 2 },
+                // Safe area padding for notched phones
+                pt: "max(12px, env(safe-area-inset-top))",
+                px: { xs: 1.5, sm: 2 },
+                pb: { xs: 1.5, sm: 2 },
                 borderBottom: "1px solid",
                 borderColor: "divider",
                 bgcolor: "background.paper",
                 flexShrink: 0,
+                minHeight: { xs: 70, sm: 80 },
               }}
             >
               <Box
@@ -254,8 +274,9 @@ const SearchBar = ({ categories = [] }) => {
                   }}
                   sx={{
                     p: { xs: 0.8, sm: 1 },
-                    minWidth: { xs: 40, sm: 44 },
-                    minHeight: { xs: 40, sm: 44 },
+                    minWidth: { xs: 44, sm: 44 },
+                    minHeight: { xs: 44, sm: 44 },
+                    WebkitTapHighlightColor: "transparent",
                   }}
                 >
                   <ArrowBack sx={{ fontSize: { xs: 22, sm: 24 } }} />
@@ -272,7 +293,7 @@ const SearchBar = ({ categories = [] }) => {
                     border: "2px solid",
                     borderColor: "primary.main",
                     bgcolor: "background.paper",
-                    height: { xs: 44, sm: 48 },
+                    height: { xs: 48, sm: 48 },
                   }}
                 >
                   <Search color="primary" sx={{ fontSize: { xs: 20, sm: 22 } }} />
@@ -281,15 +302,25 @@ const SearchBar = ({ categories = [] }) => {
                     sx={{
                       ml: { xs: 1, sm: 2 },
                       flex: 1,
-                      fontSize: { xs: "0.9rem", sm: "1rem" },
+                      // iOS fix: font-size >= 16px prevents auto-zoom on focus
+                      fontSize: "16px",
+                      "& input": {
+                        WebkitAppearance: "none",
+                        WebkitTapHighlightColor: "transparent",
+                      },
                       "& input::placeholder": {
-                        fontSize: { xs: "0.85rem", sm: "0.95rem" },
+                        fontSize: "14px",
                       },
                     }}
                     placeholder="Search for products, brands..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    autoFocus
+                    // Removed autoFocus - doesn't work on iOS without user gesture
+                    inputProps={{
+                      style: {
+                        WebkitAppearance: "none",
+                      },
+                    }}
                   />
                   {query && (
                     <IconButton
@@ -300,8 +331,9 @@ const SearchBar = ({ categories = [] }) => {
                       size="small"
                       sx={{
                         p: { xs: 0.4, sm: 0.5 },
-                        minWidth: 32,
-                        minHeight: 32,
+                        minWidth: 36,
+                        minHeight: 36,
+                        WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       <Close sx={{ fontSize: { xs: 18, sm: 20 } }} />

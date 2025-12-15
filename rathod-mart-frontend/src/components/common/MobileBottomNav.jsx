@@ -308,33 +308,51 @@ const MobileBottomNav = () => {
                 })}
             </Paper>
 
-            {/* Full Screen Search Drawer - Mobile Optimized */}
+            {/* Full Screen Search Drawer - Fixed for All Devices */}
             <Drawer
                 anchor="bottom"
                 open={searchOpen}
                 onClose={() => setSearchOpen(false)}
+                // Ensure drawer is above navbar
+                sx={{
+                    zIndex: 1400, // Higher than navbar (typically 1100)
+                }}
                 PaperProps={{
                     sx: {
-                        height: "100vh",
+                        // Full screen coverage - works on Android and iOS
+                        position: "fixed",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: "100%",
+                        maxHeight: "100%",
                         width: "100%",
-                        borderTopLeftRadius: { xs: 20, sm: 28 },
-                        borderTopRightRadius: { xs: 20, sm: 28 },
+                        // iOS Safari fallback
+                        "@supports (-webkit-touch-callout: none)": {
+                            height: "-webkit-fill-available",
+                        },
+                        borderRadius: 0, // Remove border radius for full screen
                         overflow: "hidden",
-                        // Safe area for notched phones
-                        pt: "env(safe-area-inset-top)",
+                        display: "flex",
+                        flexDirection: "column",
                     },
                 }}
-                transitionDuration={300}
+                transitionDuration={250}
             >
-                {/* Search Header - Enhanced for mobile */}
+                {/* Search Header - Enhanced for all mobile devices */}
                 <Box
                     sx={{
-                        p: { xs: 1.5, sm: 2 },
+                        // Safe area padding for notched phones
+                        pt: "max(12px, env(safe-area-inset-top))",
+                        px: { xs: 1.5, sm: 2 },
+                        pb: { xs: 1.5, sm: 2 },
                         display: "flex",
                         alignItems: "center",
                         gap: { xs: 1, sm: 1.5 },
                         background: "linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #43A047 100%)",
-                        minHeight: { xs: 60, sm: 70 },
+                        minHeight: { xs: 70, sm: 80 },
+                        flexShrink: 0,
                     }}
                 >
                     <IconButton
@@ -342,8 +360,9 @@ const MobileBottomNav = () => {
                         sx={{
                             color: "#fff",
                             bgcolor: "rgba(255,255,255,0.15)",
-                            minWidth: { xs: 40, sm: 44 },
-                            minHeight: { xs: 40, sm: 44 },
+                            minWidth: { xs: 44, sm: 44 },
+                            minHeight: { xs: 44, sm: 44 },
+                            WebkitTapHighlightColor: "transparent",
                             "&:active": { bgcolor: "rgba(255,255,255,0.3)" },
                         }}
                     >
@@ -363,7 +382,7 @@ const MobileBottomNav = () => {
                             px: { xs: 1.5, sm: 2.5 },
                             py: { xs: 0.8, sm: 1.2 },
                             boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
-                            minHeight: { xs: 44, sm: 48 },
+                            minHeight: { xs: 48, sm: 48 },
                         }}
                     >
                         <Search sx={{ color: "#2E7D32", mr: { xs: 1, sm: 1.5 }, fontSize: { xs: 20, sm: 22 } }} />
@@ -379,16 +398,18 @@ const MobileBottomNav = () => {
                                     setSearchQuery("");
                                 }
                             }}
-                            autoFocus
                             style={{
                                 flex: 1,
                                 border: "none",
                                 outline: "none",
-                                fontSize: "0.95rem",
+                                // Font-size >= 16px prevents iOS auto-zoom
+                                fontSize: "16px",
                                 fontFamily: "inherit",
                                 background: "transparent",
                                 color: "#333",
                                 minWidth: 0,
+                                WebkitAppearance: "none",
+                                WebkitTapHighlightColor: "transparent",
                             }}
                         />
                         {searchQuery && (
@@ -398,6 +419,9 @@ const MobileBottomNav = () => {
                                 sx={{
                                     p: 0.5,
                                     color: "#9e9e9e",
+                                    minWidth: 36,
+                                    minHeight: 36,
+                                    WebkitTapHighlightColor: "transparent",
                                     "&:active": { color: "#666" },
                                 }}
                             >
@@ -407,13 +431,14 @@ const MobileBottomNav = () => {
                     </Box>
                 </Box>
 
-                {/* Scrollable Content Area */}
+                {/* Scrollable Content Area - Improved for Android */}
                 <Box
                     sx={{
                         flex: 1,
                         overflowY: "auto",
                         overflowX: "hidden",
-                        WebkitOverflowScrolling: "touch",
+                        bgcolor: "#fff",
+                        // Safe area padding for bottom
                         pb: "max(20px, env(safe-area-inset-bottom))",
                     }}
                 >

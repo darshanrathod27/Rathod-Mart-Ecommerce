@@ -4,8 +4,12 @@
 <head>
   <meta charset="utf-8" />
   <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- iOS Safe Area Support: viewport-fit=cover enables env() CSS functions -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
   <meta name="theme-color" content="#2E7D32" />
+  <!-- iOS Status Bar Styling -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="description"
     content="Rathod Mart - Your Premium E-Commerce Store for Fresh Produce, Groceries, and More. Shop Now!" />
   <meta name="keywords" content="ecommerce, grocery, online shopping, fresh produce, Rathod Mart" />
