@@ -198,7 +198,7 @@ const SearchBar = ({ categories = [] }) => {
           </Paper>
         </Box>
 
-        {/* Mobile Full-Screen Search Drawer */}
+        {/* Mobile Full-Screen Search Drawer - Enhanced Responsive */}
         <Drawer
           anchor="top"
           open={showMobileSearch}
@@ -210,21 +210,31 @@ const SearchBar = ({ categories = [] }) => {
           PaperProps={{
             sx: {
               height: "100vh",
+              height: "100dvh", // Dynamic viewport height for mobile browsers
               width: "100%",
               bgcolor: "background.default",
+              // Safe area for notched phones
+              pt: "env(safe-area-inset-top)",
             },
           }}
+          transitionDuration={250}
         >
           <Box
-            sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+            sx={{
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
           >
-            {/* Mobile Search Header */}
+            {/* Mobile Search Header - Enhanced */}
             <Box
               sx={{
-                p: 2,
+                p: { xs: 1.5, sm: 2 },
                 borderBottom: "1px solid",
                 borderColor: "divider",
                 bgcolor: "background.paper",
+                flexShrink: 0,
               }}
             >
               <Box
@@ -233,7 +243,7 @@ const SearchBar = ({ categories = [] }) => {
                 sx={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 1,
+                  gap: { xs: 0.8, sm: 1 },
                 }}
               >
                 <IconButton
@@ -242,34 +252,41 @@ const SearchBar = ({ categories = [] }) => {
                     setQuery("");
                     setSuggestions({ products: [], categories: [] });
                   }}
-                  sx={{ p: 1 }}
+                  sx={{
+                    p: { xs: 0.8, sm: 1 },
+                    minWidth: { xs: 40, sm: 44 },
+                    minHeight: { xs: 40, sm: 44 },
+                  }}
                 >
-                  <ArrowBack />
+                  <ArrowBack sx={{ fontSize: { xs: 22, sm: 24 } }} />
                 </IconButton>
 
                 <Paper
                   elevation={0}
                   sx={{
                     flex: 1,
-                    p: "4px 15px",
+                    p: { xs: "3px 12px", sm: "4px 15px" },
                     display: "flex",
                     alignItems: "center",
                     borderRadius: "50px",
-                    border: "1px solid",
+                    border: "2px solid",
                     borderColor: "primary.main",
                     bgcolor: "background.paper",
-                    height: 46,
+                    height: { xs: 44, sm: 48 },
                   }}
                 >
-                  <Search color="primary" sx={{ fontSize: 22 }} />
+                  <Search color="primary" sx={{ fontSize: { xs: 20, sm: 22 } }} />
                   <InputBase
                     ref={inputRef}
                     sx={{
-                      ml: 2,
+                      ml: { xs: 1, sm: 2 },
                       flex: 1,
-                      fontSize: { xs: "0.95rem", sm: "1rem" },
+                      fontSize: { xs: "0.9rem", sm: "1rem" },
+                      "& input::placeholder": {
+                        fontSize: { xs: "0.85rem", sm: "0.95rem" },
+                      },
                     }}
-                    placeholder="Search for products..."
+                    placeholder="Search for products, brands..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     autoFocus
@@ -281,58 +298,70 @@ const SearchBar = ({ categories = [] }) => {
                         setSuggestions({ products: [], categories: [] });
                       }}
                       size="small"
-                      sx={{ p: 0.5 }}
+                      sx={{
+                        p: { xs: 0.4, sm: 0.5 },
+                        minWidth: 32,
+                        minHeight: 32,
+                      }}
                     >
-                      <Close fontSize="small" />
+                      <Close sx={{ fontSize: { xs: 18, sm: 20 } }} />
                     </IconButton>
                   )}
-                  {loading && <CircularProgress size={20} sx={{ ml: 1 }} />}
+                  {loading && <CircularProgress size={isSmallMobile ? 18 : 20} sx={{ ml: 1 }} />}
                 </Paper>
               </Box>
             </Box>
 
-            {/* Mobile Search Results */}
+            {/* Mobile Search Results - Enhanced */}
             <Box
-              sx={{ flex: 1, overflowY: "auto", bgcolor: "background.default" }}
+              sx={{
+                flex: 1,
+                overflowY: "auto",
+                overflowX: "hidden",
+                bgcolor: "background.default",
+                WebkitOverflowScrolling: "touch",
+                // Safe area for bottom notch
+                pb: "max(16px, env(safe-area-inset-bottom))",
+              }}
             >
               {!query && (
-                <Box sx={{ p: 2.5 }}>
+                <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
                   <Typography
                     variant="subtitle2"
                     color="text.secondary"
                     sx={{
-                      mb: 2,
+                      mb: { xs: 1.5, sm: 2 },
                       display: "flex",
                       alignItems: "center",
-                      gap: 1,
+                      gap: { xs: 0.8, sm: 1 },
                       fontWeight: 600,
-                      fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                      fontSize: { xs: "0.8rem", sm: "0.9rem" },
                     }}
                   >
-                    <TrendingUp fontSize="small" color="primary" /> Trending Now
+                    <TrendingUp sx={{ fontSize: { xs: 18, sm: 20 } }} color="primary" /> Trending Now
                   </Typography>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: { xs: 1, sm: 1.5 } }}>
                     {trendingTags.map((tag) => (
                       <Box
                         key={tag}
                         onClick={() => handleTrendingClick(tag)}
                         sx={{
-                          px: { xs: 2, sm: 2.5 },
-                          py: { xs: 0.7, sm: 0.8 },
+                          px: { xs: 1.8, sm: 2.5 },
+                          py: { xs: 0.8, sm: 0.8 },
                           bgcolor: "rgba(46, 125, 50, 0.08)",
                           borderRadius: 50,
                           cursor: "pointer",
-                          fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                          fontSize: { xs: "0.82rem", sm: "0.9rem" },
                           fontWeight: 500,
                           color: "primary.dark",
-                          transition: "all 0.2s",
-                          minHeight: 44,
+                          transition: "all 0.15s",
+                          minHeight: { xs: 40, sm: 44 },
                           display: "flex",
                           alignItems: "center",
                           "&:active": {
                             bgcolor: "primary.main",
                             color: "white",
-                            transform: "scale(0.95)",
+                            transform: "scale(0.96)",
                           },
                         }}
                       >
@@ -504,30 +533,30 @@ const SearchBar = ({ categories = [] }) => {
                   {/* See All Results Button */}
                   {(suggestions.products.length > 0 ||
                     suggestions.categories.length > 0) && (
-                    <ListItemButton
-                      sx={{
-                        justifyContent: "center",
-                        bgcolor: "primary.50",
-                        py: 1.8,
-                        minHeight: 56,
-                        "&:active": {
-                          bgcolor: "primary.100",
-                        },
-                      }}
-                      onClick={handleSubmit}
-                    >
-                      <Typography
-                        variant="body2"
-                        fontWeight={700}
-                        color="primary.dark"
+                      <ListItemButton
                         sx={{
-                          fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                          justifyContent: "center",
+                          bgcolor: "primary.50",
+                          py: 1.8,
+                          minHeight: 56,
+                          "&:active": {
+                            bgcolor: "primary.100",
+                          },
                         }}
+                        onClick={handleSubmit}
                       >
-                        See all results for "{query}"
-                      </Typography>
-                    </ListItemButton>
-                  )}
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          color="primary.dark"
+                          sx={{
+                            fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                          }}
+                        >
+                          See all results for "{query}"
+                        </Typography>
+                      </ListItemButton>
+                    )}
                 </List>
               )}
             </Box>
@@ -557,9 +586,8 @@ const SearchBar = ({ categories = [] }) => {
           display: "flex",
           alignItems: "center",
           borderRadius: "50px",
-          border: `1px solid ${
-            isFocused ? theme.palette.primary.main : "rgba(0,0,0,0.1)"
-          }`,
+          border: `1px solid ${isFocused ? theme.palette.primary.main : "rgba(0,0,0,0.1)"
+            }`,
           bgcolor: isFocused ? "background.paper" : "rgba(255,255,255,0.9)",
           transition: "all 0.3s ease",
           height: 48,
@@ -778,24 +806,24 @@ const SearchBar = ({ categories = [] }) => {
 
                   {(suggestions.products.length > 0 ||
                     suggestions.categories.length > 0) && (
-                    <ListItemButton
-                      sx={{
-                        justifyContent: "center",
-                        bgcolor: "primary.50",
-                        py: 1.5,
-                        "&:hover": { bgcolor: "primary.100" },
-                      }}
-                      onClick={handleSubmit}
-                    >
-                      <Typography
-                        variant="body2"
-                        fontWeight={700}
-                        color="primary.dark"
+                      <ListItemButton
+                        sx={{
+                          justifyContent: "center",
+                          bgcolor: "primary.50",
+                          py: 1.5,
+                          "&:hover": { bgcolor: "primary.100" },
+                        }}
+                        onClick={handleSubmit}
                       >
-                        See all results for "{query}"
-                      </Typography>
-                    </ListItemButton>
-                  )}
+                        <Typography
+                          variant="body2"
+                          fontWeight={700}
+                          color="primary.dark"
+                        >
+                          See all results for "{query}"
+                        </Typography>
+                      </ListItemButton>
+                    )}
                 </List>
               )}
             </Paper>

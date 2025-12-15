@@ -308,28 +308,33 @@ const MobileBottomNav = () => {
                 })}
             </Paper>
 
-            {/* Full Screen Search Drawer */}
+            {/* Full Screen Search Drawer - Mobile Optimized */}
             <Drawer
                 anchor="bottom"
                 open={searchOpen}
                 onClose={() => setSearchOpen(false)}
                 PaperProps={{
                     sx: {
-                        height: "92vh",
-                        borderTopLeftRadius: 28,
-                        borderTopRightRadius: 28,
+                        height: "100vh",
+                        width: "100%",
+                        borderTopLeftRadius: { xs: 20, sm: 28 },
+                        borderTopRightRadius: { xs: 20, sm: 28 },
                         overflow: "hidden",
+                        // Safe area for notched phones
+                        pt: "env(safe-area-inset-top)",
                     },
                 }}
+                transitionDuration={300}
             >
-                {/* Search Header */}
+                {/* Search Header - Enhanced for mobile */}
                 <Box
                     sx={{
-                        p: 2,
+                        p: { xs: 1.5, sm: 2 },
                         display: "flex",
                         alignItems: "center",
-                        gap: 1.5,
+                        gap: { xs: 1, sm: 1.5 },
                         background: "linear-gradient(135deg, #1B5E20 0%, #2E7D32 50%, #43A047 100%)",
+                        minHeight: { xs: 60, sm: 70 },
                     }}
                 >
                     <IconButton
@@ -337,27 +342,31 @@ const MobileBottomNav = () => {
                         sx={{
                             color: "#fff",
                             bgcolor: "rgba(255,255,255,0.15)",
-                            "&:hover": { bgcolor: "rgba(255,255,255,0.25)" },
+                            minWidth: { xs: 40, sm: 44 },
+                            minHeight: { xs: 40, sm: 44 },
+                            "&:active": { bgcolor: "rgba(255,255,255,0.3)" },
                         }}
                     >
-                        <Close />
+                        <Close sx={{ fontSize: { xs: 22, sm: 24 } }} />
                     </IconButton>
                     <Box
                         component={motion.div}
-                        initial={{ width: "80%" }}
-                        animate={{ width: "100%" }}
+                        initial={{ scale: 0.95, opacity: 0.8 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ duration: 0.2 }}
                         sx={{
                             flex: 1,
                             display: "flex",
                             alignItems: "center",
                             bgcolor: "#fff",
                             borderRadius: 50,
-                            px: 2.5,
-                            py: 1.2,
+                            px: { xs: 1.5, sm: 2.5 },
+                            py: { xs: 0.8, sm: 1.2 },
                             boxShadow: "0 4px 15px rgba(0,0,0,0.1)",
+                            minHeight: { xs: 44, sm: 48 },
                         }}
                     >
-                        <Search sx={{ color: "#2E7D32", mr: 1.5, fontSize: 22 }} />
+                        <Search sx={{ color: "#2E7D32", mr: { xs: 1, sm: 1.5 }, fontSize: { xs: 20, sm: 22 } }} />
                         <input
                             type="text"
                             placeholder="Search for products, brands..."
@@ -367,6 +376,7 @@ const MobileBottomNav = () => {
                                 if (e.key === "Enter" && searchQuery.trim()) {
                                     navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
                                     setSearchOpen(false);
+                                    setSearchQuery("");
                                 }
                             }}
                             autoFocus
@@ -374,117 +384,163 @@ const MobileBottomNav = () => {
                                 flex: 1,
                                 border: "none",
                                 outline: "none",
-                                fontSize: "1rem",
+                                fontSize: "0.95rem",
                                 fontFamily: "inherit",
                                 background: "transparent",
                                 color: "#333",
+                                minWidth: 0,
                             }}
                         />
+                        {searchQuery && (
+                            <IconButton
+                                onClick={() => setSearchQuery("")}
+                                size="small"
+                                sx={{
+                                    p: 0.5,
+                                    color: "#9e9e9e",
+                                    "&:active": { color: "#666" },
+                                }}
+                            >
+                                <Close sx={{ fontSize: 18 }} />
+                            </IconButton>
+                        )}
                     </Box>
                 </Box>
 
-                {/* Quick Actions */}
-                <Box sx={{ p: 2.5 }}>
-                    <Typography
-                        variant="overline"
-                        sx={{
-                            color: "#2E7D32",
-                            fontWeight: 700,
-                            letterSpacing: 1.5,
-                            fontSize: "0.7rem",
-                        }}
-                    >
-                        Quick Actions
-                    </Typography>
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1.5 }}>
-                        {[
-                            { label: "🔥 Trending", path: "/category?trending=true", color: "#fff3e0" },
-                            { label: "⭐ Best Offers", path: "/products?isBestOffer=true", color: "#e8f5e9" },
-                            { label: "🛍️ All Products", path: "/products", color: "#e3f2fd" },
-                            { label: "❤️ Wishlist", action: () => { openWishlist(); setSearchOpen(false); }, color: "#fce4ec" },
-                        ].map((item) => (
-                            <Box
-                                key={item.label}
-                                component={motion.div}
-                                whileHover={{ scale: 1.02, y: -2 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => {
-                                    if (item.action) {
-                                        item.action();
-                                    } else {
-                                        navigate(item.path);
+                {/* Scrollable Content Area */}
+                <Box
+                    sx={{
+                        flex: 1,
+                        overflowY: "auto",
+                        overflowX: "hidden",
+                        WebkitOverflowScrolling: "touch",
+                        pb: "max(20px, env(safe-area-inset-bottom))",
+                    }}
+                >
+                    {/* Quick Actions - Better mobile layout */}
+                    <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
+                        <Typography
+                            variant="overline"
+                            sx={{
+                                color: "#2E7D32",
+                                fontWeight: 700,
+                                letterSpacing: 1.5,
+                                fontSize: { xs: "0.65rem", sm: "0.7rem" },
+                                display: "block",
+                                mb: { xs: 1.2, sm: 1.5 },
+                            }}
+                        >
+                            Quick Actions
+                        </Typography>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: { xs: 0.8, sm: 1 },
+                            }}
+                        >
+                            {[
+                                { label: "🔥 Trending", path: "/category?trending=true", color: "#fff3e0" },
+                                { label: "⭐ Best Offers", path: "/products?isBestOffer=true", color: "#e8f5e9" },
+                                { label: "🛍️ All Products", path: "/products", color: "#e3f2fd" },
+                                { label: "❤️ Wishlist", action: () => { openWishlist(); setSearchOpen(false); }, color: "#fce4ec" },
+                            ].map((item) => (
+                                <Box
+                                    key={item.label}
+                                    component={motion.div}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => {
+                                        if (item.action) {
+                                            item.action();
+                                        } else {
+                                            navigate(item.path);
+                                            setSearchOpen(false);
+                                        }
+                                    }}
+                                    sx={{
+                                        px: { xs: 1.5, sm: 2 },
+                                        py: { xs: 1, sm: 1.2 },
+                                        bgcolor: item.color,
+                                        borderRadius: 25,
+                                        cursor: "pointer",
+                                        fontSize: { xs: "0.8rem", sm: "0.85rem" },
+                                        fontWeight: 600,
+                                        transition: "all 0.15s",
+                                        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                                        minHeight: { xs: 40, sm: 44 },
+                                        display: "flex",
+                                        alignItems: "center",
+                                        "&:active": {
+                                            transform: "scale(0.97)",
+                                            boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                                        },
+                                    }}
+                                >
+                                    {item.label}
+                                </Box>
+                            ))}
+                        </Box>
+                    </Box>
+
+                    <Divider sx={{ mx: { xs: 1.5, sm: 2 } }} />
+
+                    {/* Categories - Better mobile touch targets */}
+                    <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
+                        <Typography
+                            variant="overline"
+                            sx={{
+                                color: "#2E7D32",
+                                fontWeight: 700,
+                                letterSpacing: 1.5,
+                                fontSize: { xs: "0.65rem", sm: "0.7rem" },
+                                display: "block",
+                                mb: { xs: 1, sm: 1.5 },
+                            }}
+                        >
+                            Browse Categories
+                        </Typography>
+                        <List disablePadding>
+                            {categories.slice(0, 12).map((cat, idx) => (
+                                <ListItem
+                                    key={cat.id || idx}
+                                    component={motion.div}
+                                    initial={{ opacity: 0, x: -15 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: idx * 0.025 }}
+                                    onClick={() => {
+                                        navigate(`/category?category=${cat.id}`);
                                         setSearchOpen(false);
-                                    }
-                                }}
-                                sx={{
-                                    px: 2,
-                                    py: 1.2,
-                                    bgcolor: item.color,
-                                    borderRadius: 25,
-                                    cursor: "pointer",
-                                    fontSize: "0.85rem",
-                                    fontWeight: 600,
-                                    transition: "all 0.2s",
-                                    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-                                }}
-                            >
-                                {item.label}
-                            </Box>
-                        ))}
+                                    }}
+                                    sx={{
+                                        py: { xs: 1.2, sm: 1.5 },
+                                        px: { xs: 1.2, sm: 1.5 },
+                                        cursor: "pointer",
+                                        borderRadius: { xs: 2, sm: 3 },
+                                        mb: { xs: 0.3, sm: 0.5 },
+                                        minHeight: { xs: 52, sm: 56 },
+                                        transition: "all 0.15s",
+                                        "&:active": {
+                                            bgcolor: "#e8f5e9",
+                                            transform: "scale(0.98)",
+                                        },
+                                    }}
+                                >
+                                    <ListItemIcon sx={{ minWidth: { xs: 36, sm: 40 }, fontSize: { xs: "1.2rem", sm: "1.4rem" } }}>
+                                        {cat.icon || "📦"}
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        primary={cat.name}
+                                        primaryTypographyProps={{
+                                            fontWeight: 600,
+                                            fontSize: { xs: "0.9rem", sm: "0.95rem" },
+                                            noWrap: true,
+                                        }}
+                                    />
+                                    <ChevronRight sx={{ color: "#bdbdbd", fontSize: { xs: 18, sm: 20 } }} />
+                                </ListItem>
+                            ))}
+                        </List>
                     </Box>
-                </Box>
-
-                <Divider sx={{ mx: 2 }} />
-
-                {/* Categories */}
-                <Box sx={{ p: 2.5, flex: 1, overflowY: "auto" }}>
-                    <Typography
-                        variant="overline"
-                        sx={{
-                            color: "#2E7D32",
-                            fontWeight: 700,
-                            letterSpacing: 1.5,
-                            fontSize: "0.7rem",
-                        }}
-                    >
-                        Browse Categories
-                    </Typography>
-                    <List disablePadding sx={{ mt: 1 }}>
-                        {categories.slice(0, 10).map((cat, idx) => (
-                            <ListItem
-                                key={cat.id || idx}
-                                component={motion.div}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: idx * 0.03 }}
-                                onClick={() => {
-                                    navigate(`/category?category=${cat.id}`);
-                                    setSearchOpen(false);
-                                }}
-                                sx={{
-                                    py: 1.5,
-                                    px: 1.5,
-                                    cursor: "pointer",
-                                    borderRadius: 3,
-                                    mb: 0.5,
-                                    transition: "all 0.2s",
-                                    "&:hover": {
-                                        bgcolor: "#f1f8e9",
-                                        transform: "translateX(4px)",
-                                    },
-                                }}
-                            >
-                                <ListItemIcon sx={{ minWidth: 40, fontSize: "1.4rem" }}>
-                                    {cat.icon || "📦"}
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary={cat.name}
-                                    primaryTypographyProps={{ fontWeight: 600, fontSize: "0.95rem" }}
-                                />
-                                <ChevronRight sx={{ color: "#bdbdbd", fontSize: 20 }} />
-                            </ListItem>
-                        ))}
-                    </List>
                 </Box>
             </Drawer>
 

@@ -270,9 +270,43 @@ const ProductDetail = () => {
 
   const handleFavoriteToggle = () => {
     toggleWishlist(product);
-    toast.success(isFavorite ? "Removed from wishlist" : "Added to wishlist!", {
-      icon: isFavorite ? "💔" : "❤️",
-    });
+    // Note: Toast is already shown by WishlistContext, no need to show again
+  };
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    const shareText = `Check out ${product.name} on Rathod Mart!`;
+
+    // Use Web Share API if available (mobile devices)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch (err) {
+        // User cancelled share or error occurred
+        if (err.name !== 'AbortError') {
+          console.error('Share failed:', err);
+        }
+      }
+    } else {
+      // Fallback: Copy link to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Link copied to clipboard!", { icon: "📋" });
+      } catch (err) {
+        // Fallback for older browsers
+        const tempInput = document.createElement('input');
+        tempInput.value = shareUrl;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+        toast.success("Link copied to clipboard!", { icon: "📋" });
+      }
+    }
   };
 
   const handleVariantChange = (variant, prod = product) => {
@@ -762,6 +796,7 @@ const ProductDetail = () => {
                       )}
                     </IconButton>
                     <IconButton
+                      onClick={handleShare}
                       className="share-icon-btn"
                       sx={{ border: "2px solid #e0e0e0" }}
                     >
