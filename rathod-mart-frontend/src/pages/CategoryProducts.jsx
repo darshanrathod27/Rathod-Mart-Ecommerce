@@ -27,6 +27,16 @@ import AdvancedFilterDrawer from "../components/filter/AdvancedFilterDrawer";
 import { useFilter } from "../context/FilterContext";
 import api from "../data/api";
 
+// Fisher-Yates shuffle algorithm for random product display
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 const CategoryProducts = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -109,7 +119,10 @@ const CategoryProducts = () => {
             const minDiscount = Math.min(...filters.discounts);
             filtered = data.filter((p) => (p.discountPercent || 0) >= minDiscount);
           }
-          setAllProducts(filtered);
+
+          // 🔀 Shuffle products for random display on each load
+          const shuffled = shuffleArray(filtered);
+          setAllProducts(shuffled);
 
           if (categoryId && data.length > 0 && !isTrendingPage) {
             setCategoryName(data[0].category?.name || "Category");

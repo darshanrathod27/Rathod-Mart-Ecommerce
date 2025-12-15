@@ -75,9 +75,9 @@ const ProductCard = ({
           // 📱 Remove hover effects on mobile for better performance
           "&:hover": !isMobile
             ? {
-                transform: "translateY(-8px)",
-                boxShadow: "0 16px 40px rgba(46, 125, 50, 0.15)",
-              }
+              transform: "translateY(-8px)",
+              boxShadow: "0 16px 40px rgba(46, 125, 50, 0.15)",
+            }
             : {},
         }}
       >
@@ -97,13 +97,14 @@ const ProductCard = ({
           />
         )}
 
-        {/* Product Image */}
+        {/* Product Image - MOBILE: Reduced height */}
         <Box
           className="product-image-container"
           sx={{
             position: "relative",
             overflow: "hidden",
-            height: { xs: 180, sm: 200, md: 220 },
+            // 📱 MOBILE: Smaller image height
+            height: { xs: 140, sm: 180, md: 220 },
           }}
         >
           <CardMedia
@@ -111,6 +112,7 @@ const ProductCard = ({
             image={product?.image || product?.images?.[0]?.url}
             alt={product?.name}
             className="product-image"
+            loading="lazy"  // 🚀 Lazy load images for better performance
             sx={{
               width: "100%",
               height: "100%",
@@ -150,12 +152,13 @@ const ProductCard = ({
           )}
         </Box>
 
-        {/* Product Content */}
+        {/* Product Content - MOBILE: Tighter padding */}
         <CardContent
           className="product-content"
           sx={{
-            p: { xs: 1.5, md: 2 },
-            "&:last-child": { pb: { xs: 1.5, md: 2 } },
+            // 📱 MOBILE: Reduced padding
+            p: { xs: 1, sm: 1.5, md: 2 },
+            "&:last-child": { pb: { xs: 1, sm: 1.5, md: 2 } },
           }}
         >
           <Typography
@@ -163,18 +166,20 @@ const ProductCard = ({
             className="product-name"
             noWrap
             sx={{
-              fontSize: { xs: "0.85rem", sm: "0.9rem", md: "1rem" },
+              // 📱 MOBILE: Smaller font
+              fontSize: { xs: "0.8rem", sm: "0.9rem", md: "1rem" },
               fontWeight: 700,
-              mb: 0.5,
+              mb: { xs: 0.25, md: 0.5 },
+              lineHeight: 1.3,
             }}
           >
             {product?.name}
           </Typography>
 
-          {/* Rating */}
+          {/* Rating - MOBILE: Smaller */}
           <Box
             className="product-rating-box"
-            sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1 }}
+            sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: { xs: 0.5, md: 1 } }}
           >
             <Rating
               value={product?.rating || 0}
@@ -184,7 +189,8 @@ const ProductCard = ({
               className="product-rating"
               sx={{
                 color: "#ffa726",
-                fontSize: { xs: "1rem", md: "1.25rem" },
+                // 📱 MOBILE: Smaller stars
+                fontSize: { xs: "0.85rem", sm: "1rem", md: "1.25rem" },
                 "& .MuiRating-iconEmpty": {
                   color: "#e0e0e0",
                 },
@@ -193,7 +199,7 @@ const ProductCard = ({
             <Typography
               variant="caption"
               className="product-reviews"
-              sx={{ fontSize: { xs: "0.7rem", md: "0.75rem" } }}
+              sx={{ fontSize: { xs: "0.65rem", sm: "0.7rem", md: "0.75rem" } }}
             >
               ({product?.reviews ?? 0})
             </Typography>
@@ -207,7 +213,8 @@ const ProductCard = ({
             <Typography
               variant="h6"
               className="product-price"
-              sx={{ fontSize: { xs: "1rem", sm: "1.1rem", md: "1.2rem" } }}
+              // 📱 MOBILE: Smaller price font
+              sx={{ fontSize: { xs: "0.9rem", sm: "1rem", md: "1.2rem" } }}
             >
               ₹{product?.price}
             </Typography>
@@ -215,7 +222,7 @@ const ProductCard = ({
               <Typography
                 variant="body2"
                 className="product-original-price"
-                sx={{ fontSize: { xs: "0.8rem", md: "0.85rem" } }}
+                sx={{ fontSize: { xs: "0.7rem", sm: "0.75rem", md: "0.85rem" } }}
               >
                 ₹{product.originalPrice}
               </Typography>
@@ -223,14 +230,15 @@ const ProductCard = ({
           </Box>
         </CardContent>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - MOBILE: Smaller */}
         <Box
           className="product-actions"
           sx={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            p: { xs: "0 12px 12px", md: "0 14px 12px" },
+            // 📱 MOBILE: Reduced padding
+            p: { xs: "0 8px 8px", sm: "0 12px 10px", md: "0 14px 12px" },
             gap: 1,
           }}
         >
@@ -240,9 +248,9 @@ const ProductCard = ({
             className="wishlist-btn"
             sx={{
               color: isFavorite ? "#e91e63" : "rgba(0, 0, 0, 0.54)",
-              // 📱 TOUCH FRIENDLY SIZE
-              width: { xs: 44, md: 40 },
-              height: { xs: 44, md: 40 },
+              // 📱 MOBILE: Smaller touch targets (still accessible)
+              width: { xs: 36, sm: 40, md: 40 },
+              height: { xs: 36, sm: 40, md: 40 },
               borderRadius: "50%",
               border: "2px solid",
               borderColor: isFavorite ? "#e91e63" : "#e0e0e0",
@@ -264,9 +272,9 @@ const ProductCard = ({
             disabled={isOutOfStock}
             className="cart-btn"
             sx={{
-              // 📱 TOUCH FRIENDLY SIZE
-              width: { xs: 44, md: 40 },
-              height: { xs: 44, md: 40 },
+              // 📱 MOBILE: Smaller touch targets (still accessible)
+              width: { xs: 36, sm: 40, md: 40 },
+              height: { xs: 36, sm: 40, md: 40 },
               borderRadius: "50%",
               background: isOutOfStock
                 ? "#e0e0e0"
@@ -286,7 +294,7 @@ const ProductCard = ({
               },
             }}
           >
-            <AddShoppingCart sx={{ fontSize: { xs: 18, md: 20 } }} />
+            <AddShoppingCart sx={{ fontSize: { xs: 16, sm: 18, md: 20 } }} />
           </IconButton>
         </Box>
       </Card>

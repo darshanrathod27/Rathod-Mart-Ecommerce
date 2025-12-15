@@ -203,18 +203,21 @@ const OfferGridCard = ({
     >
       <Card
         sx={{
-          p: { xs: 2, sm: 2.5, md: 2.5 },
+          // 📱 MOBILE: Reduced padding for compact look
+          p: { xs: 1.5, sm: 2, md: 2.5 },
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          borderRadius: { xs: 2, md: 2.5 },
-          boxShadow: { xs: 1, md: 2 },
+          borderRadius: { xs: 2.5, md: 2.5 },
+          boxShadow: { xs: "0 2px 12px rgba(0,0,0,0.08)", md: 2 },
           transition: "all 0.3s ease",
+          // 📱 MOBILE: Subtle gradient border effect
+          border: { xs: "1px solid rgba(46,125,50,0.1)", md: "none" },
           "&:hover": !isMobile
             ? {
-                boxShadow: 4,
-                transform: "translateY(-2px)",
-              }
+              boxShadow: 4,
+              transform: "translateY(-2px)",
+            }
             : {},
         }}
       >
@@ -223,19 +226,21 @@ const OfferGridCard = ({
           variant="h6"
           sx={{
             fontWeight: 700,
-            mb: { xs: 1.5, md: 1.5 },
-            fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" },
+            // 📱 MOBILE: Smaller title, tighter margin
+            mb: { xs: 1, md: 1.5 },
+            fontSize: { xs: "0.9rem", sm: "1rem", md: "1.25rem" },
             lineHeight: 1.3,
+            color: "#1a1a1a",
           }}
         >
           {title}
         </Typography>
 
-        {/* Products Grid */}
+        {/* Products Grid - 📱 MOBILE: Better image sizing */}
         <Grid
           container
           spacing={{ xs: 1, sm: 1.5, md: 1.5 }}
-          sx={{ flexGrow: 1, mb: { xs: 1.5, md: 2 } }}
+          sx={{ flexGrow: 1, mb: { xs: 1, md: 2 } }}
         >
           {products.slice(0, 4).map((product, index) => (
             <Grid item xs={6} key={product ? product.id : index}>
@@ -245,43 +250,58 @@ const OfferGridCard = ({
               >
                 <Box
                   sx={{
-                    "&:hover": !isMobile ? { opacity: 0.8 } : {},
-                    "&:active": { opacity: 0.7 },
+                    "&:hover": !isMobile ? { opacity: 0.85 } : {},
+                    "&:active": { opacity: 0.7, transform: "scale(0.98)" },
                     cursor: "pointer",
-                    transition: "opacity 0.2s ease",
+                    transition: "all 0.2s ease",
                   }}
                 >
-                  {/* Product Image */}
+                  {/* Product Image - 📱 MOBILE: Smaller, compact size */}
                   <Box
-                    component="img"
-                    src={
-                      product
-                        ? product.image
-                        : "https://via.placeholder.com/150"
-                    }
-                    alt={product ? product.name : "placeholder"}
                     sx={{
+                      position: "relative",
                       width: "100%",
-                      height: { xs: 70, sm: 80, md: 90 },
-                      objectFit: "cover",
+                      // 📱 MOBILE: Smaller aspect ratio for compact cards
+                      paddingTop: { xs: "70%", sm: "75%", md: "75%" },
                       borderRadius: { xs: 1.5, md: 1.5 },
-                      mb: { xs: 0.5, md: 0.5 },
-                      border: "1px solid #f0f0f0",
-                      transition: "all 0.3s ease",
+                      overflow: "hidden",
+                      mb: { xs: 0.25, md: 0.5 },
+                      bgcolor: "#f8f8f8",
+                      border: "1px solid #eee",
                     }}
-                  />
+                  >
+                    <Box
+                      component="img"
+                      loading="lazy"  // 🚀 Lazy load for better performance
+                      src={
+                        product
+                          ? product.image
+                          : "https://via.placeholder.com/150"
+                      }
+                      alt={product ? product.name : "placeholder"}
+                      sx={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        transition: "transform 0.3s ease",
+                        "&:hover": { transform: !isMobile ? "scale(1.05)" : "none" },
+                      }}
+                    />
+                  </Box>
 
-                  {/* Product Name */}
+                  {/* Product Name - 📱 MOBILE: Smaller, single line */}
                   <Typography
                     variant="caption"
+                    noWrap
                     sx={{
                       display: "block",
-                      lineHeight: 1.2,
-                      height: "2.4em",
-                      overflow: "hidden",
-                      fontSize: { xs: "0.7rem", sm: "0.75rem", md: "0.8rem" },
+                      fontSize: { xs: "0.65rem", sm: "0.7rem", md: "0.8rem" },
                       fontWeight: 500,
-                      color: "text.secondary",
+                      color: "#555",
+                      lineHeight: 1.3,
                     }}
                   >
                     {product ? product.name : ""}
@@ -292,21 +312,22 @@ const OfferGridCard = ({
           ))}
         </Grid>
 
-        {/* See All Link */}
+        {/* See All Link - 📱 MOBILE: Better touch target */}
         <MuiLink
           component={RouterLink}
           to={linkTo || "/products"}
           sx={{
             mt: "auto",
             fontWeight: 600,
-            fontSize: { xs: "0.8rem", sm: "0.85rem", md: "0.875rem" },
-            color: "primary.main",
+            fontSize: { xs: "0.75rem", sm: "0.8rem", md: "0.875rem" },
+            color: "#2E7D32",
             textDecoration: "none",
             display: "inline-block",
+            py: { xs: 0.5, md: 0 },
             transition: "all 0.2s ease",
             "&:hover": {
               textDecoration: "underline",
-              color: "primary.dark",
+              color: "#1B5E20",
             },
           }}
         >

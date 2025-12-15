@@ -1,5 +1,5 @@
 // src/components/home/DealGrids.jsx - PERFECT MOBILE RESPONSIVE
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Box, Container, Grid, useTheme, useMediaQuery } from "@mui/material";
 import OfferGridCard from "./OfferGridCard";
 import SponsorBanner from "./SponsorBanner";
@@ -25,6 +25,33 @@ const DealGrids = () => {
   // State for dynamic deals
   const [dynamicDeals, setDynamicDeals] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // 📱 MOBILE: Auto-scroll ref and state
+  const scrollContainerRef = useRef(null);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const totalCards = dynamicDeals.length + 1; // deals + refer card
+
+  // 📱 MOBILE: Auto-scroll effect (only on mobile)
+  useEffect(() => {
+    if (!isMobile || loading || totalCards <= 1) return;
+
+    const interval = setInterval(() => {
+      setCurrentCardIndex((prev) => {
+        const next = (prev + 1) % totalCards;
+        if (scrollContainerRef.current) {
+          const container = scrollContainerRef.current;
+          const cardWidth = container.scrollWidth / totalCards;
+          container.scrollTo({
+            left: next * cardWidth,
+            behavior: "smooth"
+          });
+        }
+        return next;
+      });
+    }, 3500); // Auto-scroll every 3.5 seconds
+
+    return () => clearInterval(interval);
+  }, [isMobile, loading, totalCards]);
 
   useEffect(() => {
     const fetchDynamicDeals = async () => {
@@ -86,55 +113,123 @@ const DealGrids = () => {
       >
         <Grid container spacing={{ xs: 1.5, sm: 2, md: 2.5 }}>
           {/* ========================================
-              MAIN DEAL CARDS SECTION (Left Side)
+              MAIN DEAL CARDS SECTION - MOBILE: Horizontal Snap Scroll
               ======================================== */}
           <Grid item xs={12} md={9}>
-            <Grid container spacing={{ xs: 1.5, sm: 2, md: 2.5 }}>
-              {/* Dynamic Deals - Show loading skeleton or actual deals */}
-              {loading ? (
-                // Loading State - Show 2 placeholder cards
-                <>
-                  {[1, 2].map((index) => (
-                    <Grid item xs={12} sm={6} md={4} key={`loading-${index}`}>
+            {/* 📱 MOBILE: Horizontal scrollable container with snap + auto-scroll */}
+            {isMobile ? (
+              <Box
+                ref={scrollContainerRef}
+                sx={{
+                  display: "flex",
+                  gap: 1.5,
+                  overflowX: "auto",
+                  scrollSnapType: "x mandatory",  // Snap scroll
+                  scrollBehavior: "smooth",       // Smooth for auto-scroll
+                  WebkitOverflowScrolling: "touch",
+                  pb: 1,
+                  mx: -2,  // Negative margin to extend to edges
+                  px: 2,   // Padding to balance
+                  // Hide scrollbar
+                  "&::-webkit-scrollbar": { display: "none" },
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                }}
+              >
+                {/* Loading State */}
+                {loading ? (
+                  <>
+                    {[1, 2].map((index) => (
                       <Box
+                        key={`loading-${index}`}
                         sx={{
-                          height: { xs: 280, sm: 300, md: 320 },
+                          flex: "0 0 70%",  // Card width on mobile
+                          maxWidth: 260,
+                          scrollSnapAlign: "start",
+                          height: 220,
                           bgcolor: "grey.100",
-                          borderRadius: { xs: 2, md: 2.5 },
+                          borderRadius: 2.5,
                           animation: "pulse 1.5s ease-in-out infinite",
-                          "@keyframes pulse": {
-                            "0%, 100%": { opacity: 1 },
-                            "50%": { opacity: 0.5 },
-                          },
                         }}
                       />
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {/* Dynamic Deals */}
+                    {dynamicDeals.map((deal, index) => (
+                      <Box
+                        key={`deal-${index}`}
+                        sx={{
+                          flex: "0 0 70%",  // 70% of container width
+                          maxWidth: 260,
+                          scrollSnapAlign: "start",
+                        }}
+                      >
+                        <OfferGridCard
+                          title={deal.title}
+                          products={deal.products}
+                          linkText={deal.linkText}
+                        />
+                      </Box>
+                    ))}
+                    {/* Sign In Card */}
+                    <Box
+                      sx={{
+                        flex: "0 0 70%",
+                        maxWidth: 260,
+                        scrollSnapAlign: "start",
+                      }}
+                    >
+                      <OfferGridCard
+                        isSignIn={true}
+                        isAuthenticated={isAuthenticated}
+                        userInfo={userInfo}
+                      />
+                    </Box>
+                    {/* Spacer for last card visibility */}
+                    <Box sx={{ flex: "0 0 16px" }} />
+                  </>
+                )}
+              </Box>
+            ) : (
+              // Desktop: Normal Grid Layout
+              <Grid container spacing={{ sm: 2, md: 2.5 }}>
+                {loading ? (
+                  <>
+                    {[1, 2].map((index) => (
+                      <Grid item xs={12} sm={6} md={4} key={`loading-${index}`}>
+                        <Box
+                          sx={{
+                            height: { sm: 300, md: 320 },
+                            bgcolor: "grey.100",
+                            borderRadius: 2.5,
+                            animation: "pulse 1.5s ease-in-out infinite",
+                          }}
+                        />
+                      </Grid>
+                    ))}
+                  </>
+                ) : (
+                  dynamicDeals.map((deal, index) => (
+                    <Grid item xs={12} sm={6} md={4} key={`deal-${index}`}>
+                      <OfferGridCard
+                        title={deal.title}
+                        products={deal.products}
+                        linkText={deal.linkText}
+                      />
                     </Grid>
-                  ))}
-                </>
-              ) : (
-                // Actual Dynamic Deals
-                dynamicDeals.map((deal, index) => (
-                  <Grid item xs={12} sm={6} md={4} key={`deal-${index}`}>
-                    <OfferGridCard
-                      title={deal.title}
-                      products={deal.products}
-                      linkText={deal.linkText}
-                    />
-                  </Grid>
-                ))
-              )}
-
-              {/* ========================================
-                  SIGN IN / WELCOME CARD
-                  ======================================== */}
-              <Grid item xs={12} sm={6} md={4}>
-                <OfferGridCard
-                  isSignIn={true}
-                  isAuthenticated={isAuthenticated}
-                  userInfo={userInfo}
-                />
+                  ))
+                )}
+                <Grid item xs={12} sm={6} md={4}>
+                  <OfferGridCard
+                    isSignIn={true}
+                    isAuthenticated={isAuthenticated}
+                    userInfo={userInfo}
+                  />
+                </Grid>
               </Grid>
-            </Grid>
+            )}
           </Grid>
 
           {/* ========================================
@@ -155,7 +250,7 @@ const DealGrids = () => {
           </Grid>
         </Grid>
       </Container>
-    </Box>
+    </Box >
   );
 };
 

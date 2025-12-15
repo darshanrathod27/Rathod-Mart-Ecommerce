@@ -10,6 +10,16 @@ import ProductCard from "./ProductCard";
 import "./BestOffers.css";
 import api from "../../data/api";
 
+// Fisher-Yates shuffle algorithm for truly random selection
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 const BestOffers = () => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
@@ -26,11 +36,15 @@ const BestOffers = () => {
       try {
         const offers = await api.fetchProducts({
           isBestOffer: "true",
-          limit: 24,
+          limit: 50, // Fetch more for randomization
           sortBy: "createdAt",
           sortOrder: "desc",
         });
-        if (mounted) setProducts(offers);
+        if (mounted) {
+          // Shuffle products for random display on each load
+          const shuffled = shuffleArray(offers);
+          setProducts(shuffled.slice(0, 24)); // Take 24 random offers
+        }
       } catch (err) {
         console.error("BestOffers error:", err);
         if (mounted) setError("Failed to load offers");
