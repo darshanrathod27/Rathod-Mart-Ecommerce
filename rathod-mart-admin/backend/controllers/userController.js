@@ -116,6 +116,58 @@ export const registerUser = ah(async (req, res) => {
   }
 });
 
+// Admin/Staff Registration (Public endpoint for admin panel signup)
+export const registerAdminUser = ah(async (req, res) => {
+  const { name, email, password, role = "staff" } = req.body;
+
+  // Validate role - only allow admin, manager, or staff
+  if (!["admin", "manager", "staff"].includes(role)) {
+    res.status(400);
+    throw new Error("Invalid role. Must be admin, manager, or staff");
+  }
+
+  // Check if user already exists
+  if (await User.findOne({ email })) {
+    res.status(400);
+    throw new Error("User with this email already exists");
+  }
+
+  // Validate required fields
+  if (!name || !email || !password) {
+    res.status(400);
+    throw new Error("Name, email, and password are required");
+  }
+
+  if (password.length < 6) {
+    res.status(400);
+    throw new Error("Password must be at least 6 characters");
+  }
+
+  // Create the user
+  const user = await User.create({
+    name,
+    email,
+    password,
+    role,
+    status: "active",
+  });
+
+  if (user) {
+    // Generate admin JWT token
+    generateToken(res, user._id, "admin_jwt");
+    res.status(201).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    });
+  } else {
+    res.status(400);
+    throw new Error("Invalid user data");
+  }
+});
+
 export const getUserProfile = ah(async (req, res) => {
   if (req.user) res.json(req.user);
   else {

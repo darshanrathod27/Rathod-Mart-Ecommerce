@@ -1,6 +1,6 @@
 // frontend/src/pages/Login.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   Box,
   Card,
@@ -12,6 +12,7 @@ import {
   InputAdornment,
   IconButton,
   Alert,
+  Divider,
 } from "@mui/material";
 import { motion } from "framer-motion";
 import {
@@ -20,6 +21,7 @@ import {
   Person,
   Lock,
   ShoppingBag,
+  Google,
 } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
 import { setCredentials } from "../store/authSlice";
@@ -79,6 +81,12 @@ const Login = () => {
       [e.target.name]: e.target.value,
     }));
     if (error) setError("");
+  };
+
+  const handleGoogleLogin = () => {
+    // Redirect to backend Admin Google OAuth endpoint
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_BASE_URL || "http://localhost:5000";
+    window.location.href = `${apiBaseUrl}/api/users/admin-google`;
   };
 
   return (
@@ -255,6 +263,58 @@ const Login = () => {
                 >
                   {loading ? "Signing In..." : "Sign In"}
                 </Button>
+
+                {/* Divider */}
+                <Box sx={{ my: 2, display: "flex", alignItems: "center" }}>
+                  <Divider sx={{ flex: 1 }} />
+                  <Typography
+                    variant="body2"
+                    sx={{ px: 2, color: "text.secondary", fontWeight: 500 }}
+                  >
+                    OR
+                  </Typography>
+                  <Divider sx={{ flex: 1 }} />
+                </Box>
+
+                {/* Google Login Button */}
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  startIcon={<Google />}
+                  onClick={handleGoogleLogin}
+                  sx={{
+                    py: 1.3,
+                    borderRadius: 2,
+                    borderColor: "#e0e0e0",
+                    color: "text.primary",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    fontSize: "1rem",
+                    backgroundColor: "#fff",
+                    "&:hover": {
+                      borderColor: "#2E7D32",
+                      backgroundColor: "rgba(46, 125, 50, 0.04)",
+                    },
+                  }}
+                >
+                  Continue with Google
+                </Button>
+
+                <Box sx={{ textAlign: "center", mt: 3 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Don't have an account?{" "}
+                    <Link
+                      to="/signup"
+                      style={{
+                        color: "#2E7D32",
+                        fontWeight: "bold",
+                        textDecoration: "none",
+                      }}
+                    >
+                      Create Account
+                    </Link>
+                  </Typography>
+                </Box>
               </Box>
             </CardContent>
           </Card>

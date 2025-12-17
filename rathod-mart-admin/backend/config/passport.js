@@ -6,6 +6,7 @@ import User from "../models/User.js";
 const configurePassport = () => {
     // Only configure Google OAuth if credentials are provided
     if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+        // Customer Google OAuth Strategy
         passport.use(
             new GoogleStrategy(
                 {
@@ -56,6 +57,11 @@ const configurePassport = () => {
                 }
             )
         );
+
+        // Admin Google OAuth Strategy (uses same strategy name, handles role check in callback)
+        // Note: We use the same strategy but different callback URLs
+        // The role check happens in the route callback, not here
+
         console.log("✅ Google OAuth configured");
     } else {
         console.warn("⚠️  Google OAuth not configured - missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET");

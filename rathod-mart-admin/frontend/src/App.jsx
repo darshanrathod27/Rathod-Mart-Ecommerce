@@ -14,6 +14,8 @@ import { theme } from "./theme/theme";
 import { useSelector } from "react-redux";
 import Layout from "./components/Layout/Layout";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import GoogleAuthHandler from "./components/Common/GoogleAuthHandler";
 
 // Lazy load pages
 const Users = lazy(() => import("./pages/Users"));
@@ -59,10 +61,15 @@ function App() {
             error: { iconTheme: { primary: "#f44336", secondary: "#fff" } },
           }}
         />
+        {/* Handle Google OAuth callback */}
+        <GoogleAuthHandler />
         <Suspense fallback={<div>Loading...</div>}>
           <Routes>
             {/* Login Route */}
             <Route path="/login" element={<Login />} />
+
+            {/* Signup Route */}
+            <Route path="/signup" element={<Signup />} />
 
             {/* Protected Admin Routes */}
             <Route

@@ -14,6 +14,7 @@ import {
   loginUser,
   loginAdminUser,
   registerUser,
+  registerAdminUser,
   logoutUser,
   logoutAdmin,
   getUserProfile,
@@ -61,6 +62,7 @@ const idParamRule = [param("id").isMongoId().withMessage("Invalid user id")];
 router.post("/login", loginUser);
 router.post("/admin-login", loginAdminUser);
 router.post("/register", registerUser);
+router.post("/admin-register", registerAdminUser);
 router.post("/logout", logoutUser);
 router.post("/admin-logout", logoutAdmin);
 
@@ -98,6 +100,57 @@ router.get(
     // Redirect to frontend with success
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     res.redirect(`${frontendUrl}/?google_auth=success`);
+  }
+);
+
+// -------------------- ADMIN GOOGLE OAUTH ROUTES --------------------
+// Initiate Admin Google OAuth
+router.get(
+  "/admin-google",
+  checkGoogleAuth,
+  (req, res, next) => {
+    // Override the callback URL for admin OAuth
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
+    passport.authenticate("google", {
+      scope: ["profile", "email"],
+      callbackURL: `${backendUrl}/api/users/admin-google/callback`,
+    })(req, res, next);
+  }
+);
+
+// Admin Google OAuth Callback
+router.get(
+  "/admin-google/callback",
+  checkGoogleAuth,
+  (req, res, next) => {
+    const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
+    const adminUrl = process.env.ADMIN_URL || "http://localhost:5173";
+
+    passport.authenticate("google", {
+      session: false,
+      callbackURL: `${backendUrl}/api/users/admin-google/callback`,
+      failureRedirect: `${adminUrl}/login?error=google_auth_failed`,
+    })(req, res, next);
+  },
+  (req, res) => {
+    const adminUrl = process.env.ADMIN_URL || "http://localhost:5173";
+
+    // Check if user has admin/manager/staff role
+    if (!["admin", "manager", "staff"].includes(req.user.role)) {
+      // User doesn't have admin privileges
+      return res.redirect(`${adminUrl}/login?error=not_authorized`);
+    }
+
+    // Check if user is active
+    if (req.user.status !== "active") {
+      return res.redirect(`${adminUrl}/login?error=account_inactive`);
+    }
+
+    // Generate admin JWT token
+    generateToken(res, req.user._id, "admin_jwt");
+
+    // Redirect to admin panel with success
+    res.redirect(`${adminUrl}/?google_auth=success`);
   }
 );
 
