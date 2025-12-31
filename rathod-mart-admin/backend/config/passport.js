@@ -21,7 +21,7 @@ const configurePassport = () => {
                         let user = await User.findOne({ googleId: profile.id });
 
                         if (user) {
-                            // User exists, return it
+                            console.log("✅ Google Auth: Existing user found by googleId:", user.email);
                             return done(null, user);
                         }
 
@@ -29,6 +29,7 @@ const configurePassport = () => {
                         user = await User.findOne({ email: profile.emails[0].value });
 
                         if (user) {
+                            console.log("✅ Google Auth: Linking to existing email account:", user.email);
                             // Link Google account to existing local account
                             user.googleId = profile.id;
                             user.authProvider = "google";
@@ -39,6 +40,7 @@ const configurePassport = () => {
                             return done(null, user);
                         }
 
+                        console.log("📝 Google Auth: Creating new user:", profile.emails[0].value);
                         // Create new user with Google data
                         const newUser = await User.create({
                             name: profile.displayName,
@@ -50,8 +52,11 @@ const configurePassport = () => {
                             status: "active",
                         });
 
+                        console.log("✅ Google Auth: New user created successfully:", newUser.email);
                         return done(null, newUser);
                     } catch (error) {
+                        console.error("❌ Google Auth Strategy Error:", error.message);
+                        console.error("Full error:", error);
                         return done(error, null);
                     }
                 }

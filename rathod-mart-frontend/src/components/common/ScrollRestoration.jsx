@@ -1,39 +1,25 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-
-// In-memory storage for scroll positions (no sessionStorage)
-const scrollCache = {
-  lastPath: "",
-  scrollPosition: 0,
-};
 
 const ScrollRestoration = () => {
   const location = useLocation();
+  const prevPathRef = useRef("");
 
   useEffect(() => {
     const currentPath = location.pathname + location.search;
+    const prevPath = prevPathRef.current;
 
-    // Restore scroll position if returning to same page
-    if (scrollCache.lastPath === currentPath && scrollCache.scrollPosition) {
-      setTimeout(() => {
-        window.scrollTo(0, scrollCache.scrollPosition);
-      }, 100);
-    } else {
-      // Scroll to top for new pages
-      window.scrollTo(0, 0);
+    // Always scroll to top when navigating to a new page
+    if (currentPath !== prevPath) {
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, behavior: "instant" });
+      });
     }
 
-    // Update cache with current path
-    scrollCache.lastPath = currentPath;
-
-    // Save scroll position on scroll
-    const handleScroll = () => {
-      scrollCache.scrollPosition = window.scrollY;
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [location]);
+    // Update previous path
+    prevPathRef.current = currentPath;
+  }, [location.pathname, location.search]);
 
   return null;
 };

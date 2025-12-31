@@ -60,6 +60,11 @@ const CategoryProducts = () => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
 
+  // 🔝 Scroll to top when page loads or category changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [categoryId, isTrendingPage]);
+
   // Helper for API params
   const sortMapping = (key) => {
     switch (key) {
@@ -227,15 +232,19 @@ const CategoryProducts = () => {
         {/* ... (Keep filter chips logic same as before) ... */}
 
         {/* Content */}
-        {loading ? (
+        {loading && (
           <Box sx={{ display: "flex", justifyContent: "center", py: 10 }}>
             <CircularProgress size={60} />
           </Box>
-        ) : err ? (
+        )}
+        
+        {!loading && err && (
           <Alert severity="error" sx={{ mb: 4 }}>
             {err}
           </Alert>
-        ) : filteredProducts.length === 0 ? (
+        )}
+        
+        {!loading && !err && filteredProducts.length === 0 && (
           <Box sx={{ textAlign: "center", py: 10 }}>
             <Typography variant="h5" color="text.secondary" sx={{ mb: 2 }}>
               No products found
@@ -244,7 +253,9 @@ const CategoryProducts = () => {
               Try removing some filters to see more results.
             </Typography>
           </Box>
-        ) : (
+        )}
+        
+        {!loading && !err && filteredProducts.length > 0 && (
           <Grid container spacing={3}>
             <AnimatePresence>
               {filteredProducts.map((product, index) => (

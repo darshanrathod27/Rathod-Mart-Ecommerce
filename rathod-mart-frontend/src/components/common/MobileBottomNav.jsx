@@ -534,9 +534,12 @@ const MobileBottomNav = () => {
                                                 <Box
                                                     key={cat.id}
                                                     onClick={() => {
-                                                        navigate(`/category?category=${cat.id}`);
                                                         setSearchOpen(false);
                                                         setSearchQuery("");
+                                                        setTimeout(() => {
+                                                            navigate(`/category?category=${cat.id}`);
+                                                            setTimeout(() => window.scrollTo({ top: 0, behavior: "instant" }), 150);
+                                                        }, 50);
                                                     }}
                                                     sx={{
                                                         p: 1.5,
@@ -575,9 +578,12 @@ const MobileBottomNav = () => {
                                                 <Box
                                                     key={product._id}
                                                     onClick={() => {
-                                                        navigate(`/products/${product._id}`);
                                                         setSearchOpen(false);
                                                         setSearchQuery("");
+                                                        setTimeout(() => {
+                                                            navigate(`/product/${product._id}`);
+                                                            setTimeout(() => window.scrollTo({ top: 0, behavior: "instant" }), 150);
+                                                        }, 50);
                                                     }}
                                                     sx={{
                                                         p: 1.5,
@@ -726,8 +732,11 @@ const MobileBottomNav = () => {
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: idx * 0.025 }}
                                             onClick={() => {
-                                                navigate(`/category?category=${cat.id}`);
                                                 setSearchOpen(false);
+                                                setTimeout(() => {
+                                                    navigate(`/category?category=${cat.id}`);
+                                                    setTimeout(() => window.scrollTo({ top: 0, behavior: "instant" }), 150);
+                                                }, 50);
                                             }}
                                             sx={{
                                                 py: { xs: 1.2, sm: 1.5 },

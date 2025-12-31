@@ -1,5 +1,6 @@
 // src/components/common/SearchBar.jsx
 import React, { useState, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import {
   Box,
   InputBase,
@@ -42,8 +43,6 @@ const SearchBar = ({ categories = [] }) => {
   // 🎯 Responsive Breakpoints
   const isMobile = useMediaQuery(theme.breakpoints.down("md")); // < 900px
   const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm")); // < 600px
-  // eslint-disable-next-line no-unused-vars
-  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md")); // 600-900px
 
   const [query, setQuery] = useState("");
   const [isFocused, setIsFocused] = useState(false);
@@ -130,17 +129,27 @@ const SearchBar = ({ categories = [] }) => {
   };
 
   const handleCategoryClick = (catId) => {
-    navigate(`/category?category=${catId}`);
-    setIsFocused(false);
+    // Close drawer first, then navigate after it closes
     setShowMobileSearch(false);
+    setIsFocused(false);
     setQuery("");
+    setTimeout(() => {
+      navigate(`/category?category=${catId}`);
+      // Scroll to top AFTER navigation to override ScrollRestoration
+      setTimeout(() => window.scrollTo({ top: 0, behavior: "instant" }), 150);
+    }, 50);
   };
 
   const handleProductClick = (prodId) => {
-    navigate(`/product/${prodId}`);
-    setIsFocused(false);
+    // Close drawer first, then navigate after it closes
     setShowMobileSearch(false);
+    setIsFocused(false);
     setQuery("");
+    setTimeout(() => {
+      navigate(`/product/${prodId}`);
+      // Scroll to top AFTER navigation to override ScrollRestoration
+      setTimeout(() => window.scrollTo({ top: 0, behavior: "instant" }), 150);
+    }, 50);
   };
 
   const getImageUrl = (url) => {
@@ -463,6 +472,13 @@ const SearchBar = ({ categories = [] }) => {
                             px: 2.5,
                             py: 1.5,
                             minHeight: 56,
+                            cursor: "pointer",
+                            WebkitTapHighlightColor: "transparent",
+                            touchAction: "manipulation",
+                            userSelect: "none",
+                            "&:active": {
+                              bgcolor: "rgba(46, 125, 50, 0.12)",
+                            },
                           }}
                         >
                           <ListItemIcon sx={{ minWidth: 40 }}>
@@ -516,6 +532,13 @@ const SearchBar = ({ categories = [] }) => {
                             px: 2.5,
                             py: 1.2,
                             minHeight: 64,
+                            cursor: "pointer",
+                            WebkitTapHighlightColor: "transparent",
+                            touchAction: "manipulation",
+                            userSelect: "none",
+                            "&:active": {
+                              bgcolor: "rgba(46, 125, 50, 0.12)",
+                            },
                           }}
                         >
                           <ListItemIcon sx={{ minWidth: { xs: 52, sm: 56 } }}>
@@ -895,6 +918,16 @@ const SearchBar = ({ categories = [] }) => {
       </AnimatePresence>
     </Box>
   );
+};
+
+SearchBar.propTypes = {
+  categories: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.string,
+      _id: PropTypes.string,
+      name: PropTypes.string,
+    })
+  ),
 };
 
 export default SearchBar;

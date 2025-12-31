@@ -94,11 +94,19 @@ router.get(
     failureRedirect: `${process.env.FRONTEND_URL || "http://localhost:3000"}/login?error=google_auth_failed`,
   }),
   (req, res) => {
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    
+    // CRITICAL: Verify user exists before generating token
+    if (!req.user?._id) {
+      console.error("❌ Google callback: req.user is missing after passport authenticate");
+      return res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+    }
+    
+    console.log("✅ Google callback: Generating token for user:", req.user.email);
     // Generate JWT token for the user
     generateToken(res, req.user._id, "jwt");
 
     // Redirect to frontend with success
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     res.redirect(`${frontendUrl}/?google_auth=success`);
   }
 );

@@ -28,7 +28,6 @@ const SearchPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const query = searchParams.get("q") || "";
@@ -37,6 +36,11 @@ const SearchPage = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState(null);
+
+  // 🔝 Scroll to top when page loads or query changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [query]);
 
   useEffect(() => {
     if (!query) {
@@ -56,7 +60,8 @@ const SearchPage = () => {
         });
         setProducts(data || []);
         setErr(null);
-      } catch (e) {
+      } catch (error) {
+        console.error("Search error:", error);
         setErr("Something went wrong while searching.");
       } finally {
         setLoading(false);
