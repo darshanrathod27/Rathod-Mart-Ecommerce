@@ -4,6 +4,7 @@ import passport from "passport";
 import { body, param, validationResult } from "express-validator";
 import { protect, protectAdmin, admin } from "../middleware/authMiddleware.js";
 import generateToken from "../utils/generateToken.js";
+import { sendLoginNotificationEmail } from "../utils/emailService.js";
 
 import {
   createUser,
@@ -19,6 +20,13 @@ import {
   logoutAdmin,
   getUserProfile,
   updateUserProfile,
+  // Password Reset & Change
+  forgotPassword,
+  resetPassword,
+  changePassword,
+  adminForgotPassword,
+  adminResetPassword,
+  adminChangePassword,
 } from "../controllers/userController.js";
 
 const router = express.Router();
@@ -66,6 +74,15 @@ router.post("/admin-register", registerAdminUser);
 router.post("/logout", logoutUser);
 router.post("/admin-logout", logoutAdmin);
 
+// -------------------- PASSWORD RESET ROUTES (Public) --------------------
+// Customer password reset
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password/:token", resetPassword);
+
+// Admin password reset
+router.post("/admin-forgot-password", adminForgotPassword);
+router.post("/admin-reset-password/:token", adminResetPassword);
+
 // -------------------- GOOGLE OAUTH ROUTES --------------------
 // Middleware to check if Google OAuth is configured
 const checkGoogleAuth = (req, res, next) => {
@@ -106,6 +123,12 @@ router.get(
     // Generate JWT token for the user
     generateToken(res, req.user._id, "jwt");
 
+    // Send login notification email (async, don't wait)
+    sendLoginNotificationEmail(req.user.email, req.user.name, {
+      method: "Google Sign-In",
+      isAdmin: false,
+    });
+
     // Redirect to frontend with success
     res.redirect(`${frontendUrl}/?google_auth=success`);
   }
@@ -140,12 +163,25 @@ router.get(
       failureRedirect: `${adminUrl}/login?error=google_auth_failed`,
     })(req, res, next);
   },
-  (req, res) => {
+  async (req, res) => {
     const adminUrl = process.env.ADMIN_URL || "http://localhost:5173";
 
-    // Check if user has admin/manager/staff role
+    // If user is a customer, upgrade them to staff for admin panel access
+    if (req.user.role === "customer") {
+      try {
+        // Import User model dynamically to avoid circular dependency
+        const User = (await import("../models/User.js")).default;
+        await User.findByIdAndUpdate(req.user._id, { role: "staff" });
+        req.user.role = "staff"; // Update in memory too
+        console.log(`✅ Auto-upgraded user ${req.user.email} to staff role for admin panel`);
+      } catch (err) {
+        console.error("Failed to upgrade user role:", err);
+        return res.redirect(`${adminUrl}/login?error=role_upgrade_failed`);
+      }
+    }
+
+    // Now check if user has admin/manager/staff role (should always pass now)
     if (!["admin", "manager", "staff"].includes(req.user.role)) {
-      // User doesn't have admin privileges
       return res.redirect(`${adminUrl}/login?error=not_authorized`);
     }
 
@@ -156,6 +192,12 @@ router.get(
 
     // Generate admin JWT token
     generateToken(res, req.user._id, "admin_jwt");
+
+    // Send login notification email (async, don't wait)
+    sendLoginNotificationEmail(req.user.email, req.user.name, {
+      method: "Google Sign-In",
+      isAdmin: true,
+    });
 
     // Redirect to admin panel with success
     res.redirect(`${adminUrl}/?google_auth=success`);
@@ -168,8 +210,15 @@ router
   .get(protect, getUserProfile)
   .put(protect, updateUserProfile);
 
+// Customer change password (while logged in)
+router.post("/change-password", protect, changePassword);
+
 // -------------------- ADMIN PROFILE ROUTE ------------------
 router.route("/admin-profile").get(protectAdmin, getUserProfile);
+
+// Admin change password (while logged in)
+router.post("/admin-change-password", protectAdmin, adminChangePassword);
+
 
 // -------------------- ADMIN CRUD ROUTES (Protected + Admin Only) --------------------
 router.route("/").get(protectAdmin, admin, getUsers).post(

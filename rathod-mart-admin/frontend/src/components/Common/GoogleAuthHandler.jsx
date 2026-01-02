@@ -48,13 +48,13 @@ const GoogleAuthHandler = () => {
         }
 
         if (error) {
-            let errorMessage = "Google authentication failed. Please try again.";
+            let errorMessage;
 
             if (error === "not_authorized") {
                 errorMessage = "You don't have admin privileges. Please contact an administrator.";
             } else if (error === "account_inactive") {
                 errorMessage = "Your account is inactive. Please contact an administrator.";
-            } else if (error === "google_auth_failed") {
+            } else {
                 errorMessage = "Google authentication failed. Please try again.";
             }
 

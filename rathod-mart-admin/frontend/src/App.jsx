@@ -1,5 +1,5 @@
 // frontend/src/App.jsx
-import React, { lazy, Suspense, useEffect } from "react";
+import React, { lazy, Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -12,9 +12,12 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { Toaster } from "react-hot-toast";
 import { theme } from "./theme/theme";
 import { useSelector } from "react-redux";
+import PropTypes from "prop-types";
 import Layout from "./components/Layout/Layout";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import GoogleAuthHandler from "./components/Common/GoogleAuthHandler";
 
 // Lazy load pages
@@ -47,6 +50,10 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+ProtectedRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
 function App() {
   return (
     <ThemeProvider theme={theme}>
@@ -65,11 +72,11 @@ function App() {
         <GoogleAuthHandler />
         <Suspense fallback={<div>Loading...</div>}>
           <Routes>
-            {/* Login Route */}
+            {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
-
-            {/* Signup Route */}
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
 
             {/* Protected Admin Routes */}
             <Route

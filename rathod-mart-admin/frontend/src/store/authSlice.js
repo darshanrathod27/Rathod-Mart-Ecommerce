@@ -7,7 +7,7 @@ const initialState = {
   userInfo: localStorage.getItem("adminUserInfo")
     ? JSON.parse(localStorage.getItem("adminUserInfo"))
     : null,
-  isAuthenticated: localStorage.getItem("adminUserInfo") ? true : false,
+  isAuthenticated: Boolean(localStorage.getItem("adminUserInfo")),
   status: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
 };
 
@@ -16,14 +16,14 @@ export const checkAuthStatus = createAsyncThunk(
   "auth/checkAuthStatus",
   async (_, { rejectWithValue }) => {
     try {
-      // *** CHANGED: Call admin-profile endpoint ***
+      // Call admin-profile endpoint
       const res = await api.get("/users/admin-profile");
 
-      // Check if the user is an admin or manager
-      if (res.data.role === "admin" || res.data.role === "manager") {
+      // Check if the user is an admin, manager, or staff
+      if (["admin", "manager", "staff"].includes(res.data.role)) {
         return res.data;
       }
-      return rejectWithValue("Not an admin or manager");
+      return rejectWithValue("Not authorized for admin panel");
     } catch (err) {
       return rejectWithValue(err.response?.data?.message || "Auth failed");
     }

@@ -239,8 +239,22 @@ const Login = () => {
                       </InputAdornment>
                     ),
                   }}
-                  sx={{ mb: 3 }}
+                  sx={{ mb: 1 }}
                 />
+
+                {/* Forgot Password Link */}
+                <Box sx={{ textAlign: "right", mb: 2 }}>
+                  <Link
+                    to="/forgot-password"
+                    style={{
+                      color: "#2E7D32",
+                      fontSize: "0.875rem",
+                      textDecoration: "none",
+                    }}
+                  >
+                    Forgot Password?
+                  </Link>
+                </Box>
 
                 <Button
                   type="submit"

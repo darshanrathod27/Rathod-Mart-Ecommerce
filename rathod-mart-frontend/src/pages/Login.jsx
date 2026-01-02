@@ -259,6 +259,23 @@ const Login = () => {
                     )}
                   />
 
+                  {/* Forgot Password Link */}
+                  <Box sx={{ textAlign: "right", mt: 1 }}>
+                    <Link to="/forgot-password" style={{ textDecoration: "none" }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "#2E7D32",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          "&:hover": { textDecoration: "underline" },
+                        }}
+                      >
+                        Forgot Password?
+                      </Typography>
+                    </Link>
+                  </Box>
+
                   {/* Login Button */}
                   <Button
                     type="submit"

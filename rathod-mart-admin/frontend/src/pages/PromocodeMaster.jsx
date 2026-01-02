@@ -1,5 +1,6 @@
 // frontend/src/pages/PromocodeMaster.jsx
 import React, { useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
 import {
   Box,
   Button,
@@ -18,6 +19,7 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
+  Paper,
 } from "@mui/material";
 // DataGrid removed - using DynamicResponsiveTable instead
 import {
@@ -28,7 +30,10 @@ import {
   Edit,
   Delete,
   LocalOffer,
+  Lock,
+  SupportAgent,
 } from "@mui/icons-material";
+import { motion } from "framer-motion";
 import FormModal from "../components/Modals/FormModal";
 import PromocodeForm from "../components/Forms/PromocodeForm";
 import DynamicResponsiveTable from "../components/Shared/DynamicResponsiveTable";
@@ -36,6 +41,105 @@ import MobileSearchBar from "../components/Common/MobileSearchBar";
 import toast from "react-hot-toast";
 import { useDebounce } from "../hooks/useDebounce";
 import { promocodeService } from "../services/promocodeService";
+
+// --- Access Denied Component ---
+const AccessDenied = ({ userRole, pageName = "Promocodes" }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  
+  return (
+    <Box
+      sx={{
+        minHeight: { xs: "70vh", sm: "60vh" },
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        p: { xs: 2, sm: 3 },
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ width: "100%", maxWidth: 480 }}
+      >
+        <Paper
+          elevation={isMobile ? 0 : 2}
+          sx={{
+            textAlign: "center",
+            p: { xs: 3, sm: 4, md: 5 },
+            borderRadius: { xs: 3, sm: 4 },
+            bgcolor: "background.paper",
+            border: isMobile ? `1px solid ${theme.palette.divider}` : "none",
+          }}
+        >
+          <Box
+            sx={{
+              width: { xs: 60, sm: 80 },
+              height: { xs: 60, sm: 80 },
+              borderRadius: "50%",
+              background: `linear-gradient(135deg, ${theme.palette.warning.light} 0%, ${theme.palette.warning.main} 100%)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mx: "auto",
+              mb: { xs: 2, sm: 3 },
+              boxShadow: "0 4px 20px rgba(255, 152, 0, 0.3)",
+            }}
+          >
+            <Lock sx={{ fontSize: { xs: 28, sm: 40 }, color: "#fff" }} />
+          </Box>
+          
+          <Typography 
+            variant={isMobile ? "h6" : "h5"} 
+            fontWeight={700} 
+            gutterBottom
+            sx={{ color: "text.primary" }}
+          >
+            Access Restricted
+          </Typography>
+          
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ 
+              mb: { xs: 2, sm: 3 }, 
+              lineHeight: 1.7,
+              px: { xs: 0, sm: 2 },
+              fontSize: { xs: "0.875rem", sm: "1rem" },
+            }}
+          >
+            You don't have permission to manage {pageName}. 
+            This section is only available to <strong>Administrators</strong> and <strong>Managers</strong>.
+          </Typography>
+          
+          <Alert
+            severity="info"
+            icon={<SupportAgent sx={{ fontSize: { xs: 20, sm: 24 } }} />}
+            sx={{ 
+              textAlign: "left", 
+              borderRadius: 2, 
+              mb: 2,
+              "& .MuiAlert-message": {
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              },
+            }}
+          >
+            Need access? Contact your administrator to upgrade your permissions.
+          </Alert>
+          
+          <Chip
+            label={`Your Role: ${userRole?.charAt(0).toUpperCase() + userRole?.slice(1) || "Unknown"}`}
+            color="primary"
+            variant="outlined"
+            size={isMobile ? "small" : "medium"}
+            sx={{ mt: 1, fontWeight: 600 }}
+          />
+        </Paper>
+      </motion.div>
+    </Box>
+  );
+};
 
 const fmtDate = (d) =>
   d
@@ -53,9 +157,17 @@ const PromocodeMaster = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
+  // Get current user's role from Redux
+  const { userInfo } = useSelector((state) => state.auth);
+  const userRole = userInfo?.role;
+  
+  // Check if user has permission to view this page
+  const hasAccess = ["admin", "manager"].includes(userRole);
+
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [accessError, setAccessError] = useState(false);
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: 10,
@@ -73,6 +185,12 @@ const PromocodeMaster = () => {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchData = useCallback(async () => {
+    // Don't fetch if no access
+    if (!hasAccess) {
+      setAccessError(true);
+      return;
+    }
+    
     try {
       setLoading(true);
       setError(null);
@@ -84,17 +202,32 @@ const PromocodeMaster = () => {
       });
       setRows(Array.isArray(res?.data) ? res.data : []);
       setRowCount(res?.pagination?.total || 0);
+      setAccessError(false);
     } catch (err) {
-      setError(err.message || "Failed to load data. Please try again.");
-      toast.error(err.message || "Failed to fetch promocodes");
+      // Check if it's an authorization error
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        setAccessError(true);
+      } else {
+        setError(err.message || "Failed to load data. Please try again.");
+        toast.error(err.message || "Failed to fetch promocodes");
+      }
     } finally {
       setLoading(false);
     }
-  }, [paginationModel, debouncedSearch, filterStatus]);
+  }, [paginationModel, debouncedSearch, filterStatus, hasAccess]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Show access denied if user doesn't have permission
+  if (!hasAccess || accessError) {
+    return (
+      <Box sx={{ minHeight: "100vh", bgcolor: theme.palette.background.default }}>
+        <AccessDenied userRole={userRole} pageName="Promocodes" />
+      </Box>
+    );
+  }
 
   const handleAdd = () => {
     setEditItem(null);

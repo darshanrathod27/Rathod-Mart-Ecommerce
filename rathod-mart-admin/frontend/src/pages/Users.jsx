@@ -1,10 +1,11 @@
 // src/pages/Users.jsx
 import React, { useState, useEffect, useCallback } from "react";
+import { useSelector } from "react-redux";
 import { getUsers, deleteUser } from "../services/userService";
 import UserForm from "../components/Forms/UserForm.jsx";
 import UserViewModal from "../components/Modals/UserViewModal.jsx";
 import DynamicResponsiveTable from "../components/Shared/DynamicResponsiveTable.jsx";
-import MobileSearchBar from "../components/Common/MobileSearchBar.jsx"; // ✅ Import MobileSearchBar
+import MobileSearchBar from "../components/Common/MobileSearchBar.jsx";
 
 import {
   Box,
@@ -32,6 +33,9 @@ import {
   Divider,
   ListItemIcon,
   ListItemText,
+  Paper,
+  Stack,
+  Alert,
 } from "@mui/material";
 
 import {
@@ -43,6 +47,8 @@ import {
   Clear,
   Warning,
   PersonAdd,
+  Lock,
+  SupportAgent,
 } from "@mui/icons-material";
 
 import { motion } from "framer-motion";
@@ -51,6 +57,110 @@ import { useDebounce } from "../hooks/useDebounce";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+// --- Access Denied Component ---
+const AccessDenied = ({ userRole }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  
+  return (
+    <Box
+      sx={{
+        minHeight: { xs: "70vh", sm: "60vh" },
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        p: { xs: 2, sm: 3 },
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        style={{ width: "100%", maxWidth: 480 }}
+      >
+        <Paper
+          elevation={isMobile ? 0 : 2}
+          sx={{
+            textAlign: "center",
+            p: { xs: 3, sm: 4, md: 5 },
+            borderRadius: { xs: 3, sm: 4 },
+            bgcolor: "background.paper",
+            border: isMobile ? `1px solid ${theme.palette.divider}` : "none",
+          }}
+        >
+          {/* Lock Icon */}
+          <Box
+            sx={{
+              width: { xs: 60, sm: 80 },
+              height: { xs: 60, sm: 80 },
+              borderRadius: "50%",
+              background: `linear-gradient(135deg, ${theme.palette.warning.light} 0%, ${theme.palette.warning.main} 100%)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mx: "auto",
+              mb: { xs: 2, sm: 3 },
+              boxShadow: "0 4px 20px rgba(255, 152, 0, 0.3)",
+            }}
+          >
+            <Lock sx={{ fontSize: { xs: 28, sm: 40 }, color: "#fff" }} />
+          </Box>
+          
+          {/* Title */}
+          <Typography 
+            variant={isMobile ? "h6" : "h5"} 
+            fontWeight={700} 
+            gutterBottom
+            sx={{ color: "text.primary" }}
+          >
+            Access Restricted
+          </Typography>
+          
+          {/* Description */}
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ 
+              mb: { xs: 2, sm: 3 }, 
+              lineHeight: 1.7,
+              px: { xs: 0, sm: 2 },
+              fontSize: { xs: "0.875rem", sm: "1rem" },
+            }}
+          >
+            You don't have permission to view or manage user accounts. 
+            This section is only available to <strong>Administrators</strong> and <strong>Managers</strong>.
+          </Typography>
+          
+          {/* Info Alert */}
+          <Alert
+            severity="info"
+            icon={<SupportAgent sx={{ fontSize: { xs: 20, sm: 24 } }} />}
+            sx={{ 
+              textAlign: "left", 
+              borderRadius: 2, 
+              mb: 2,
+              "& .MuiAlert-message": {
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              },
+            }}
+          >
+            Need access? Contact your administrator to upgrade your permissions.
+          </Alert>
+          
+          {/* Role Chip */}
+          <Chip
+            label={`Your Role: ${userRole?.charAt(0).toUpperCase() + userRole?.slice(1) || "Unknown"}`}
+            color="primary"
+            variant="outlined"
+            size={isMobile ? "small" : "medium"}
+            sx={{ mt: 1, fontWeight: 600 }}
+          />
+        </Paper>
+      </motion.div>
+    </Box>
+  );
+};
 
 // --- Delete Confirmation Dialog ---
 const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
@@ -108,10 +218,18 @@ const DeleteConfirmDialog = ({ open, onClose, onConfirm, itemName }) => (
 const Users = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  
+  // Get current user's role from Redux
+  const { userInfo } = useSelector((state) => state.auth);
+  const userRole = userInfo?.role;
+  
+  // Check if user has permission to view this page
+  const hasAccess = ["admin", "manager"].includes(userRole);
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [rowCount, setRowCount] = useState(0);
+  const [accessError, setAccessError] = useState(false);
 
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
@@ -145,6 +263,12 @@ const Users = () => {
   };
 
   const fetchUsers = useCallback(async () => {
+    // Don't fetch if no access
+    if (!hasAccess) {
+      setAccessError(true);
+      return;
+    }
+    
     setLoading(true);
     try {
       const params = {
@@ -165,17 +289,33 @@ const Users = () => {
 
       setUsers(list);
       setRowCount(res?.pagination?.total || 0);
+      setAccessError(false);
     } catch (e) {
       console.error(e);
-      toast.error("Failed to load users");
+      // Check if it's an authorization error
+      if (e.response?.status === 401 || e.response?.status === 403) {
+        setAccessError(true);
+        toast.error("You don't have permission to view users");
+      } else {
+        toast.error("Failed to load users");
+      }
     } finally {
       setLoading(false);
     }
-  }, [paginationModel, debouncedSearch, filterRole, filterStatus, sortModel]);
+  }, [paginationModel, debouncedSearch, filterRole, filterStatus, sortModel, hasAccess]);
 
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  // Show access denied if user doesn't have permission
+  if (!hasAccess || accessError) {
+    return (
+      <Box sx={{ minHeight: "100vh", bgcolor: theme.palette.background.default }}>
+        <AccessDenied userRole={userRole} />
+      </Box>
+    );
+  }
 
   const handleAdd = () => {
     setEditUser(null);

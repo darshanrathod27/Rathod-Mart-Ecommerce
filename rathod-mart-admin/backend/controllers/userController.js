@@ -7,6 +7,20 @@ import {
   deleteFromCloudinary,
   getPublicIdFromUrl,
 } from "../utils/cloudinary.js";
+import {
+  generateResetToken,
+  hashToken,
+  getResetExpiration,
+  createPasswordResetUrl,
+  createAdminPasswordResetUrl,
+  validatePasswordStrength,
+} from "../utils/passwordUtils.js";
+import {
+  sendPasswordResetEmail,
+  sendAdminPasswordResetEmail,
+  sendPasswordChangedEmail,
+  sendLoginNotificationEmail,
+} from "../utils/emailService.js";
 
 const ah = (fn) => (req, res, next) =>
   Promise.resolve(fn(req, res, next)).catch(next);
@@ -46,6 +60,13 @@ export const loginAdminUser = ah(async (req, res) => {
       generateToken(res, user._id, "admin_jwt");
       const userObj = user.toObject();
       delete userObj.password;
+      
+      // Send login notification email (async, don't wait)
+      sendLoginNotificationEmail(user.email, user.name, {
+        method: "Email/Password",
+        isAdmin: true,
+      });
+      
       return res.json(userObj);
     } else {
       res.status(401);
@@ -67,6 +88,13 @@ export const loginUser = ah(async (req, res) => {
     generateToken(res, dbUser._id, "jwt");
     const user = dbUser.toObject();
     delete user.password;
+    
+    // Send login notification email (async, don't wait)
+    sendLoginNotificationEmail(dbUser.email, dbUser.name, {
+      method: "Email/Password",
+      isAdmin: false,
+    });
+    
     res.json(user);
   } else {
     res.status(401);
@@ -352,4 +380,363 @@ export const deleteUser = ah(async (req, res) => {
 
   await User.findByIdAndDelete(req.params.id);
   res.json({ success: true, message: "User deleted" });
+});
+
+// ==================== PASSWORD RESET & CHANGE ====================
+
+/**
+ * Forgot Password (Customer) - Sends reset email
+ * POST /api/users/forgot-password
+ */
+export const forgotPassword = ah(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400);
+    throw new Error("Please provide your email address");
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+
+  // Security: Don't reveal if user exists or not
+  if (!user) {
+    return res.status(200).json({
+      success: true,
+      message: "If an account exists with this email, you will receive a password reset link.",
+    });
+  }
+
+  // Check if user uses Google OAuth only
+  if (user.authProvider === "google" && !user.password) {
+    res.status(400);
+    throw new Error("This account uses Google Sign-In. Please log in with Google.");
+  }
+
+  // Generate reset token
+  const { token, hashedToken } = generateResetToken();
+
+  // Save hashed token and expiration to user
+  user.passwordResetToken = hashedToken;
+  user.passwordResetExpires = getResetExpiration(10); // 10 minutes
+  await user.save({ validateBeforeSave: false });
+
+  // Create reset URL
+  const resetUrl = createPasswordResetUrl(token);
+
+  try {
+    // Send email
+    await sendPasswordResetEmail(user.email, resetUrl, user.name);
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset link has been sent to your email.",
+    });
+  } catch (error) {
+    // If email fails, clear the reset token
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    console.error("Email send error:", error);
+    res.status(500);
+    throw new Error("Failed to send email. Please try again later.");
+  }
+});
+
+/**
+ * Reset Password (Customer) - Validates token and updates password
+ * POST /api/users/reset-password/:token
+ */
+export const resetPassword = ah(async (req, res) => {
+  const { token } = req.params;
+  const { password, confirmPassword } = req.body;
+
+  if (!password || !confirmPassword) {
+    res.status(400);
+    throw new Error("Please provide password and confirm password");
+  }
+
+  if (password !== confirmPassword) {
+    res.status(400);
+    throw new Error("Passwords do not match");
+  }
+
+  // Validate password strength
+  const { isValid, errors } = validatePasswordStrength(password);
+  if (!isValid) {
+    res.status(400);
+    throw new Error(errors.join(". "));
+  }
+
+  // Hash the token to compare with DB
+  const hashedToken = hashToken(token);
+
+  // Find user with valid token
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    res.status(400);
+    throw new Error("Invalid or expired reset token. Please request a new password reset.");
+  }
+
+  // Update password
+  user.password = password;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  user.passwordChangedAt = new Date();
+  await user.save();
+
+  // Send confirmation email
+  try {
+    await sendPasswordChangedEmail(user.email, user.name);
+  } catch (e) {
+    console.warn("Failed to send password changed email:", e.message);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Password has been reset successfully. You can now log in with your new password.",
+  });
+});
+
+/**
+ * Change Password (Customer - while logged in)
+ * POST /api/users/change-password
+ */
+export const changePassword = ah(async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    res.status(400);
+    throw new Error("Please provide current password, new password, and confirm password");
+  }
+
+  if (newPassword !== confirmPassword) {
+    res.status(400);
+    throw new Error("New passwords do not match");
+  }
+
+  // Validate password strength
+  const { isValid, errors } = validatePasswordStrength(newPassword);
+  if (!isValid) {
+    res.status(400);
+    throw new Error(errors.join(". "));
+  }
+
+  // Get user with password
+  const user = await User.findById(req.user._id).select("+password");
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  // Check if user has a password (not Google OAuth only)
+  if (!user.password) {
+    res.status(400);
+    throw new Error("This account uses Google Sign-In. Password change is not available.");
+  }
+
+  // Verify current password
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!isMatch) {
+    res.status(401);
+    throw new Error("Current password is incorrect");
+  }
+
+  // Update password
+  user.password = newPassword;
+  user.passwordChangedAt = new Date();
+  await user.save();
+
+  // Send confirmation email
+  try {
+    await sendPasswordChangedEmail(user.email, user.name);
+  } catch (e) {
+    console.warn("Failed to send password changed email:", e.message);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Password changed successfully",
+  });
+});
+
+/**
+ * Admin Forgot Password - Sends reset email
+ * POST /api/users/admin-forgot-password
+ */
+export const adminForgotPassword = ah(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400);
+    throw new Error("Please provide your email address");
+  }
+
+  const user = await User.findOne({ email: email.toLowerCase() });
+
+  // Security: Don't reveal if user exists or not
+  if (!user || !["admin", "manager", "staff"].includes(user.role)) {
+    return res.status(200).json({
+      success: true,
+      message: "If an admin account exists with this email, you will receive a password reset link.",
+    });
+  }
+
+  // Check if user uses Google OAuth only
+  if (user.authProvider === "google" && !user.password) {
+    res.status(400);
+    throw new Error("This account uses Google Sign-In. Please log in with Google.");
+  }
+
+  // Generate reset token
+  const { token, hashedToken } = generateResetToken();
+
+  // Save hashed token and expiration to user
+  user.passwordResetToken = hashedToken;
+  user.passwordResetExpires = getResetExpiration(10);
+  await user.save({ validateBeforeSave: false });
+
+  // Create admin reset URL
+  const resetUrl = createAdminPasswordResetUrl(token);
+
+  try {
+    await sendAdminPasswordResetEmail(user.email, resetUrl, user.name);
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset link has been sent to your email.",
+    });
+  } catch (error) {
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    console.error("Admin email send error:", error);
+    res.status(500);
+    throw new Error("Failed to send email. Please try again later.");
+  }
+});
+
+/**
+ * Admin Reset Password - Validates token and updates password
+ * POST /api/users/admin-reset-password/:token
+ */
+export const adminResetPassword = ah(async (req, res) => {
+  const { token } = req.params;
+  const { password, confirmPassword } = req.body;
+
+  if (!password || !confirmPassword) {
+    res.status(400);
+    throw new Error("Please provide password and confirm password");
+  }
+
+  if (password !== confirmPassword) {
+    res.status(400);
+    throw new Error("Passwords do not match");
+  }
+
+  // Validate password strength
+  const { isValid, errors } = validatePasswordStrength(password);
+  if (!isValid) {
+    res.status(400);
+    throw new Error(errors.join(". "));
+  }
+
+  const hashedToken = hashToken(token);
+
+  const user = await User.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() },
+    role: { $in: ["admin", "manager", "staff"] },
+  });
+
+  if (!user) {
+    res.status(400);
+    throw new Error("Invalid or expired reset token. Please request a new password reset.");
+  }
+
+  user.password = password;
+  user.passwordResetToken = undefined;
+  user.passwordResetExpires = undefined;
+  user.passwordChangedAt = new Date();
+  await user.save();
+
+  try {
+    await sendPasswordChangedEmail(user.email, user.name);
+  } catch (e) {
+    console.warn("Failed to send password changed email:", e.message);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Password has been reset successfully. You can now log in with your new password.",
+  });
+});
+
+/**
+ * Admin Change Password (while logged in)
+ * POST /api/users/admin-change-password
+ */
+export const adminChangePassword = ah(async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+
+  // Super Admin cannot change password this way
+  if (req.user._id === "SUPER_ADMIN_ID") {
+    res.status(403);
+    throw new Error("Super Admin password must be changed via environment variables");
+  }
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    res.status(400);
+    throw new Error("Please provide current password, new password, and confirm password");
+  }
+
+  if (newPassword !== confirmPassword) {
+    res.status(400);
+    throw new Error("New passwords do not match");
+  }
+
+  const { isValid, errors } = validatePasswordStrength(newPassword);
+  if (!isValid) {
+    res.status(400);
+    throw new Error(errors.join(". "));
+  }
+
+  const user = await User.findById(req.user._id).select("+password");
+
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+
+  if (!user.password) {
+    res.status(400);
+    throw new Error("This account uses Google Sign-In. Password change is not available.");
+  }
+
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+  if (!isMatch) {
+    res.status(401);
+    throw new Error("Current password is incorrect");
+  }
+
+  user.password = newPassword;
+  user.passwordChangedAt = new Date();
+  await user.save();
+
+  try {
+    await sendPasswordChangedEmail(user.email, user.name);
+  } catch (e) {
+    console.warn("Failed to send password changed email:", e.message);
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Password changed successfully",
+  });
 });
