@@ -1,5 +1,5 @@
 // frontend/src/components/Layout/Sidebar.jsx
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -13,7 +13,6 @@ import {
   Divider,
   Avatar,
   Chip,
-  Skeleton,
   Stack,
 } from "@mui/material";
 import { motion } from "framer-motion";
@@ -28,10 +27,7 @@ import {
   AdminPanelSettings,
   TrendingUp,
   LocalOffer,
-  ShoppingCart,
-  CheckCircle,
 } from "@mui/icons-material";
-import api from "../../services/api";
 
 const menuItems = [
   { text: "Users", icon: People, path: "/users" },
@@ -57,35 +53,10 @@ const Sidebar = ({
   mobileOpen,
   handleDrawerToggle,
   isMobile,
-  isTablet,
+  // isTablet removed - not used
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Live Stats State
-  const [stats, setStats] = useState(null);
-  const [statsLoading, setStatsLoading] = useState(true);
-
-  // Fetch dashboard stats
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const { data } = await api.get("/dashboard/stats");
-        if (data.success) {
-          setStats(data.data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch dashboard stats:", err);
-      } finally {
-        setStatsLoading(false);
-      }
-    };
-
-    fetchStats();
-    // Refresh stats every 60 seconds
-    const interval = setInterval(fetchStats, 60000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -304,7 +275,7 @@ const Sidebar = ({
 
       <Divider sx={{ mx: 2 }} />
 
-      {/* Compact Live Stats */}
+      {/* Quick Actions */}
       <Box
         sx={{
           p: 1.5,
@@ -312,63 +283,101 @@ const Sidebar = ({
           my: 1,
           borderRadius: 2,
           bgcolor: "rgba(76, 175, 80, 0.05)",
-          display: "flex",
-          gap: 1,
         }}
       >
-        {/* Products */}
-        <Box
-          sx={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            p: 1,
-            borderRadius: 1.5,
-            bgcolor: "rgba(76, 175, 80, 0.1)",
-          }}
+        <Typography 
+          variant="caption" 
+          fontWeight={600} 
+          color="text.secondary"
+          sx={{ display: "block", mb: 1, px: 0.5 }}
         >
-          <Inventory sx={{ color: "primary.main", fontSize: 18 }} />
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", lineHeight: 1 }}>
+          Quick Actions
+        </Typography>
+        <Stack direction="row" spacing={1}>
+          {/* Add Stock */}
+          <Box
+            component={motion.div}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleNavigation("/inventory")}
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 0.5,
+              p: 1,
+              borderRadius: 1.5,
+              bgcolor: "rgba(76, 175, 80, 0.1)",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              "&:hover": {
+                bgcolor: "rgba(76, 175, 80, 0.2)",
+              },
+            }}
+          >
+            <Inventory2 sx={{ color: "primary.main", fontSize: 20 }} />
+            <Typography variant="caption" fontWeight={600} color="primary.main" sx={{ fontSize: "0.65rem" }}>
+              Add Stock
+            </Typography>
+          </Box>
+
+          {/* Add Product */}
+          <Box
+            component={motion.div}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleNavigation("/products")}
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 0.5,
+              p: 1,
+              borderRadius: 1.5,
+              bgcolor: "rgba(33, 150, 243, 0.1)",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              "&:hover": {
+                bgcolor: "rgba(33, 150, 243, 0.2)",
+              },
+            }}
+          >
+            <Inventory sx={{ color: "#2196F3", fontSize: 20 }} />
+            <Typography variant="caption" fontWeight={600} sx={{ color: "#2196F3", fontSize: "0.65rem" }}>
               Products
             </Typography>
-            {statsLoading ? (
-              <Skeleton width={24} height={18} />
-            ) : (
-              <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ lineHeight: 1.2 }}>
-                {stats?.products ?? 0}
-              </Typography>
-            )}
           </Box>
-        </Box>
 
-        {/* Orders */}
-        <Box
-          sx={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            p: 1,
-            borderRadius: 1.5,
-            bgcolor: "rgba(33, 150, 243, 0.1)",
-          }}
-        >
-          <ShoppingCart sx={{ color: "#2196F3", fontSize: 18 }} />
-          <Box>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.65rem", lineHeight: 1 }}>
-              Orders
+          {/* Promocodes */}
+          <Box
+            component={motion.div}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleNavigation("/promocodes")}
+            sx={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 0.5,
+              p: 1,
+              borderRadius: 1.5,
+              bgcolor: "rgba(156, 39, 176, 0.1)",
+              cursor: "pointer",
+              transition: "all 0.2s",
+              "&:hover": {
+                bgcolor: "rgba(156, 39, 176, 0.2)",
+              },
+            }}
+          >
+            <LocalOffer sx={{ color: "#9C27B0", fontSize: 20 }} />
+            <Typography variant="caption" fontWeight={600} sx={{ color: "#9C27B0", fontSize: "0.65rem" }}>
+              Promos
             </Typography>
-            {statsLoading ? (
-              <Skeleton width={24} height={18} />
-            ) : (
-              <Typography variant="subtitle2" fontWeight={700} sx={{ color: "#2196F3", lineHeight: 1.2 }}>
-                {stats?.orders ?? 0}
-              </Typography>
-            )}
           </Box>
-        </Box>
+        </Stack>
       </Box>
 
       {/* Enhanced Footer */}
